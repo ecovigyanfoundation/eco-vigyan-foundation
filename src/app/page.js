@@ -188,7 +188,7 @@ export default function HomePage() {
                 Eco Vigyan for{" "}
                 {/* Beautification: Stronger gradient and deeper shadow */}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500 drop-shadow-md">
-                  Underprivileged Children
+                  Eco Clubs
                 </span>
               </h2>
 

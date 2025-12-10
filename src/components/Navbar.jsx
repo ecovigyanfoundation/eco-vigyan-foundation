@@ -43,7 +43,7 @@ export default function Navbar() {
   const navLinks = [
     { name: 'Home', path: '/' },
     { name: 'About', path: '/#about' }, 
-    { name: 'Mushroom Map', path: '/map', isNew: true },
+    { name: 'Explore', path: '/map', isNew: true },
   ];
 
   // Handle scroll effect for sticky nav
@@ -79,9 +79,9 @@ export default function Navbar() {
 
           {/* Contact Info (Right) */}
           <div className="flex w-full md:w-auto justify-between md:justify-end md:space-x-8">
-            <a href="tel:+919XXXXXXXXX" className="flex items-center hover:text-emerald-200 transition">
+            <a href="tel:+918894486066" className="flex items-center hover:text-emerald-200 transition">
               <Phone className="w-3.5 h-3.5 mr-2 text-orange-500" /> 
-              <span className="font-medium">+91 9XXXXXXXXX</span>
+              <span className="font-medium">+91 8894486066</span>
             </a>
             <a href="mailto:ecovigyan@gmail.com" className="flex items-center hover:text-emerald-200 transition">
               <Mail className="w-3.5 h-3.5 mr-2 text-orange-500" /> 
@@ -112,7 +112,7 @@ export default function Navbar() {
                   Eco Vigyan <span className="text-orange-600">Foundation</span>
                 </span>
                 <span className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-semibold">
-                  School Trust
+                  Eco Club NGO
                 </span>
               </div>
             </a>

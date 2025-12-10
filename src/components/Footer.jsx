@@ -155,24 +155,22 @@ export default function Footer() {
               <div className="flex items-start group">
                 <MapPin className="w-5 h-5 text-orange-500 mt-0.5 mr-3 flex-shrink-0 group-hover:animate-bounce" />
                 <span className="group-hover:text-white transition-colors">
-                  S-7, Aayojan Apartments,<br />
-                  Jyotinagar Exit, Lalkothi,<br />
-                  Shimla, Rajasthan 302005
+                  Eco vigyan foundation, Village Jadheni, Near Jutogh Cantonment, Baichri, Shimla, Himachal Pradesh 171011
                 </span>
               </div>
               
               <div className="flex items-center group">
                 <Phone className="w-5 h-5 text-orange-500 mr-3 flex-shrink-0" />
                 <div className="flex flex-col">
-                  <a href="tel:+919166371582" className="hover:text-white transition-colors">+91-9166371582</a>
-                  <a href="tel:+919782209683" className="hover:text-white transition-colors">+91-9782209683</a>
+                  <a href="tel:+919166371582" className="hover:text-white transition-colors">+91-8894486066</a>
+                  <a href="tel:+919782209683" className="hover:text-white transition-colors">+91-9882950813</a>
                 </div>
               </div>
 
               <div className="flex items-center group">
                 <Mail className="w-5 h-5 text-orange-500 mr-3 flex-shrink-0" />
-                <a href="mailto:info@paathshalatrust.org" className="hover:text-white transition-colors">
-                  info@paathshalatrust.org
+                <a href="mailto:ecovigyan@gmail.com" className="hover:text-white transition-colors">
+                  ecovigyan@gmail.com
                 </a>
               </div>
             </address>
@@ -196,7 +194,7 @@ export default function Footer() {
           variants={itemVariants}
           className="border-t border-emerald-900 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-emerald-600"
         >
-          <p>© {new Date().getFullYear()} Paathshala Trust. All Rights Reserved.</p>
+          <p>© {new Date().getFullYear()} Eco Vigyan Foundation. All Rights Reserved.</p>
           <div className="flex space-x-6 mt-4 md:mt-0">
             <a href="/privacy" className="hover:text-orange-400 transition-colors">Privacy Policy</a>
             <a href="/terms" className="hover:text-orange-400 transition-colors">Terms of Use</a>
