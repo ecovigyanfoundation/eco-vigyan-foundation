@@ -1,70 +1,60 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useInView } from "react-intersection-observer";
 
 export const HEADLINES = [
   {
-    topic: "Child Labour and Protection",
-    main: "Working for elimination of Child Labour",
-    tagline: "Working for a better tomorrow.",
+    topic: "Sustainability Education",
+    main: "Cultivating Eco-Conscious Schools Across India",
+    tagline: "Empowering students to learn, explore, and care for nature.",
   },
   {
-    topic: "Mission Education",
-    main: "Empowering Futures with Quality Education",
-    tagline: "Every child deserves a chance to learn.",
+    topic: "Learning Through Nature",
+    main: "Where Every Child Becomes a Budding Scientist",
+    tagline:
+      "Igniting curiosity through hands-on experiences in the natural world.",
   },
   {
-    topic: "Health and Nutrition",
-    main: "Ensuring a Healthy Start for Every Child",
-    tagline: "Nourishing bodies, strengthening futures.",
+    topic: "Fungi & Biodiversity Awareness",
+    main: "Revealing Nature’s Hidden Heroes",
+    tagline:
+      "Exploring the unseen world of fungi to inspire wonder and understanding.",
+  },
+  {
+    topic: "Eco-Club Transformation",
+    main: "Building Stronger Eco-Clubs, One School at a Time",
+    tagline:
+      "Nurturing young changemakers through meaningful environmental action.",
+  },
+  {
+    topic: "Head, Heart & Hand Learning",
+    main: "Connecting Knowledge with Compassion and Action",
+    tagline: "Learning that inspires students to care for the planet.",
+  },
+  {
+    topic: "Community & Teacher Training",
+    main: "Empowering Educators to Become Nature Guides",
+    tagline:
+      "Supporting teachers to lead sustainability journeys with confidence.",
   },
 ];
 
 const textVariants = {
-  enter: { opacity: 0, y: 20, transition: { duration: 0.8 } },
-  center: { opacity: 1, y: 0, transition: { duration: 0.8 } },
-  exit: { opacity: 0, y: -20, transition: { duration: 0.8 } },
+  enter: { opacity: 0, y: 20, transition: { duration: 0.6 } },
+  center: { opacity: 1, y: 0, transition: { duration: 0.6 } },
+  exit: { opacity: 0, y: -20, transition: { duration: 0.6 } },
 };
 
-export default function AnimatedHeroText({ onTextChange }) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-
-  const { ref, inView } = useInView({
-    triggerOnce: true,
-    threshold: 0.5,
-  });
-
-  useEffect(() => {
-    if (!inView) return;
-
-    const interval = setInterval(() => {
-      setCurrentIndex((prev) => {
-        const next = (prev + 1) % HEADLINES.length;
-
-        // 🛠 Fix React warning (async)
-        if (onTextChange) setTimeout(() => onTextChange(next), 0);
-
-        return next;
-      });
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [inView, onTextChange]);
-
+export default function AnimatedHeroText({ currentIndex }) {
   const current = HEADLINES[currentIndex];
 
   return (
-    <div
-      ref={ref}
-      className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8
-                 w-full h-full pt-40 pb-20 flex items-center justify-center text-center"
-    >
+    <div className="w-full h-full flex flex-col justify-center items-center text-center">
       <AnimatePresence mode="wait">
         <motion.div
           key={current.main}
-          className="absolute flex flex-col items-center justify-center"
+          className="flex flex-col items-center justify-center"
           initial="enter"
           animate="center"
           exit="exit"

@@ -4,10 +4,9 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-
-import Navbar from "@/components/Navbar";
+import ImpactCard from '@/components/ImpactCard'; // <--- Ensure this path is correct
 import FramerAnimation from "@/components/FramerAnimation";
-import AnimatedHeroText from "@/components/AnimatedHeroText";
+import AnimatedHeroText,{HEADLINES} from "@/components/AnimatedHeroText";
 import TestimonialSection from "@/components/TestimonialSection";
 import {
   BookOpen,
@@ -35,56 +34,55 @@ function HeroSection() {
     "/gallery/img4.jpg",
     "/gallery/img5.jpeg",
     "/gallery/img6.jpeg",
-    "/gallery/img6.jpeg",
     "/gallery/img7.jpeg",
     "/gallery/img8.jpeg",
     "/gallery/img9.jpeg",
     "/gallery/img10.jpeg",
     "/gallery/img11.jpeg",
   ];
-  const [currentImage, setCurrentImage] = useState(0);
 
+  const [index, setIndex] = useState(0);
+
+  // MASTER TIMER (controls both text + image)
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentImage((prev) => (prev + 1) % heroImages.length);
-    }, 5000);
+      setIndex((prev) => (prev + 1) % heroImages.length);
+    }, 3000); // ⬅ Smoother, synced pacing
+
     return () => clearInterval(timer);
-  }, [heroImages.length]);
+  }, []);
 
   return (
-    <section className="relative h-[85vh] flex items-center justify-center overflow-hidden will-change-transform">
+    <section className="relative h-[85vh] flex items-center justify-center overflow-hidden">
+      {/* IMAGES */}
       {heroImages.map((img, idx) => (
         <div
           key={idx}
           style={{ backgroundImage: `url(${img})` }}
           className={`absolute inset-0 bg-cover bg-center transition-all duration-1000 ease-in-out ${
-            idx === currentImage
-              ? "opacity-100 scale-105"
-              : "opacity-0 scale-100"
+            idx === index ? "opacity-100 scale-105" : "opacity-0 scale-100"
           }`}
         />
       ))}
 
       {/* Overlays */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/40 to-black/80" />
-      {/* Beautification: Subtle texture overlay */}
-      <div className="absolute inset-0 opacity-15 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] z-10" />
+      <div className="absolute inset-0 opacity-15 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]" />
 
-      {/* Animated Text */}
-      <div className="relative z-20 container mx-auto px-4 h-full flex flex-col justify-center items-center text-center">
-        <AnimatedHeroText
-          onTextChange={(i) => setCurrentImage(i % heroImages.length)}
-        />
+      {/* TEXT */}
+      <div className="relative z-20 container mx-auto px-4 h-full flex justify-center items-center text-center">
+        <AnimatedHeroText currentIndex={index % HEADLINES.length} />
+
       </div>
 
-      {/* Indicators */}
+      {/* INDICATORS */}
       <div className="absolute bottom-10 z-30 flex space-x-3 bg-black/30 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20">
         {heroImages.map((_, idx) => (
           <button
             key={idx}
-            onClick={() => setCurrentImage(idx)}
+            onClick={() => setIndex(idx)}
             className={`h-2 rounded-full transition-all ${
-              idx === currentImage
+              idx === index
                 ? "w-8 bg-orange-500 shadow-lg shadow-orange-500/50"
                 : "w-2 bg-white/50 hover:bg-white"
             }`}
@@ -331,89 +329,76 @@ export default function HomePage() {
             </div>
           </FramerAnimation>
 
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
-            {/* Impact Card Beautification: Added transform scale and deeper shadow on hover */}
+          {/* THE NEW IMPACT GRID WITH ANIMATED CARDS */}
+          <FramerAnimation delay={0.4}>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
+              
+              {/* 300+ Schools */}
+              <ImpactCard 
+                Icon="BookOpen" 
+                endValue={300} 
+                label="Schools Partnered" 
+                color="blue"
+              />
 
-            {/* 300+ Schools */}
-            <div className="p-6 bg-blue-50 border border-blue-100 rounded-2xl shadow-lg text-center transition-all duration-300 hover:shadow-xl hover:scale-[1.05] cursor-default">
-              <BookOpen className="w-8 h-8 text-blue-600 mb-4 mx-auto" />
-              <p className="text-4xl md:text-5xl font-black text-blue-900 drop-shadow-sm">
-                300+
-              </p>
-              <p className="uppercase text-xs md:text-sm font-bold text-slate-600 mt-2">
-                Schools Partnered
-              </p>
-            </div>
+              {/* 450+ Teachers */}
+              <ImpactCard 
+                Icon="Users" 
+                endValue={450} 
+                label="Teachers Trained" 
+                color="green"
+              />
 
-            {/* 450+ Teachers */}
-            <div className="p-6 bg-green-50 border border-green-100 rounded-2xl shadow-lg text-center transition-all duration-300 hover:shadow-xl hover:scale-[1.05] cursor-default">
-              <Users className="w-8 h-8 text-green-600 mb-4 mx-auto" />
-              <p className="text-4xl md:text-5xl font-black text-green-900 drop-shadow-sm">
-                450+
-              </p>
-              <p className="uppercase text-xs md:text-sm font-bold text-slate-600 mt-2">
-                Teachers Trained
-              </p>
-            </div>
+              {/* 20K+ Students (End value is 20000, formatting handles the 'K+') */}
+              <ImpactCard 
+                Icon="Activity" 
+                endValue={20000} 
+                label="Students Reached" 
+                color="orange"
+              />
 
-            {/* 20000+ Students */}
-            <div className="p-6 bg-orange-50 border border-orange-100 rounded-2xl shadow-lg text-center transition-all duration-300 hover:shadow-xl hover:scale-[1.05] cursor-default">
-              <Activity className="w-8 h-8 text-orange-600 mb-4 mx-auto" />
-              <p className="text-4xl md:text-5xl font-black text-orange-900 drop-shadow-sm">
-                20K+
-              </p>
-              <p className="uppercase text-xs md:text-sm font-bold text-slate-600 mt-2">
-                Students Reached
-              </p>
-            </div>
+              {/* 100+ Community Engagement Initiatives */}
+              <ImpactCard 
+                Icon="Heart" 
+                endValue={100} 
+                label="Community Initiatives" 
+                color="yellow"
+              />
 
-            {/* 100+ Community Engagement Initiatives */}
-            <div className="p-6 bg-yellow-50 border border-yellow-100 rounded-2xl shadow-lg text-center transition-all duration-300 hover:shadow-xl hover:scale-[1.05] cursor-default">
-              <Heart className="w-8 h-8 text-yellow-600 mb-4 mx-auto" />
-              <p className="text-4xl md:text-5xl font-black text-yellow-900 drop-shadow-sm">
-                100+
-              </p>
-              <p className="uppercase text-xs md:text-sm font-bold text-slate-600 mt-2">
-                Community Initiatives
-              </p>
-            </div>
+              {/* 5000+ Mushrooms mapped */}
+              <ImpactCard 
+                Icon="MapIcon" 
+                endValue={5000} 
+                label="Mushrooms Mapped" 
+                color="purple"
+              />
 
-            {/* 5000+ Mushrooms mapped */}
-            <div className="p-6 bg-purple-50 border border-purple-100 rounded-2xl shadow-lg text-center transition-all duration-300 hover:shadow-xl hover:scale-[1.05] cursor-default">
-              <MapIcon className="w-8 h-8 text-purple-600 mb-4 mx-auto" />
-              <p className="text-4xl md:text-5xl font-black text-purple-900 drop-shadow-sm">
-                5000+
-              </p>
-              <p className="uppercase text-xs md:text-sm font-bold text-slate-600 mt-2">
-                Mushrooms Mapped
-              </p>
-            </div>
+              {/* CTA (Spanning all columns) - Your original code remains here */}
+              <div className="mt-8 col-span-2 md:col-span-5 rounded-3xl shadow-2xl overflow-hidden relative group">
+                {/* Beautification: Stronger CTA background glow */}
+                <div className="absolute inset-0 bg-gradient-to-r from-orange-700 to-red-700 transition-transform group-hover:scale-[1.02] duration-500"></div>
 
-            {/* CTA (Spanning all columns) */}
-            <div className="mt-8 col-span-2 md:col-span-5 rounded-3xl shadow-2xl overflow-hidden relative group">
-              {/* Beautification: Stronger CTA background glow */}
-              <div className="absolute inset-0 bg-gradient-to-r from-orange-700 to-red-700 transition-transform group-hover:scale-[1.02] duration-500"></div>
+                <div className="relative p-12 flex flex-col md:flex-row items-center justify-between gap-8">
+                  <div className="text-center md:text-left">
+                    <h3 className="text-3xl font-extrabold text-white mb-2">
+                      Be Part of the Change
+                    </h3>
+                    <p className="text-orange-100 text-lg">
+                      Your contribution directly supports our mushroom mapping &
+                      education kits.
+                    </p>
+                  </div>
 
-              <div className="relative p-12 flex flex-col md:flex-row items-center justify-between gap-8">
-                <div className="text-center md:text-left">
-                  <h3 className="text-3xl font-extrabold text-white mb-2">
-                    Be Part of the Change
-                  </h3>
-                  <p className="text-orange-100 text-lg">
-                    Your contribution directly supports our mushroom mapping &
-                    education kits.
-                  </p>
+                  <Link
+                    href="/donate"
+                    className="px-8 py-4 bg-white text-red-600 font-bold rounded-full shadow-lg hover:bg-stone-100 transition-all hover:scale-105 active:scale-95 flex items-center"
+                  >
+                    Donate Now <Heart className="ml-2 w-5 h-5 fill-red-600" />
+                  </Link>
                 </div>
-
-                <Link
-                  href="/donate"
-                  className="px-8 py-4 bg-white text-red-600 font-bold rounded-full shadow-lg hover:bg-stone-100 transition-all hover:scale-105 active:scale-95 flex items-center"
-                >
-                  Donate Now <Heart className="ml-2 w-5 h-5 fill-red-600" />
-                </Link>
               </div>
             </div>
-          </div>
+          </FramerAnimation>
         </div>
       </section>
 
