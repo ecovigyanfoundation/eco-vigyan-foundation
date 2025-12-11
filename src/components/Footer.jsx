@@ -72,15 +72,15 @@ export default function Footer() {
           <motion.div variants={itemVariants} className="space-y-6">
             <div>
               <h3 className="text-2xl font-black text-white tracking-tight uppercase">
-                Paathshala <span className="text-orange-500">Trust</span>
+                EcoVigyan <span className="text-orange-500">Foundation</span>
               </h3>
               <p className="text-xs font-bold tracking-widest text-emerald-400 mt-1 uppercase">
-                Est. 2002 • Shimla
+                Est. 2024 • Shimla
               </p>
             </div>
             
             <p className="text-sm leading-relaxed text-emerald-100/70">
-              Dedicated to the welfare of street children, sustainable development, and environmental stewardship. Join us in bridging the gap between poverty and opportunity.
+              Lorem ipsum dolor sit amet consectetur adipisicing elit. Laudantium ut distinctio officia dolorum sunt, repellendus libero accusantium placeat! Beatae provident voluptates quos quaerat accusantium exercitationem similique esse cupiditate vitae veritatis.
             </p>
 
             <div className="flex space-x-4">
