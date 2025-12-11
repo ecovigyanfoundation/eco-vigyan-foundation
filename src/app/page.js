@@ -4,9 +4,9 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import ImpactCard from '@/components/ImpactCard'; // <--- Ensure this path is correct
+import ImpactCard from "@/components/ImpactCard"; // <--- Ensure this path is correct
 import FramerAnimation from "@/components/FramerAnimation";
-import AnimatedHeroText,{HEADLINES} from "@/components/AnimatedHeroText";
+import AnimatedHeroText, { HEADLINES } from "@/components/AnimatedHeroText";
 import TestimonialSection from "@/components/TestimonialSection";
 import {
   BookOpen,
@@ -72,7 +72,6 @@ function HeroSection() {
       {/* TEXT */}
       <div className="relative z-20 container mx-auto px-4 h-full flex justify-center items-center text-center">
         <AnimatedHeroText currentIndex={index % HEADLINES.length} />
-
       </div>
 
       {/* INDICATORS */}
@@ -111,35 +110,20 @@ export default function HomePage() {
       ------------------------------------------------------------------- */}
       <section className="py-24 bg-white relative overflow-hidden">
         <div className="max-w-6xl mx-auto px-4 text-center relative z-10">
-          <FramerAnimation delay={0.1}>
-            {/* Beautification: Applied text shadow for depth */}
-            <h2 className="text-4xl md:text-5xl font-extrabold text-slate-900 drop-shadow-sm">
-              Our Vision & Core Mission
-            </h2>
-            <p className="text-xl text-slate-600 max-w-4xl mx-auto mt-4 mb-16">
-              We connect people and planet by uniting head, heart, and hand in
-              everything we do.
-            </p>
-          </FramerAnimation>
-
           {/* Vision */}
           <FramerAnimation delay={0.3}>
             {/* Beautification: Rounded corners increased for softer look */}
-            <div className="bg-orange-50 border-t-8 border-orange-500 rounded-[2.5rem] p-12 mb-10 shadow-2xl shadow-orange-200/50">
+            <div className="bg-orange-50 border-t-8 border-pink-500 rounded-[2.5rem] p-12 mb-10 shadow-2xl shadow-orange-200/50">
               <div className="flex justify-center mb-6">
-                <Leaf className="w-10 h-10 text-orange-600 mr-4" />
-                <h3 className="text-3xl font-bold text-orange-700 uppercase tracking-wider">
+                <h3 className="text-3xl font-bold text-pink-500 uppercase tracking-wider">
                   Our Vision
                 </h3>
               </div>
 
               <p className="text-xl text-slate-700 max-w-4xl mx-auto leading-relaxed">
-                We envision schools and communities where{" "}
-                <strong className="text-orange-800">
-                  sustainability is integrated
-                </strong>{" "}
-                into everyday practices, fostering scientific inquiry and a deep
-                appreciation for the natural world.
+                We envision schools and communities where sustainability is
+                integrated into everyday practices, fostering scientific inquiry
+                and a deep appreciation for the natural world.
               </p>
             </div>
           </FramerAnimation>
@@ -149,7 +133,6 @@ export default function HomePage() {
             {/* Beautification: Rounded corners increased for softer look */}
             <div className="bg-emerald-50 border-t-8 border-emerald-500 rounded-[2.5rem] p-12 shadow-2xl shadow-emerald-200/50">
               <div className="flex justify-center mb-6">
-                <CheckCircle className="w-10 h-10 text-emerald-600 mr-4" />
                 <h3 className="text-3xl font-bold text-emerald-700 uppercase tracking-wider">
                   Our Mission
                 </h3>
@@ -180,27 +163,15 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 relative z-10">
           <FramerAnimation delay={0.2}>
             <div className="text-center mb-16">
-              <span className="text-orange-600 font-bold uppercase tracking-wider text-sm">
-                Who We Are
-              </span>
-
               <h2 className="mt-3 text-4xl md:text-5xl font-extrabold text-slate-900">
-                Eco Vigyan for{" "}
                 {/* Beautification: Stronger gradient and deeper shadow */}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500 drop-shadow-md">
-                  Eco Clubs
+                  Who We Are
                 </span>
               </h2>
 
-              <div className="w-24 h-1.5 mx-auto mt-6 bg-gradient-to-r from-orange-500 to-orange-300 rounded-full" />
 
-              <p className="mt-6 text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">
-                Eco Vigyan Foundation came into existence just last year with a
-                clear purpose – to enhance eco-club activities in schools
-                throughout India. We hold a special fascination for unveiling
-                the hidden significance of fungi in the grand tapestry of
-                nature.
-              </p>
+                
             </div>
           </FramerAnimation>
 
@@ -208,11 +179,18 @@ export default function HomePage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             {/* LEFT TEXT BLOCK */}
             <FramerAnimation delay={0.3}>
-              <div className="space-y-8 text-[1.05rem] text-slate-700 leading-[1.75] font-normal tracking-[0.1px]">
+              <div className="space-y-8 text-xl lg:text-left text-slate-700 leading-relaxed mx-auto font-normal tracking-[0.1px] text-center ">
+                <p>
+                  Eco Vigyan Foundation came into existence just last year with a
+                clear purpose – to enhance eco-club activities in schools
+                throughout India. We hold a special fascination for unveiling
+                the hidden significance of fungi in the grand tapestry of
+                nature.
+                </p>
                 <p>
                   This endeavour was co-founded by{" "}
                   <Link
-                    href="https://www.google.com/url?q=https://wiprofoundation.org/earthian/earthjust/%23:~:text%3DShrey%2520Gupta%2520(Cohort%25203).%25202020%2520%252D%25202022.,while%2520collectively%2520exploring%2520the%2520hidden%2520world%2520of&sa=D&source=docs&ust=1765376479270642&usg=AOvVaw2GJfiBsdoIrWgYs5pAJS0C"
+                    href="https://wiprofoundation.org/earthian/earthjust/#:~:text=Shrey%20Gupta%20(Cohort%203).%202020%20%2D%202022.,while%20collectively%20exploring%20the%20hidden%20world%20of"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="font-semibold text-emerald-700 hover:text-emerald-900 underline underline-offset-2"
@@ -313,63 +291,46 @@ export default function HomePage() {
       ------------------------------------------------------------------- */}
       <section className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4">
-          <FramerAnimation delay={0.2}>
-            <div className="text-center mb-16">
-              {/* Beautification: Title with stronger gradient */}
-              <h2 className="text-4xl md:text-5xl font-extrabold text-slate-900">
-                Measuring Our{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-red-600">
-                  Impact
-                </span>
-              </h2>
-              <p className="text-slate-500 max-w-2xl mx-auto text-lg mt-4">
-                Thanks to supporters like you, we continue to grow our reach and
-                deepen our commitment to environmental education.
-              </p>
-            </div>
-          </FramerAnimation>
-
           {/* THE NEW IMPACT GRID WITH ANIMATED CARDS */}
           <FramerAnimation delay={0.4}>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
-              
               {/* 300+ Schools */}
-              <ImpactCard 
-                Icon="BookOpen" 
-                endValue={300} 
-                label="Schools Partnered" 
+              <ImpactCard
+                Icon="BookOpen"
+                endValue={300}
+                label="Schools Partnered"
                 color="blue"
               />
 
               {/* 450+ Teachers */}
-              <ImpactCard 
-                Icon="Users" 
-                endValue={450} 
-                label="Teachers Trained" 
+              <ImpactCard
+                Icon="Users"
+                endValue={450}
+                label="Teachers Trained"
                 color="green"
               />
 
               {/* 20K+ Students (End value is 20000, formatting handles the 'K+') */}
-              <ImpactCard 
-                Icon="Activity" 
-                endValue={20000} 
-                label="Students Reached" 
+              <ImpactCard
+                Icon="Activity"
+                endValue={20000}
+                label="Students Reached"
                 color="orange"
               />
 
               {/* 100+ Community Engagement Initiatives */}
-              <ImpactCard 
-                Icon="Heart" 
-                endValue={100} 
-                label="Community Initiatives" 
+              <ImpactCard
+                Icon="Heart"
+                endValue={100}
+                label="Community Initiatives"
                 color="yellow"
               />
 
               {/* 5000+ Mushrooms mapped */}
-              <ImpactCard 
-                Icon="MapIcon" 
-                endValue={5000} 
-                label="Mushrooms Mapped" 
+              <ImpactCard
+                Icon="MapIcon"
+                endValue={5000}
+                label="Mushrooms Mapped"
                 color="purple"
               />
 

@@ -4,6 +4,7 @@
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image"; // Import Image component for optimized images
 import { Quote, Star } from "lucide-react";
 
 import FramerAnimation from "@/components/FramerAnimation";
@@ -17,43 +18,50 @@ const testimonials = [
       "From being a nature lover I became a nature protector. Thank you, Shery to show me the easy way of living keep up the good work and keep inspiring ❤️",
     name: "Dr. Shilpi Singh",
     title: "Yoga Trainer",
+    imageSrc: "/images/testimonials/dr-shilpi-singh.jpg", // Placeholder
   },
   {
     quote:
       "Something that I couldn't even measure was the happiness which I got post getting the first harvest! It was invaluable!",
     name: "Raman Bhal",
     title: "Founder, Learning Initiatives for India",
+    imageSrc: "/images/testimonials/raman-bhal.jpg", // Placeholder
   },
   {
     quote:
       "I am not sure which is easier- to push a car uphill single-handedly or to enthuse an 80-year person to get excited to grow mushrooms. But Shrey has done just that. I was successful. Oysters grew. I just followed what he told me to do. My family says there must be something extraordinary about him. They are absolutely right",
     name: "Romi Kohsala",
     title: "Celebrated Architect",
+    imageSrc: "/images/testimonials/romi-kohsala.jpg", // Placeholder
   },
   {
     quote:
       "Shray never fails to amaze with his knowledge and passion and the experience of walking through Forest Road searching for mushrooms was really special. My 6-year old son enjoyed it immensely too so much so that he wants to go again!",
     name: "Avih Rastogi",
     title: "Naturalist",
+    imageSrc: "/images/testimonials/avih-rastogi.jpg", // Placeholder
   },
   {
     quote:
       "Thankuuu sooo much shrey for imparting your wealth of knowledge about the fungi world with us. It was an amzing experience to learn things from you, you are a wondurful Teacher and Great human Being... keep it up",
     name: "Kanchan Chandel",
     title: "Naturalist",
+    imageSrc: "/images/testimonials/kanchan-chandel.jpg", // Placeholder
   },
   {
     quote:
       "Shrey has Amazing knowledge on 🍄Mushrooms. His hands on DIY Mushrooms growing so simple and understandable for a common person. He is very organized and professional. Way to go! We collaborate with Shrey for few Mushrooms sessions & he was really great experience working with him. Bravo!!! We wish you all the best for your journey and all future initiatives. Thank you, ",
     name: "Anamika Bist",
     title: "Founder, Village Story",
+    imageSrc: "/images/testimonials/anamika-bist.jpg", // Placeholder
   },
 ];
 
 /* ---------------------------------------------------------
   TESTIMONIAL CARD SUBCOMPONENT
 --------------------------------------------------------- */
-function TestimonialCard({ quote, name, title }) {
+// Added imageSrc prop
+function TestimonialCard({ quote, name, title, imageSrc }) {
   return (
     // Beautification: Stronger shadow and hover lift for depth
     <div className="w-full md:w-[450px] lg:w-[400px] flex-shrink-0 snap-center p-8 bg-white rounded-3xl shadow-xl border border-stone-200 transition-all duration-500 hover:shadow-2xl hover:scale-[1.02] cursor-grab">
@@ -61,9 +69,28 @@ function TestimonialCard({ quote, name, title }) {
       <p className="text-xl italic text-slate-700 mb-6 leading-relaxed">
         {quote}
       </p>
-      <div className="pt-4 border-t border-stone-100">
-        <h4 className="text-xl font-extrabold text-slate-900">{name}</h4>
-        <p className="text-orange-500 text-sm font-semibold mt-1">{title}</p>
+      
+      {/* Profile Section - Updated for Image */}
+      <div className="flex items-center pt-4 border-t border-stone-100">
+        {/* Profile Image */}
+        {imageSrc && (
+          <div className="w-14 h-14 mr-4 rounded-full overflow-hidden flex-shrink-0 bg-stone-200 border-2 border-orange-500/50">
+            {/* Using next/image for optimization. Ensure your images are in the public directory. */}
+            <Image 
+              src={imageSrc} 
+              alt={name} 
+              width={56} // 14*4 = 56px
+              height={56} // 14*4 = 56px
+              className="object-cover w-full h-full"
+            />
+          </div>
+        )}
+
+        {/* Name and Title */}
+        <div>
+          <h4 className="text-xl font-extrabold text-slate-900">{name}</h4>
+          <p className="text-orange-500 text-sm font-semibold mt-1">{title}</p>
+        </div>
       </div>
     </div>
   );
