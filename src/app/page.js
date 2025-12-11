@@ -217,7 +217,7 @@ export default function HomePage() {
                     rel="noopener noreferrer"
                     className="font-semibold text-emerald-700 hover:text-emerald-900 underline underline-offset-2"
                   >
-                    Shrey Gupta & Ashish Playal
+                    Shrey Gupta & Ashish Palyal
                   </Link>
                   , sustainability educators with a profound commitment to
                   environmental causes. Their expertise spans biodiversity
