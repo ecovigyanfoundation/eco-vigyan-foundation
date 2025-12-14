@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   Phone,
   Mail,
@@ -9,15 +9,22 @@ import {
   Twitter,
   Menu,
   X,
-  Sprout,
   Heart,
+  ChevronDown,
 } from "lucide-react";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  
+  // --- Dropdown States/Refs ---
+  const [knowMoreOpen, setKnowMoreOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  const leaveTimeoutRef = useRef(null); // Ref to store the timeout ID for the mouse leave delay
+  // ---------------------------------
 
   const handleNavClick = useCallback((event, link) => {
+    // Logic for smooth scrolling or navigation
     if (!link.path.startsWith("/#")) return;
 
     event.preventDefault();
@@ -38,12 +45,17 @@ export default function Navbar() {
     }
   }, []);
 
-  // Define links in one place to ensure consistency
-  // Note: 'About' uses a hash (#about) to scroll to the section on the home page
+  // Define links in one place
   const navLinks = [
     { name: "Home", path: "/" },
     { name: "About", path: "/#about" },
     { name: "Explore", path: "/map", isNew: true },
+  ];
+
+  const knowMoreLinks = [
+    { name: "Contact Us", path: "/contact" },
+    { name: "Articles", path: "http://googleusercontent.com/articles" },
+    { name: "Programs", path: "/programs" },
   ];
 
   // Handle scroll effect for sticky nav
@@ -54,6 +66,46 @@ export default function Navbar() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // --- Hover/Click Logic ---
+  // Close dropdown on outside click (essential for click/hover combination)
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      // Only close if not in mobile view AND click is outside the dropdown area
+      if (window.innerWidth >= 768 && dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setKnowMoreOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    
+    // Cleanup the timeout on unmount
+    return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+        if (leaveTimeoutRef.current) {
+            clearTimeout(leaveTimeoutRef.current);
+        }
+    };
+  }, []);
+
+  // Handlers for Mouse Hover (Desktop Only)
+  const handleMouseEnter = () => {
+      if (leaveTimeoutRef.current) {
+          clearTimeout(leaveTimeoutRef.current); // Clear any pending close timeout
+      }
+      if (window.innerWidth >= 768) { 
+          setKnowMoreOpen(true);
+      }
+  };
+
+  const handleMouseLeave = () => {
+      if (window.innerWidth >= 768) { 
+          // Set a delay (e.g., 200ms) before closing
+          leaveTimeoutRef.current = setTimeout(() => {
+              setKnowMoreOpen(false);
+          }, 200); 
+      }
+  };
+  // -------------------------
 
   return (
     <>
@@ -124,7 +176,7 @@ export default function Navbar() {
             <a href="/" className="group flex items-center space-x-2">
               <div className="w-12 h-full rounded-xl overflow-hidden shadow-lg group-hover:shadow-green-500/30 transition-all duration-300 group-hover:scale-105 bg-white">
                 <img
-                  src="/gallery/logo2.png"
+                  src="/gallery/logo4.png"
                   alt="Eco Vigyan Foundation Logo"
                   className="w-full h-full object-contain"
                 />
@@ -134,7 +186,7 @@ export default function Navbar() {
                 <span className="text-2xl font-extrabold text-green-500 leading-none tracking-tight">
                   Eco Vigyan <span className="text-green-500">Foundation</span>
                 </span>
-               
+                
               </div>
             </a>
 
@@ -159,6 +211,49 @@ export default function Navbar() {
                   <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-orange-500 transition-all duration-300 group-hover:w-full"></span>
                 </a>
               ))}
+
+              {/* --- KNOW MORE CLICK/HOVER DROPDOWN (Improved Stability) --- */}
+              <div 
+                  className="relative" 
+                  ref={dropdownRef}
+                  onMouseEnter={handleMouseEnter} // Hover Open
+                  onMouseLeave={handleMouseLeave} // Hover Close (with delay)
+              >
+                <button
+                  onClick={() => setKnowMoreOpen((p) => !p)} // Click Toggle
+                  className="flex items-center gap-1 py-2 text-sm font-bold text-slate-600 hover:text-emerald-700 cursor-pointer focus:outline-none relative group"
+                >
+                  Know More
+                  <ChevronDown
+                    className={`w-4 h-4 transition-transform duration-300 ${
+                      knowMoreOpen ? "rotate-180 text-emerald-700" : ""
+                    }`}
+                  />
+                  {/* Animated Underline for Dropdown Button */}
+                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-orange-500 transition-all duration-300 group-hover:w-full"></span>
+                </button>
+
+                {/* Dropdown Content with smooth transition */}
+                <div
+                  className={`absolute top-full right-0 mt-3 w-48 bg-white rounded-xl shadow-2xl border border-gray-100 transform transition-all duration-300 origin-top ${
+                    knowMoreOpen
+                      ? "opacity-100 scale-y-100 translate-y-0"
+                      : "opacity-0 scale-y-0 -translate-y-2 pointer-events-none"
+                  }`}
+                >
+                    {knowMoreLinks.map((item) => (
+                      <a
+                        key={item.name}
+                        href={item.path}
+                        className="block px-5 py-3 text-sm text-slate-700 hover:bg-emerald-50 transition-colors rounded-xl mx-1 my-1"
+                        onClick={() => setKnowMoreOpen(false)} // Close on click
+                      >
+                        {item.name}
+                      </a>
+                    ))}
+                </div>
+              </div>
+              {/* --- END KNOW MORE DROPDOWN --- */}
 
               {/* Donate Button */}
               <a
@@ -210,6 +305,24 @@ export default function Navbar() {
                 {link.name}
               </a>
             ))}
+
+            {/* Mobile "Know More" links */}
+            <div className="w-full text-center pt-2 border-t border-stone-100">
+                <p className="text-sm uppercase text-slate-400 my-2 font-semibold">
+                    Know More
+                </p>
+                {knowMoreLinks.map((item) => (
+                    <a
+                        key={item.name}
+                        href={item.path}
+                        className="block py-2 text-slate-700 hover:text-emerald-700 hover:bg-stone-50 rounded-lg transition"
+                        onClick={() => setIsOpen(false)}
+                    >
+                        {item.name}
+                    </a>
+                ))}
+            </div>
+            
             <a
               href="/donate"
               className="w-full text-center px-6 py-3 bg-orange-600 text-white font-bold rounded-lg shadow-md active:scale-95 transition"
