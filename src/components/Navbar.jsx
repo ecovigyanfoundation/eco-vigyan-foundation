@@ -55,6 +55,7 @@ export default function Navbar() {
   const knowMoreLinks = [
     { name: "Articles", path: "/articles" },
     { name: "Programs", path: "/programs" },
+    { name: "Reports", path: "/reports" },
     { name: "Contact Us", path: "/contact" }
   ];
 
