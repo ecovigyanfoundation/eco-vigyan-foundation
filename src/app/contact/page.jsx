@@ -6,7 +6,7 @@ const mapEmbedSrc =
   "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3416.9602165583833!2d77.1110667!3d31.083033600000004!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3905798fc73fdf2b%3A0xb793c3a386cbe0cd!2sEco%20Vigyan%20Foundation!5e0!3m2!1sen!2sin!4v1765907367493!5m2!1sen!2sin";
 
 // CHANGE THIS: Replace with the actual URL of your desired scenery image
-const backgroundImageURL = "https://images.unsplash.com/photo-1549495760-44ed55b6826c?q=80&w=2670&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"; 
+const backgroundImageURL = "/images/bg.jpg"; 
 
 // --- Data ---
 const phoneNumbers = ["+91-8894486066", "+91-9882950813"];
@@ -29,12 +29,12 @@ const ContactPage = () => {
         className="relative min-h-screen bg-cover bg-center bg-fixed"
         style={{ backgroundImage: `url(${backgroundImageURL})` }}
     >
-        <div className="absolute inset-0 bg-white opacity-80"></div>
+        <div className="absolute inset-0 bg-white opacity-20"></div>
         
-        <div className="relative max-w-7xl mx-auto px-4 py-8 md:py-12 font-sans">
+        <div className="relative max-w-7xl mx-auto px-4 py-8 md:py-1 font-sans">
 
             {/* --- Contact Header Section --- */}
-            <div className="flex justify-between items-start pt-6 pb-6 w-full flex-wrap">
+            <div className="flex justify-between items-start pt-2 pb-6 w-full flex-wrap">
                 
                 {/* Group 1: Phone Numbers */}
                 <div className="flex items-center gap-4 my-2">
@@ -71,7 +71,7 @@ const ContactPage = () => {
             <hr className="border-gray-300 w-full" />
 
             {/* --- Address Section --- */}
-            <div className="py-8">
+            <div className="py-2">
                 <div className="flex items-start gap-1 mb-1">
                     <LocationIconPin />
                     <span className="text-gray-800 font-bold text-lg pt-1">Service address:</span>
@@ -82,7 +82,7 @@ const ContactPage = () => {
             </div>
 
             {/* --- Map Section --- */}
-            <div className="py-4">
+            <div className="py-2">
                 <div className="bg-[#E4F3E4] p-4 rounded-lg shadow-xl border border-green-300">
                     <iframe
                         src={mapEmbedSrc}
@@ -97,11 +97,11 @@ const ContactPage = () => {
                 </div>
             </div>
             
-            <hr className="border-gray-300 w-full mt-10" />
+            <hr className="border-gray-300 w-full mt-5" />
 
             {/* --- Footer/Registration Info --- */}
-            <div className="pt-4">
-                <p className="text-xs text-gray-500 text-center leading-relaxed">
+            <div className="pt-1 space-y-2">
+                <p className="text-xs text-white text-center leading-relaxed">
                     {footerInfo}
                 </p>
             </div>
