@@ -2,7 +2,8 @@ import React from 'react';
 
 // --- Constants ---
 // **ACTION REQUIRED:** Replace this with the actual standard Google Maps Embed URL you get from Google Maps "Share" -> "Embed a map" tab.
-const mapEmbedSrc = "https://www.google.com/maps/embed/v1/place?q=Eco+Vigyan+Foundation,+Shimla,+HP&zoom=14"; 
+const mapEmbedSrc =
+  "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3416.9602165583833!2d77.1110667!3d31.083033600000004!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3905798fc73fdf2b%3A0xb793c3a386cbe0cd!2sEco%20Vigyan%20Foundation!5e0!3m2!1sen!2sin!4v1765907367493!5m2!1sen!2sin";
 
 // CHANGE THIS: Replace with the actual URL of your desired scenery image
 const backgroundImageURL = "https://images.unsplash.com/photo-1549495760-44ed55b6826c?q=80&w=2670&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"; 

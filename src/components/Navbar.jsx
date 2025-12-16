@@ -53,9 +53,9 @@ export default function Navbar() {
   ];
 
   const knowMoreLinks = [
-    { name: "Contact Us", path: "/contact" },
-    { name: "Articles", path: "http://googleusercontent.com/articles" },
+    { name: "Articles", path: "/articles" },
     { name: "Programs", path: "/programs" },
+    { name: "Contact Us", path: "/contact" }
   ];
 
   // Handle scroll effect for sticky nav
