@@ -37,17 +37,16 @@ const itemVariants = {
 
 export default function Footer() {
   const volunteerPrograms = [
-    "Child Care", "Teaching English",
+   
     "Community Dev", "Cultural Exchange",
-    "First Aid", "Sports & Arts",
-    "Women's Power", "Eco Awareness",
-    "Street Education", "Sanitation",
-    "Fundraising"
+    
+    , "Eco Awareness",
+    
+   
   ];
 
   const socialLinks = [
     { icon: Facebook, href: "#" },
-    { icon: Twitter, href: "#" },
     { icon: Instagram, href: "#" },
     { icon: Linkedin, href: "#" },
   ];

@@ -235,10 +235,7 @@ export default function HomePage() {
                   href="/about"
                   className="group inline-flex items-center text-orange-600 font-bold"
                 >
-                  <span className="border-b-2 border-transparent group-hover:border-orange-600">
-                    Read our full story
-                  </span>
-                  <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition" />
+                  
                 </Link>
               </div>
             </FramerAnimation>
@@ -368,7 +365,6 @@ export default function HomePage() {
       ------------------------------------------------------------------- */}
       <TestimonialSection />
 
-      <Footer />
     </div>
   );
 }
