@@ -184,8 +184,8 @@ export default function Navbar() {
               </div>
 
               <div className="flex flex-col">
-                <span className="text-2xl font-extrabold text-green-500 leading-none tracking-tight">
-                  Eco Vigyan <span className="text-green-500">Foundation</span>
+                <span className="text-2xl font-extrabold text-green-700 leading-none tracking-tight">
+                  Eco Vigyan <span className="text-green-700">Foundation</span>
                 </span>
                 
               </div>
