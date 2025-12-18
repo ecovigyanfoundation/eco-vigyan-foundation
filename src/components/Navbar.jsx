@@ -53,7 +53,7 @@ export default function Navbar() {
     { name: "Articles", path: "/articles" },
     { name: "Programs", path: "/programs" },
     { name: "Reports", path: "/reports" },
-    { name: "Join us", path: "/join-us" },
+    { name: "Join Us", path: "/join-us" },
     { name: "Contact Us", path: "/contact" }
   ];
 
@@ -196,7 +196,7 @@ export default function Navbar() {
 
               {/* KNOW MORE DROPDOWN */}
               <div 
-                  className="relative" 
+                  className="relative font-bold" 
                   ref={dropdownRef}
                   onMouseEnter={handleMouseEnter}
                   onMouseLeave={handleMouseLeave}
