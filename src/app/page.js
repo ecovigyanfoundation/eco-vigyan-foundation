@@ -11,13 +11,8 @@ import TestimonialSection from "@/components/TestimonialSection";
 import {
   BookOpen,
   Heart,
-  CheckCircle,
   Map as MapIcon,
-  Sprout,
-  ArrowRight,
-  Leaf,
   Users,
-  TrendingUp,
   Activity,
 } from "lucide-react";
 
@@ -52,7 +47,7 @@ function HeroSection() {
   }, []);
 
   return (
-    <section className="relative h-[85vh] flex items-center justify-center overflow-hidden">
+    <section className="relative h-[75vh] flex items-center justify-center overflow-hidden">
       {heroImages.map((img, idx) => (
         <div
           key={idx}
@@ -70,7 +65,7 @@ function HeroSection() {
         <AnimatedHeroText currentIndex={index % HEADLINES.length} />
       </div>
 
-      <div className="absolute bottom-10 z-30 flex space-x-3 bg-black/30 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20">
+      <div className="absolute bottom-6 z-30 flex space-x-3 bg-black/30 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20">
         {heroImages.map((_, idx) => (
           <button
             key={idx}
@@ -98,13 +93,13 @@ export default function HomePage() {
       <HeroSection />
 
       {/* -------------------------------------------------------------------
-        VISION & MISSION
+        VISION & MISSION (Reduced py-24 to py-12, reduced mb-10 to mb-6)
       ------------------------------------------------------------------- */}
-      <section className="py-24 bg-white relative overflow-hidden">
+      <section className="py-12 bg-white relative overflow-hidden">
         <div className="max-w-6xl mx-auto px-4 text-center relative z-10">
           <FramerAnimation delay={0.3}>
-            <div className="bg-blue-50 border-t-8 border-pink-500 rounded-[2.5rem] p-12 mb-10 shadow-2xl shadow-blue-200/50">
-              <div className="flex justify-center mb-6">
+            <div className="bg-blue-50 border-t-8 border-pink-500 rounded-[2.5rem] p-8 mb-6 shadow-2xl shadow-blue-200/50">
+              <div className="flex justify-center mb-4">
                 <h3 className="text-3xl font-bold text-pink-500 uppercase tracking-wider">
                   Our Vision
                 </h3>
@@ -118,8 +113,8 @@ export default function HomePage() {
           </FramerAnimation>
 
           <FramerAnimation delay={0.4}>
-            <div className="bg-emerald-50 border-t-8 border-emerald-500 rounded-[2.5rem] p-12 shadow-2xl shadow-emerald-200/50">
-              <div className="flex justify-center mb-6">
+            <div className="bg-emerald-50 border-t-8 border-emerald-500 rounded-[2.5rem] p-8 shadow-2xl shadow-emerald-200/50">
+              <div className="flex justify-center mb-4">
                 <h3 className="text-3xl font-bold text-emerald-700 uppercase tracking-wider">
                   Our Mission
                 </h3>
@@ -138,15 +133,15 @@ export default function HomePage() {
       </section>
 
       {/* -------------------------------------------------------------------
-        ABOUT SECTION (TEXT FULLY RESTORED)
+        ABOUT SECTION (Reduced py-24 to py-12, mb-16 to mb-10)
       ------------------------------------------------------------------- */}
-      <section id="about" className="py-24 bg-stone-50 relative scroll-mt-24">
+      <section id="about" className="py-12 bg-stone-50 relative scroll-mt-24">
         <div className="absolute top-0 left-0 w-64 h-64 bg-sky-200 rounded-full blur-3xl opacity-30 animate-pulse"></div>
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-emerald-200 rounded-full blur-3xl opacity-20 animate-pulse-slow"></div>
 
         <div className="max-w-7xl mx-auto px-4 relative z-10">
           <FramerAnimation delay={0.2}>
-            <div className="text-center mb-16">
+            <div className="text-center mb-10">
               <h2 className="mt-3 text-4xl md:text-5xl font-extrabold text-slate-900">
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500 drop-shadow-md">
                   Who We Are
@@ -155,9 +150,9 @@ export default function HomePage() {
             </div>
           </FramerAnimation>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
             <FramerAnimation delay={0.3}>
-              <div className="space-y-8 text-xl lg:text-left text-slate-700 leading-relaxed mx-auto font-semibold tracking-[0.1px] text-center ">
+              <div className="space-y-6 text-xl lg:text-left text-slate-700 leading-relaxed mx-auto font-semibold tracking-[0.1px] text-center ">
                 <p>
                   Eco Vigyan Foundation came into existence just last year with a
                   clear purpose – to enhance eco-club activities in schools
@@ -214,7 +209,6 @@ export default function HomePage() {
             <FramerAnimation delay={0.4}>
               <div className="relative group">
                 <div className="absolute -inset-3 bg-gradient-to-r from-sky-500 to-emerald-500 opacity-30 blur-xl rounded-3xl group-hover:opacity-60 transition duration-700"></div>
-
                 <div className="relative aspect-video bg-slate-900 overflow-hidden rounded-2xl shadow-2xl">
                   {!playVideo && (
                     <>
@@ -227,8 +221,8 @@ export default function HomePage() {
                         onClick={() => setPlayVideo(true)}
                         className="absolute inset-0 flex items-center justify-center cursor-pointer bg-black/30 hover:bg-black/10 transition"
                       >
-                        <div className="w-20 h-20 bg-white/90 rounded-full shadow-2xl flex items-center justify-center hover:scale-110 transition-all border-4 border-white/50">
-                          <div className="ml-1 w-0 h-0 border-l-[24px] border-l-emerald-600 border-t-[14px] border-b-[14px] border-t-transparent border-b-transparent" />
+                        <div className="w-16 h-16 bg-white/90 rounded-full shadow-2xl flex items-center justify-center hover:scale-110 transition-all border-4 border-white/50">
+                          <div className="ml-1 w-0 h-0 border-l-[20px] border-l-emerald-600 border-t-[12px] border-b-[12px] border-t-transparent border-b-transparent" />
                         </div>
                       </div>
                     </>
@@ -251,22 +245,21 @@ export default function HomePage() {
       </section>
 
       {/* -------------------------------------------------------------------
-        IMPACT SECTION
+        IMPACT SECTION (Reduced py-24 to py-12)
       ------------------------------------------------------------------- */}
-      <section className="py-24 bg-white">
+      <section className="py-12 bg-white">
         <div className="max-w-7xl mx-auto px-4">
           <FramerAnimation delay={0.4}>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <ImpactCard Icon="BookOpen" endValue={300} label="Schools Partnered" color="blue" />
               <ImpactCard Icon="Users" endValue={450} label="Teachers Trained" color="green" />
               <ImpactCard Icon="Activity" endValue={20000} label="Students Reached" color="emerald" />
               <ImpactCard Icon="Heart" endValue={100} label="Community Initiatives" color="pink" />
               <ImpactCard Icon="MapIcon" endValue={5000} label="Mushrooms Mapped" color="purple" />
 
-              <div className="mt-8 col-span-2 md:col-span-5 rounded-3xl shadow-2xl overflow-hidden relative group">
+              <div className="mt-6 col-span-2 md:col-span-5 rounded-3xl shadow-2xl overflow-hidden relative group">
                 <div className="absolute inset-0 bg-gradient-to-r from-emerald-700 to-teal-700 transition-transform group-hover:scale-[1.02] duration-500"></div>
-
-                <div className="relative p-12 flex flex-col md:flex-row items-center justify-between gap-8">
+                <div className="relative p-10 flex flex-col md:flex-row items-center justify-between gap-6">
                   <div className="text-center md:text-left">
                     <h3 className="text-3xl font-extrabold text-white mb-2">
                       Be Part of the Change
@@ -275,7 +268,6 @@ export default function HomePage() {
                       Your contribution directly supports our mushroom mapping & education kits.
                     </p>
                   </div>
-
                   <Link
                     href="/donate"
                     className="px-8 py-4 bg-white text-emerald-700 font-bold rounded-full shadow-lg hover:bg-stone-100 transition-all hover:scale-105 active:scale-95 flex items-center"
