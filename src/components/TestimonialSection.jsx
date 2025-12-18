@@ -177,7 +177,7 @@ export default function TestimonialSection() {
           </div>
         </FramerAnimation>
         
-        <FramerAnimation delay={0.4}>
+        <FramerAnimation delay={0.2}>
           <div className="text-center mt-12">
             <p className="text-slate-600 text-lg mb-4">
               Read more reviews and share your story on our official page.
