@@ -121,9 +121,7 @@ export default function Footer() {
           <div className="flex space-x-6 mt-4 md:mt-0">
             <a href="/privacy" className="hover:text-emerald-400">Privacy Policy</a>
             <a href="/terms" className="hover:text-emerald-400">Terms of Use</a>
-            <span className="flex items-center">
-              Made with <Heart className="w-3 h-3 mx-1 text-red-500 fill-current" />
-            </span>
+            
           </div>
         </div>
       </motion.div>
