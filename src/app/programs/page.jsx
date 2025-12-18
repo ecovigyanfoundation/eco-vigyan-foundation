@@ -1,74 +1,92 @@
-// ProgramsList.jsx or a similar component file
-
 import React from 'react';
 
-// Data for the programs
-const programs = [
-  'Wipro earthian sustainability education program for schools',
-  'Fun शाला: Bring fungal learning to your school',
-  'Action for Oceans: A competition for school students',
-  'Creating zero waste schools',
-];
+const ProgramCard = ({ image, title, bgColor }) => {
+  return (
+    <div className="flex flex-col group cursor-pointer">
+      {/* Image Container */}
+      <div className="overflow-hidden rounded-sm aspect-[4/3]">
+        <img 
+          src={image} 
+          alt={title} 
+          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+        />
+      </div>
+      
+      {/* Title Bar */}
+      <div className={`${bgColor} py-4 px-2 text-center min-h-[70px] flex items-center justify-center mt-1`}>
+        <h3 className="text-white font-bold text-sm md:text-base uppercase tracking-wider leading-tight">
+          {title}
+        </h3>
+      </div>
+    </div>
+  );
+};
 
-export default function ProgramsList() {
-  // Define custom colors based on the image using arbitrary value notation [ ]
-  // (Note: For a production app, define these in your tailwind.config.js)
-  
-  // Dark Brown/Ochre for Text and Title: #654321
-  const textColorClass = 'text-[#654321]'; 
-  
-  // Light Gold/Ochre for Box Background: #EBD8A9';
-  const boxBgClass = 'bg-[#EBD8A9]'; 
-  
-  // Soft Purple/Mauve for Border: #A38DCC
-  const borderColorClass = 'border-[#A38DCC]'; 
-  const hoverRingColor = 'ring-[#A38DCC]'; // Use purple for hover ring
-  const hoverShadowColor = 'shadow-[#A38DCC]/50'; // Subtle purple shadow on hover
+const SustainabilityPrograms = () => {
+  const programs = [
+    {
+      title: "Guided Mushroom Walk",
+      image: "https://images.unsplash.com/photo-1501854140801-50d01698950b?auto=format&fit=crop&w=800&q=80", // Replace with your local paths
+      bgColor: "bg-red-200 text-black", // Light pink/red based on your image
+      textColor: "text-black"
+    },
+    {
+      title: "Grow Your Own Mushrooms",
+      image: "https://images.unsplash.com/photo-1591261730799-ee4e6c2d16d7?auto=format&fit=crop&w=800&q=80",
+      bgColor: "bg-green-500",
+    },
+    {
+      title: "Demystify Your Local Fungi",
+      image: "https://images.unsplash.com/photo-1473081556163-2a17de81fc97?auto=format&fit=crop&w=800&q=80",
+      bgColor: "bg-cyan-500",
+    },
+    {
+      title: "Wipro Earthian Program",
+      image: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=800&q=80",
+      bgColor: "bg-red-100 text-black",
+    },
+    {
+      title: "Chemical Free Living Series",
+      image: "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=800&q=80",
+      bgColor: "bg-green-500",
+    },
+    {
+      title: "Mastering Solid Waste Management",
+      image: "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=800&q=80",
+      bgColor: "bg-cyan-500",
+    }
+  ];
 
   return (
-    <section className="max-w-4xl mx-auto p-4 md:p-8">
+    <section className="max-w-7xl mx-auto px-4 py-12 font-sans">
+      {/* Header Section */}
+      <div className="text-right mb-4">
+        <h2 className="text-3xl font-bold text-cyan-500 uppercase tracking-tighter inline-block border-b-2 border-cyan-500 pb-1">
+          Programs
+        </h2>
+      </div>
       
-      {/* Title */}
-      <h2 className={`text-4xl md:text-5xl font-extrabold mb-8 ${textColorClass} uppercase tracking-wider`}>
-        PROGRAMS:
-      </h2>
-      
-      {/* List Container */}
-      <ul className="space-y-6">
+      <hr className="border-gray-300 mb-8" />
+
+      <div className="text-center mb-12">
+        <p className="text-2xl md:text-3xl font-light text-gray-800">
+          Explore our <span className="font-semibold italic">exciting sustainability programs</span> – the adventure begins here!
+        </p>
+      </div>
+
+      {/* Responsive Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
         {programs.map((program, index) => (
-          <li key={index}>
-            {/* Program Card Styling: 
-              - Increased padding and border width.
-              - Added smooth hover effects (ring, shadow, slight lift).
-            */}
-            <div
-              className={`
-                // Base Layout & Size
-                p-5 md:p-7 text-center w-full block
-                
-                // Color and Border
-                ${boxBgClass} 
-                ${borderColorClass} border-[3px] // Thicker border
-                
-                // Rounded Corners and Shadow
-                rounded-2xl // Slightly more rounded corners
-                shadow-lg 
-                
-                // Typography
-                ${textColorClass} text-xl md:text-2xl font-semibold // Slightly bolder font
-                
-                // Hover and Transition Effects
-                transition-all duration-300 ease-in-out
-                transform hover:-translate-y-0.5 // Subtle lift
-                hover:shadow-xl ${hoverShadowColor} // Enhanced shadow
-                hover:ring-4 ${hoverRingColor} ring-offset-2 // Outline ring on hover
-              `}
-            >
-              {program}
-            </div>
-          </li>
+          <ProgramCard 
+            key={index}
+            image={program.image}
+            title={program.title}
+            bgColor={program.bgColor}
+          />
         ))}
-      </ul>
+      </div>
     </section>
   );
-}
+};
+
+export default SustainabilityPrograms;

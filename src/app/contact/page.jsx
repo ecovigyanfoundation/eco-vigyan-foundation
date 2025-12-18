@@ -44,11 +44,11 @@ const ContactPage = () => {
                 
           {/* LEFT SIDE: Contact Info (Transparent) */}
           <div className="p-4 md:p-8 text-white">
-            <h1 className="text-4xl font-bold text-emerald-400 mb-8 border-b border-emerald-400/30 pb-4 drop-shadow-lg">
-              Contact Us
+            <h1 className="ml-10 text-3xl font-bold text-emerald-400 mb-8 border-b  border-emerald-400/30 pb-4 drop-shadow-lg">
+                 Contact Us
             </h1>
                     
-            <div className="space-y-10">
+            <div className="space-y-10 ml-5 ">
 
               {/* Phone / WhatsApp */}
               <div className="flex items-center gap-5">
@@ -60,7 +60,7 @@ const ContactPage = () => {
                       href={`https://wa.me/${number.replace(/[^0-9]/g, '')}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-white text-xl font-bold hover:text-emerald-400 transition-colors drop-shadow-md"
+                      className="text-white text-xl font-medium hover:text-emerald-400 transition-colors drop-shadow-md"
                     >
                       {number}
                     </a>
@@ -73,7 +73,7 @@ const ContactPage = () => {
                 <EmailIcon />
                 <a
                   href={`mailto:${email}`}
-                  className="text-white text-xl font-bold hover:text-emerald-400 transition-colors drop-shadow-md"
+                  className="text-white text-xl font-medium hover:text-emerald-400 transition-colors drop-shadow-md"
                 >
                   {email}
                 </a>

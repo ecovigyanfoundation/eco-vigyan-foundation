@@ -31,7 +31,6 @@ const reportsData = [
   { title: "Wipro earthian annual report", year: 2023, url: "https://drive.google.com/file/d/17bJdBJeSIFxmz9d04_jUE4erN1JGT_Bu/view?usp=drive_link" },
   { title: "Citizen Science through Fungi", year: 2024, url: "https://drive.google.com/file/d/1eqeHDBSxraAFIg_7T7Zuf3UxyAsldjot/view?usp=sharing" },
   { title: "Citizen Science through Fungi", year: 2022, url: "https://drive.google.com/file/d/1PFpBes9iLT_PjXyXGv5KZCsUhckBSqLZ/view?usp=sharing" },
-  { title: "St. Luke’s Waste Management Policy", year: null, url: "https://drive.google.com/file/d/1YiPIxAFzYMCpqpEeY6oIGCJGoSxbvakN/view?usp=drive_link" },
   { title: "Wipro earthian annual report", year: 2025, url: "https://drive.google.com/file/d/1HajY5lk6xjapTm6xxzvjnyOK9Rh6RQtQ/view?usp=drive_link" },
 ];
 
