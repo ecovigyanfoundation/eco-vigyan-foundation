@@ -20,11 +20,9 @@ export default function Navbar() {
   // --- Dropdown States/Refs ---
   const [knowMoreOpen, setKnowMoreOpen] = useState(false);
   const dropdownRef = useRef(null);
-  const leaveTimeoutRef = useRef(null); // Ref to store the timeout ID for the mouse leave delay
-  // ---------------------------------
+  const leaveTimeoutRef = useRef(null); 
 
   const handleNavClick = useCallback((event, link) => {
-    // Logic for smooth scrolling or navigation
     if (!link.path.startsWith("/#")) return;
 
     event.preventDefault();
@@ -45,7 +43,6 @@ export default function Navbar() {
     }
   }, []);
 
-  // Define links in one place
   const navLinks = [
     { name: "Home", path: "/" },
     { name: "About", path: "/#about" },
@@ -59,7 +56,6 @@ export default function Navbar() {
     { name: "Contact Us", path: "/contact" }
   ];
 
-  // Handle scroll effect for sticky nav
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 20);
@@ -68,18 +64,14 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // --- Hover/Click Logic ---
-  // Close dropdown on outside click (essential for click/hover combination)
   useEffect(() => {
     const handleClickOutside = (e) => {
-      // Only close if not in mobile view AND click is outside the dropdown area
       if (window.innerWidth >= 768 && dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setKnowMoreOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     
-    // Cleanup the timeout on unmount
     return () => {
         document.removeEventListener("mousedown", handleClickOutside);
         if (leaveTimeoutRef.current) {
@@ -88,10 +80,9 @@ export default function Navbar() {
     };
   }, []);
 
-  // Handlers for Mouse Hover (Desktop Only)
   const handleMouseEnter = () => {
       if (leaveTimeoutRef.current) {
-          clearTimeout(leaveTimeoutRef.current); // Clear any pending close timeout
+          clearTimeout(leaveTimeoutRef.current); 
       }
       if (window.innerWidth >= 768) { 
           setKnowMoreOpen(true);
@@ -100,13 +91,11 @@ export default function Navbar() {
 
   const handleMouseLeave = () => {
       if (window.innerWidth >= 768) { 
-          // Set a delay (e.g., 200ms) before closing
           leaveTimeoutRef.current = setTimeout(() => {
               setKnowMoreOpen(false);
           }, 200); 
       }
   };
-  // -------------------------
 
   return (
     <>
@@ -122,23 +111,16 @@ export default function Navbar() {
               <a
                 href="#"
                 aria-label="Facebook"
-                className="hover:text-orange-400 transition-colors duration-300"
+                className="hover:text-emerald-400 transition-colors duration-300"
               >
                 <Facebook className="w-4 h-4" />
               </a>
               <a
                 href="#"
                 aria-label="Instagram"
-                className="hover:text-orange-400 transition-colors duration-300"
+                className="hover:text-emerald-400 transition-colors duration-300"
               >
                 <Instagram className="w-4 h-4" />
-              </a>
-              <a
-                href="#"
-                aria-label="Twitter"
-                className="hover:text-orange-400 transition-colors duration-300"
-              >
-                <Twitter className="w-4 h-4" />
               </a>
             </div>
           </div>
@@ -149,14 +131,14 @@ export default function Navbar() {
               href="tel:+918894486066"
               className="flex items-center hover:text-emerald-200 transition"
             >
-              <Phone className="w-3.5 h-3.5 mr-2 text-orange-500" />
+              <Phone className="w-3.5 h-3.5 mr-2 text-emerald-500" />
               <span className="font-medium">+91 8894486066</span>
             </a>
             <a
               href="mailto:ecovigyan@gmail.com"
               className="flex items-center hover:text-emerald-200 transition"
             >
-              <Mail className="w-3.5 h-3.5 mr-2 text-orange-500" />
+              <Mail className="w-3.5 h-3.5 mr-2 text-emerald-500" />
               <span className="font-medium">ecovigyan@gmail.com</span>
             </a>
           </div>
@@ -175,7 +157,7 @@ export default function Navbar() {
           <div className="flex justify-between items-center">
             {/* Logo */}
             <a href="/" className="group flex items-center space-x-2">
-              <div className="w-12 h-full rounded-xl overflow-hidden shadow-lg group-hover:shadow-green-500/30 transition-all duration-300 group-hover:scale-105 bg-white">
+              <div className="w-12 h-full rounded-xl overflow-hidden shadow-lg group-hover:shadow-emerald-500/30 transition-all duration-300 group-hover:scale-105 bg-white">
                 <img
                   src="/gallery/logo4.png"
                   alt="Eco Vigyan Foundation Logo"
@@ -184,10 +166,9 @@ export default function Navbar() {
               </div>
 
               <div className="flex flex-col">
-                <span className="text-2xl font-extrabold text-green-700 leading-none tracking-tight">
-                  Eco Vigyan <span className="text-green-700">Foundation</span>
+                <span className="text-2xl font-extrabold text-emerald-700 leading-none tracking-tight">
+                  Eco Vigyan <span className="text-emerald-700">Foundation</span>
                 </span>
-                
               </div>
             </a>
 
@@ -201,27 +182,26 @@ export default function Navbar() {
                   onClick={(event) => handleNavClick(event, link)}
                 >
                   {link.name}
-                  {/* Badge for 'New' items */}
                   {link.isNew && (
                     <span className="absolute -top-1 -right-3 flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                     </span>
                   )}
-                  {/* Animated Underline */}
-                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-orange-500 transition-all duration-300 group-hover:w-full"></span>
+                  {/* Underline color changed to emerald */}
+                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-emerald-600 transition-all duration-300 group-hover:w-full"></span>
                 </a>
               ))}
 
-              {/* --- KNOW MORE CLICK/HOVER DROPDOWN (Improved Stability) --- */}
+              {/* KNOW MORE DROPDOWN */}
               <div 
                   className="relative" 
                   ref={dropdownRef}
-                  onMouseEnter={handleMouseEnter} // Hover Open
-                  onMouseLeave={handleMouseLeave} // Hover Close (with delay)
+                  onMouseEnter={handleMouseEnter}
+                  onMouseLeave={handleMouseLeave}
               >
                 <button
-                  onClick={() => setKnowMoreOpen((p) => !p)} // Click Toggle
+                  onClick={() => setKnowMoreOpen((p) => !p)}
                   className="flex items-center gap-1 py-2 text-sm font-bold text-slate-600 hover:text-emerald-700 cursor-pointer focus:outline-none relative group"
                 >
                   Know More
@@ -230,11 +210,9 @@ export default function Navbar() {
                       knowMoreOpen ? "rotate-180 text-emerald-700" : ""
                     }`}
                   />
-                  {/* Animated Underline for Dropdown Button */}
-                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-orange-500 transition-all duration-300 group-hover:w-full"></span>
+                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-emerald-600 transition-all duration-300 group-hover:w-full"></span>
                 </button>
 
-                {/* Dropdown Content with smooth transition */}
                 <div
                   className={`absolute top-full right-0 mt-3 w-48 bg-white rounded-xl shadow-2xl border border-gray-100 transform transition-all duration-300 origin-top ${
                     knowMoreOpen
@@ -247,25 +225,23 @@ export default function Navbar() {
                         key={item.name}
                         href={item.path}
                         className="block px-5 py-3 text-sm text-slate-700 hover:bg-emerald-50 transition-colors rounded-xl mx-1 my-1"
-                        onClick={() => setKnowMoreOpen(false)} // Close on click
+                        onClick={() => setKnowMoreOpen(false)}
                       >
                         {item.name}
                       </a>
                     ))}
                 </div>
               </div>
-              {/* --- END KNOW MORE DROPDOWN --- */}
 
-              {/* Donate Button */}
+              {/* Donate Button: Gradient changed to emerald/green */}
               <a
                 href="/donate"
-                className="group relative px-6 py-2.5 bg-gradient-to-r from-orange-500 to-red-600 text-white font-bold text-sm rounded-full shadow-lg shadow-orange-500/30 hover:shadow-orange-500/50 hover:-translate-y-0.5 transition-all duration-300 overflow-hidden"
+                className="group relative px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-green-700 text-white font-bold text-sm rounded-full shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:-translate-y-0.5 transition-all duration-300 overflow-hidden"
               >
                 <span className="relative z-10 flex items-center">
                   Donate Now{" "}
                   <Heart className="w-4 h-4 ml-2 fill-white/20 group-hover:fill-white transition-all" />
                 </span>
-                {/* Hover Shine Effect */}
                 <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700" />
               </a>
             </div>
@@ -307,7 +283,6 @@ export default function Navbar() {
               </a>
             ))}
 
-            {/* Mobile "Know More" links */}
             <div className="w-full text-center pt-2 border-t border-stone-100">
                 <p className="text-sm uppercase text-slate-400 my-2 font-semibold">
                     Know More
@@ -326,7 +301,7 @@ export default function Navbar() {
             
             <a
               href="/donate"
-              className="w-full text-center px-6 py-3 bg-orange-600 text-white font-bold rounded-lg shadow-md active:scale-95 transition"
+              className="w-full text-center px-6 py-3 bg-emerald-600 text-white font-bold rounded-lg shadow-md active:scale-95 transition"
               onClick={() => setIsOpen(false)}
             >
               Donate Now
