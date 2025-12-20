@@ -4,87 +4,12 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import ImpactCard from "@/components/ImpactCard"; 
+import ImpactCard from "@/components/ImpactCard";
 import FramerAnimation from "@/components/FramerAnimation";
-import AnimatedHeroText, { HEADLINES } from "@/components/AnimatedHeroText";
 import TestimonialSection from "@/components/TestimonialSection";
-import {
-  BookOpen,
-  Heart,
-  Map as MapIcon,
-  Users,
-  Activity,
-} from "lucide-react";
+import HeroSection from "@/components/HeroSection";
+import { BookOpen, Heart, Map as MapIcon, Users, Activity } from "lucide-react";
 
-import Footer from "@/components/Footer";
-
-/* ---------------------------------------------------------
-    HERO SECTION
---------------------------------------------------------- */
-function HeroSection() {
-  const heroImages = [
-    "/gallery/img1.jpeg",
-    "/gallery/img2.jpeg",
-    "/gallery/img3.jpeg",
-    "/gallery/img4.jpg",
-    "/gallery/img5.jpeg",
-    "/gallery/img6.jpeg",
-    "/gallery/img7.jpeg",
-    "/gallery/img8.jpeg",
-    "/gallery/img9.jpeg",
-    "/gallery/img10.jpeg",
-    "/gallery/img11.jpeg",
-  ];
-
-  const [index, setIndex] = useState(0);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setIndex((prev) => (prev + 1) % heroImages.length);
-    }, 3000); 
-
-    return () => clearInterval(timer);
-  }, []);
-
-  return (
-    <section className="relative h-[75vh] flex items-center justify-center overflow-hidden">
-      {heroImages.map((img, idx) => (
-        <div
-          key={idx}
-          style={{ backgroundImage: `url(${img})` }}
-          className={`absolute inset-0 bg-cover bg-center transition-all duration-1000 ease-in-out ${
-            idx === index ? "opacity-100 scale-105" : "opacity-0 scale-100"
-          }`}
-        />
-      ))}
-
-      <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/40 to-black/80" />
-      <div className="absolute inset-0 opacity-15 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]" />
-
-      <div className="relative z-20 container mx-auto px-4 h-full flex justify-center items-center text-center">
-        <AnimatedHeroText currentIndex={index % HEADLINES.length} />
-      </div>
-
-      <div className="absolute bottom-6 z-30 flex space-x-3 bg-black/30 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20">
-        {heroImages.map((_, idx) => (
-          <button
-            key={idx}
-            onClick={() => setIndex(idx)}
-            className={`h-2 rounded-full transition-all ${
-              idx === index
-                ? "w-8 bg-emerald-500 shadow-lg shadow-emerald-500/50"
-                : "w-2 bg-white/50 hover:bg-white"
-            }`}
-          />
-        ))}
-      </div>
-    </section>
-  );
-}
-
-/* ---------------------------------------------------------
-    HOME PAGE
---------------------------------------------------------- */
 export default function HomePage() {
   const [playVideo, setPlayVideo] = useState(false);
 
@@ -95,7 +20,7 @@ export default function HomePage() {
       {/* -------------------------------------------------------------------
         VISION & MISSION (Reduced py-24 to py-12, reduced mb-10 to mb-6)
       ------------------------------------------------------------------- */}
-      <section className="py-12 bg-white relative overflow-hidden">
+      <section className="py-24 bg-white relative overflow-hidden">
         <div className="max-w-6xl mx-auto px-4 text-center relative z-10">
           <FramerAnimation delay={0.3}>
             <div className="bg-blue-50 border-t-8 border-pink-500 rounded-[2.5rem] p-8 mb-6 shadow-2xl shadow-blue-200/50">
@@ -121,8 +46,8 @@ export default function HomePage() {
               </div>
               <p className="text-xl text-slate-700 max-w-4xl mx-auto leading-relaxed">
                 We&apos;re on a mission to bridge the gap between humanity and
-                nature. We believe in aligning one&apos;s head, heart, and hand to
-                make this happen. So, we empower students, teachers, and
+                nature. We believe in aligning one&apos;s head, heart, and hand
+                to make this happen. So, we empower students, teachers, and
                 communities with educational materials, spark curiosity and
                 empathy through guided nature walks, and organize hands-on
                 workshops on sustainable living practices.
@@ -154,8 +79,8 @@ export default function HomePage() {
             <FramerAnimation delay={0.3}>
               <div className="space-y-6 text-xl lg:text-left text-slate-700 leading-relaxed mx-auto font-semibold tracking-[0.1px] text-center ">
                 <p>
-                  Eco Vigyan Foundation came into existence just last year with a
-                  clear purpose – to enhance eco-club activities in schools
+                  Eco Vigyan Foundation came into existence just last year with
+                  a clear purpose – to enhance eco-club activities in schools
                   throughout India. We hold a special fascination for unveiling
                   the hidden significance of fungi in the grand tapestry of
                   nature.
@@ -178,11 +103,20 @@ export default function HomePage() {
 
                 <p>
                   Together, they&apos;ve collaborated with
-                  <strong className="text-emerald-700"> over 200 schools</strong>, reached more than
-                  <strong className="text-emerald-700"> 10,000 students</strong>, partnered with
-                  <strong className="text-emerald-700"> 300+ teachers</strong>, and shared their knowledge
-                  with
-                  <strong className="text-emerald-700"> over 100 community members and naturalists</strong>.
+                  <strong className="text-emerald-700">
+                    {" "}
+                    over 200 schools
+                  </strong>
+                  , reached more than
+                  <strong className="text-emerald-700"> 10,000 students</strong>
+                  , partnered with
+                  <strong className="text-emerald-700"> 300+ teachers</strong>,
+                  and shared their knowledge with
+                  <strong className="text-emerald-700">
+                    {" "}
+                    over 100 community members and naturalists
+                  </strong>
+                  .
                 </p>
 
                 <p>
@@ -199,9 +133,10 @@ export default function HomePage() {
                 </p>
 
                 <p>
-                  We&apos;ve only just begun—and we invite you to join us in building
-                  a greener, more eco-conscious future. Every school, student,
-                  and community member plays a part in this shared mission.
+                  We&apos;ve only just begun—and we invite you to join us in
+                  building a greener, more eco-conscious future. Every school,
+                  student, and community member plays a part in this shared
+                  mission.
                 </p>
               </div>
             </FramerAnimation>
@@ -251,11 +186,36 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4">
           <FramerAnimation delay={0.4}>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              <ImpactCard Icon="BookOpen" endValue={300} label="Schools Partnered" color="blue" />
-              <ImpactCard Icon="Users" endValue={450} label="Teachers Trained" color="green" />
-              <ImpactCard Icon="Activity" endValue={20000} label="Students Reached" color="emerald" />
-              <ImpactCard Icon="Heart" endValue={100} label="Community Initiatives" color="pink" />
-              <ImpactCard Icon="MapIcon" endValue={5000} label="Mushrooms Mapped" color="purple" />
+              <ImpactCard
+                Icon="BookOpen"
+                endValue={300}
+                label="Schools Partnered"
+                color="blue"
+              />
+              <ImpactCard
+                Icon="Users"
+                endValue={450}
+                label="Teachers Trained"
+                color="green"
+              />
+              <ImpactCard
+                Icon="Activity"
+                endValue={20000}
+                label="Students Reached"
+                color="emerald"
+              />
+              <ImpactCard
+                Icon="Heart"
+                endValue={100}
+                label="Community Initiatives"
+                color="pink"
+              />
+              <ImpactCard
+                Icon="MapIcon"
+                endValue={5000}
+                label="Mushrooms Mapped"
+                color="purple"
+              />
 
               <div className="mt-6 col-span-2 md:col-span-5 rounded-3xl shadow-2xl overflow-hidden relative group">
                 <div className="absolute inset-0 bg-gradient-to-r from-emerald-700 to-teal-700 transition-transform group-hover:scale-[1.02] duration-500"></div>
@@ -265,14 +225,16 @@ export default function HomePage() {
                       Be Part of the Change
                     </h3>
                     <p className="text-emerald-50 text-lg">
-                      Your contribution directly supports our mushroom mapping & education kits.
+                      Your contribution directly supports our mushroom mapping &
+                      education kits.
                     </p>
                   </div>
                   <Link
                     href="/donate"
                     className="px-8 py-4 bg-white text-emerald-700 font-bold rounded-full shadow-lg hover:bg-stone-100 transition-all hover:scale-105 active:scale-95 flex items-center"
                   >
-                    Donate Now <Heart className="ml-2 w-5 h-5 fill-pink-500 text-pink-500 border-none" />
+                    Donate Now{" "}
+                    <Heart className="ml-2 w-5 h-5 fill-pink-500 text-pink-500 border-none" />
                   </Link>
                 </div>
               </div>

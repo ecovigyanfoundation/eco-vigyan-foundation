@@ -12,7 +12,10 @@ export default function ArticlesPage() {
 
   const indexOfLastArticle = currentPage * articlesPerPage;
   const indexOfFirstArticle = indexOfLastArticle - articlesPerPage;
-  const currentArticles = articles.slice(indexOfFirstArticle, indexOfLastArticle);
+  const currentArticles = articles.slice(
+    indexOfFirstArticle,
+    indexOfLastArticle
+  );
   const totalPages = Math.ceil(articles.length / articlesPerPage);
 
   const hasArticles = currentArticles && currentArticles.length > 0;
@@ -36,7 +39,8 @@ export default function ArticlesPage() {
           </h1>
           <div className="h-1.5 bg-emerald-400 mx-auto mb-8 rounded-full w-24" />
           <p className="text-xl md:text-2xl text-emerald-100 font-medium leading-relaxed">
-            Exploring the intersection of science, nature, and sustainability through deep-dive articles.
+            Exploring the intersection of science, nature, and sustainability
+            through deep-dive articles.
           </p>
         </div>
       </section>
@@ -52,7 +56,8 @@ export default function ArticlesPage() {
             </h2>
           </div>
           <p className="text-sm font-bold text-slate-500 uppercase tracking-tighter bg-white px-4 py-2 rounded-full shadow-sm border border-stone-100">
-            Showing {indexOfFirstArticle + 1}—{Math.min(indexOfLastArticle, articles.length)} of {articles.length}
+            Showing {indexOfFirstArticle + 1}—
+            {Math.min(indexOfLastArticle, articles.length)} of {articles.length}
           </p>
         </header>
 
@@ -69,7 +74,7 @@ export default function ArticlesPage() {
                       {/* Image Section */}
                       <div className="relative w-full md:w-64 h-56 md:h-auto flex-shrink-0 bg-stone-100 overflow-hidden">
                         <Image
-                          src={article.image || "/placeholder-image.jpg"}
+                          src={article.images?.[0] || "/placeholder-image.jpg"}
                           alt={article.title}
                           fill
                           className="object-cover transition-transform duration-700 group-hover:scale-110"
@@ -81,23 +86,26 @@ export default function ArticlesPage() {
                         <div className="flex items-center gap-2 mb-3">
                           <span className="h-1 w-6 bg-emerald-500 rounded-full" />
                           <time className="block text-xs font-bold uppercase tracking-widest text-emerald-600">
-                            {new Date(article.date).toLocaleDateString("en-US", {
-                              month: "long",
-                              day: "numeric",
-                              year: "numeric",
-                            })}
+                            {new Date(article.date).toLocaleDateString(
+                              "en-US",
+                              {
+                                month: "long",
+                                day: "numeric",
+                                year: "numeric",
+                              }
+                            )}
                           </time>
                         </div>
-                        
+
                         <h2 className="text-2xl font-black text-slate-800 mb-3 group-hover:text-emerald-700 transition-colors uppercase tracking-tight">
                           {article.title}
                         </h2>
                         <p className="text-slate-600 text-base leading-relaxed mb-6 line-clamp-2 font-medium">
                           {article.description}
                         </p>
-                        
+
                         <span className="inline-flex items-center text-sm font-black uppercase tracking-widest text-emerald-600 group-hover:text-emerald-800">
-                          Read Full Article 
+                          Read Full Article
                           <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-2" />
                         </span>
                       </div>
@@ -119,23 +127,27 @@ export default function ArticlesPage() {
                 </button>
 
                 <div className="flex items-center gap-2">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-                    <button
-                      key={pageNum}
-                      onClick={() => paginate(pageNum)}
-                      className={`w-12 h-12 rounded-full text-sm font-black transition-all shadow-sm ${
-                        currentPage === pageNum
-                          ? "bg-emerald-600 text-white border-emerald-600 scale-110"
-                          : "bg-white text-slate-600 border-stone-200 hover:bg-emerald-50"
-                      }`}
-                    >
-                      {pageNum}
-                    </button>
-                  ))}
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                    (pageNum) => (
+                      <button
+                        key={pageNum}
+                        onClick={() => paginate(pageNum)}
+                        className={`w-12 h-12 rounded-full text-sm font-black transition-all shadow-sm ${
+                          currentPage === pageNum
+                            ? "bg-emerald-600 text-white border-emerald-600 scale-110"
+                            : "bg-white text-slate-600 border-stone-200 hover:bg-emerald-50"
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    )
+                  )}
                 </div>
 
                 <button
-                  onClick={() => paginate(Math.min(currentPage + 1, totalPages))}
+                  onClick={() =>
+                    paginate(Math.min(currentPage + 1, totalPages))
+                  }
                   disabled={currentPage === totalPages}
                   className="p-3 rounded-full bg-white border border-stone-200 text-slate-600 disabled:opacity-30 hover:bg-emerald-50 hover:text-emerald-700 transition-all shadow-sm"
                 >
@@ -146,7 +158,9 @@ export default function ArticlesPage() {
           </>
         ) : (
           <div className="text-center py-20 bg-white rounded-[2rem] border border-stone-200">
-            <p className="text-xl font-bold text-slate-400 uppercase tracking-widest">No articles found.</p>
+            <p className="text-xl font-bold text-slate-400 uppercase tracking-widest">
+              No articles found.
+            </p>
           </div>
         )}
       </section>
