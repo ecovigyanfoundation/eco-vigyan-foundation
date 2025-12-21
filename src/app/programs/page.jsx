@@ -1,22 +1,43 @@
 "use client";
 
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Sprout, ArrowLeft, Play, MapPin, Quote, ExternalLink } from 'lucide-react';
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Sprout,
+  ArrowLeft,
+  Play,
+  MapPin,
+  Quote,
+  ExternalLink,
+} from "lucide-react";
 
 /* ---------------------------------------------------------
    DETAIL VIEW COMPONENT (Based on your image)
 --------------------------------------------------------- */
 const MushroomWalkDetail = ({ onBack }) => {
   const locations = [
-    "Banglore", "Nalagarh", "Churdhar Peak", "Shali Peak", "Gurugram",
-    "Mussoorie", "Dehradun", "Chandigarh", "Joshimath", "Manali",
-    "Mandi", "Rudraprayag", "Ramnagar", "Shimla", "Bir", "Dharampur",
-    "Solan", "Summerhill"
+    "Banglore",
+    "Nalagarh",
+    "Churdhar Peak",
+    "Shali Peak",
+    "Gurugram",
+    "Mussoorie",
+    "Dehradun",
+    "Chandigarh",
+    "Joshimath",
+    "Manali",
+    "Mandi",
+    "Rudraprayag",
+    "Ramnagar",
+    "Shimla",
+    "Bir",
+    "Dharampur",
+    "Solan",
+    "Summerhill",
   ];
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -50 }}
@@ -24,7 +45,7 @@ const MushroomWalkDetail = ({ onBack }) => {
     >
       {/* Top Header Bar */}
       <div className="bg-white border-b border-stone-100 p-6 flex justify-between items-center">
-        <button 
+        <button
           onClick={onBack}
           className="flex items-center gap-2 text-emerald-700 font-bold hover:text-emerald-500 transition-colors"
         >
@@ -38,49 +59,62 @@ const MushroomWalkDetail = ({ onBack }) => {
       <div className="p-8 md:p-12">
         {/* Intro Text */}
         <p className="text-stone-600 text-lg mb-12 max-w-4xl">
-          Discover biodiversity through year-round mushroom identification, focusing on the monsoon season. 
-          This exciting project helps demystify the ecological roles of fungi with six key features, 
-          followed by the creation of mobile mushroom museums.
+          Discover biodiversity through year-round mushroom identification,
+          focusing on the monsoon season. This exciting project helps demystify
+          the ecological roles of fungi with six key features, followed by the
+          creation of mobile mushroom museums.
         </p>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Left: Video/Action Area */}
+          {/* Left: Video/Action Area */}
           <div className="space-y-6">
-            <h4 className="text-emerald-600 font-bold italic">A look back at our walks from last year</h4>
-            <div className="relative aspect-video bg-stone-900 rounded-3xl overflow-hidden group cursor-pointer shadow-2xl">
-              <img 
-                src="/api/placeholder/800/450" 
-                alt="Walk Video Preview" 
-                className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700"
-              />
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
-                <div className="w-20 h-20 bg-red-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                  <Play className="w-10 h-10 fill-current" />
-                </div>
-                <p className="mt-4 font-bold uppercase tracking-widest text-sm">Watch on YouTube</p>
-              </div>
+            <h4 className="text-emerald-600 font-bold italic">
+              A look back at our walks from last year
+            </h4>
+
+            {/* Actual YouTube Embed */}
+            <div className="relative aspect-video rounded-3xl overflow-hidden shadow-2xl border-4 border-stone-100">
+              <iframe
+                className="w-full h-full"
+                src="https://www.youtube.com/embed/vqc6lOWicPE"
+                title="Mushroom walks in Himachal"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              ></iframe>
             </div>
-            
-            {/* Recovery Stat Placeholder from image */}
+
+            {/* Contextual Stat from the Video */}
             <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100 flex items-center gap-4">
-               <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-emerald-600 font-bold">36/40</div>
-               <p className="text-sm text-emerald-900 font-medium">Tags were recovered after 2 months in Himachal.</p>
+              <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-emerald-600 font-bold">
+                36/40
+              </div>
+              <p className="text-sm text-emerald-900 font-medium">
+                In a pre-monsoon experiment, students tagged potential habitats;
+                two months later, 36 out of 40 tags successfully fruited with
+                mushrooms.
+              </p>
             </div>
           </div>
 
           {/* Right: Location Grid */}
           <div className="bg-stone-50 rounded-3xl p-6 border border-stone-100">
-             <div className="flex items-center justify-between mb-6">
-                <h4 className="font-black text-stone-800 uppercase">Walk Locations <span className="text-emerald-600">2021-23</span></h4>
-                <MapPin className="text-emerald-500 w-5 h-5" />
-             </div>
-             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {locations.map((loc) => (
-                  <div key={loc} className="bg-white p-3 rounded-xl shadow-sm text-[10px] font-bold uppercase text-stone-500 border border-stone-100 hover:border-emerald-300 transition-colors">
-                    {loc}
-                  </div>
-                ))}
-             </div>
+            <div className="flex items-center justify-between mb-6">
+              <h4 className="font-black text-stone-800 uppercase">
+                Walk Locations <span className="text-emerald-600">2021-23</span>
+              </h4>
+              <MapPin className="text-emerald-500 w-5 h-5" />
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {locations.map((loc) => (
+                <div
+                  key={loc}
+                  className="bg-white p-3 rounded-xl shadow-sm text-[10px] font-bold uppercase text-stone-500 border border-stone-100 hover:border-emerald-300 transition-colors"
+                >
+                  {loc}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -89,8 +123,12 @@ const MushroomWalkDetail = ({ onBack }) => {
           <div className="flex gap-4 max-w-2xl">
             <Quote className="w-12 h-12 text-emerald-200 flex-shrink-0" />
             <p className="text-stone-600 italic">
-              "A very interesting and informative mushroom walk organised by Shrey and Ashish. Never knew a whole new, exciting world of fungi existed right beside the road which I had passed countless times."
-              <span className="block mt-2 font-bold text-emerald-800 not-italic">— Padmini Parmar</span>
+              "A very interesting and informative mushroom walk organised by
+              Shrey and Ashish. Never knew a whole new, exciting world of fungi
+              existed right beside the road which I had passed countless times."
+              <span className="block mt-2 font-bold text-emerald-800 not-italic">
+                — Padmini Parmar
+              </span>
             </p>
           </div>
 
@@ -108,7 +146,7 @@ const MushroomWalkDetail = ({ onBack }) => {
 --------------------------------------------------------- */
 const ProgramCard = ({ image, title, delay, onClick }) => {
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay }}
@@ -117,14 +155,14 @@ const ProgramCard = ({ image, title, delay, onClick }) => {
       className="flex flex-col group cursor-pointer"
     >
       <div className="overflow-hidden rounded-3xl aspect-[4/3] shadow-lg relative">
-        <img 
-          src={image} 
-          alt={title} 
+        <img
+          src={image}
+          alt={title}
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
         />
         <div className="absolute inset-0 bg-emerald-900/10 group-hover:bg-transparent transition-colors duration-300" />
       </div>
-      
+
       <div className="bg-white border border-emerald-100 py-5 px-4 text-center min-h-[80px] flex items-center justify-center mt-4 rounded-2xl shadow-sm group-hover:shadow-md group-hover:border-emerald-500 transition-all duration-300">
         <h3 className="text-emerald-900 font-black text-sm md:text-base uppercase tracking-tight leading-tight group-hover:text-emerald-600">
           {title}
@@ -146,38 +184,42 @@ const SustainabilityPrograms = () => {
     {
       id: "grow-mushrooms",
       title: "Grow Your Own Mushrooms",
-      image: "https://images.unsplash.com/photo-1591261730799-ee4e6c2d16d7?auto=format&fit=crop&w=800&q=80",
+      image:
+        "https://images.unsplash.com/photo-1591261730799-ee4e6c2d16d7?auto=format&fit=crop&w=800&q=80",
     },
     {
       id: "demystify-fungi",
       title: "Demystify Your Local Fungi",
-      image: "https://images.unsplash.com/photo-1473081556163-2a17de81fc97?auto=format&fit=crop&w=800&q=80",
+      image:
+        "https://images.unsplash.com/photo-1473081556163-2a17de81fc97?auto=format&fit=crop&w=800&q=80",
     },
     {
       id: "wipro-earthian",
       title: "Wipro Earthian Program",
-      image: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=800&q=80",
+      image:
+        "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=800&q=80",
     },
     {
       id: "chemical-free",
       title: "Chemical Free Living Series",
-      image: "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=800&q=80",
+      image:
+        "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=800&q=80",
     },
     {
       id: "waste-management",
       title: "Mastering Solid Waste Management",
-      image: "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=800&q=80",
-    }
+      image:
+        "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=800&q=80",
+    },
   ];
 
   return (
     <section className="bg-stone-50 py-24 min-h-screen">
       <div className="max-w-7xl mx-auto px-4 font-sans">
-        
         {/* Animated Header Logic */}
         <AnimatePresence mode="wait">
           {!selectedProgram ? (
-            <motion.div 
+            <motion.div
               key="header"
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -189,14 +231,18 @@ const SustainabilityPrograms = () => {
                     <Sprout className="w-4 h-4" /> Our Activities
                   </span>
                   <h2 className="text-4xl md:text-5xl font-black text-slate-900 uppercase tracking-tighter leading-none">
-                    Sustainability <br /> 
+                    Sustainability <br />
                     <span className="text-emerald-600">Programs</span>
                   </h2>
                 </div>
               </div>
               <div className="mb-16">
                 <p className="text-xl md:text-2xl font-medium text-slate-600 max-w-3xl leading-relaxed">
-                  Explore our <span className="text-emerald-700 font-bold italic">exciting sustainability programs</span> – where education meets adventure.
+                  Explore our{" "}
+                  <span className="text-emerald-700 font-bold italic">
+                    exciting sustainability programs
+                  </span>{" "}
+                  – where education meets adventure.
                 </p>
               </div>
             </motion.div>
@@ -208,7 +254,7 @@ const SustainabilityPrograms = () => {
           {selectedProgram === "mushroom-walk" ? (
             <MushroomWalkDetail onBack={() => setSelectedProgram(null)} />
           ) : (
-            <motion.div 
+            <motion.div
               key="grid"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -216,7 +262,7 @@ const SustainabilityPrograms = () => {
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10"
             >
               {programs.map((program, index) => (
-                <ProgramCard 
+                <ProgramCard
                   key={index}
                   image={program.image}
                   title={program.title}
