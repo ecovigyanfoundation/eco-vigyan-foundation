@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import { articles } from "@/data/articles";
+import ArticleImage from "@/components/ArticleImage"; // Ensure this path is correct
 
 export async function generateStaticParams() {
   return articles.map((article) => ({
@@ -10,26 +10,25 @@ export async function generateStaticParams() {
 }
 
 export default async function ArticlePage({ params }) {
-  const resolvedParams = await params;
-  const slug = resolvedParams?.slug;
+  // In Next.js 15, params is a Promise that must be awaited
+  const { slug } = await params;
 
   if (!slug) notFound();
 
   const article = articles.find((a) => a.slug === slug);
   if (!article) notFound();
 
-  // Assuming article.images is an array of URLs: string[]
   const images = article.images || [];
 
   return (
     <article className="max-w-4xl mx-auto px-6 py-12 md:py-20">
-      {/* Navigation / Breadcrumb */}
+      {/* Navigation */}
       <nav className="mb-8">
         <Link 
           href="/articles" 
-          className="text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1 transition-colors"
+          className="text-indigo-600 hover:text-indigo-800 font-medium inline-flex items-center gap-2 transition-colors"
         >
-          &larr; Back to all articles
+          <span>&larr;</span> Back to all articles
         </Link>
       </nav>
 
@@ -62,29 +61,24 @@ export default async function ArticlePage({ params }) {
         )}
       </header>
 
-      {/* Smart Image Gallery */}
+      {/* Enhanced Image Gallery */}
       {images.length > 0 && (
-        <div className={`grid gap-4 mb-12 ${
-          images.length === 1 ? "grid-cols-1" : 
-          images.length === 2 ? "grid-cols-2" : 
-          "grid-cols-1 md:grid-cols-3"
+        <div className={`grid gap-6 mb-12 ${
+          images.length === 1 ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"
         }`}>
           {images.map((src, index) => (
-            <div key={index} className="relative aspect-video rounded-2xl overflow-hidden shadow-md">
-              <Image
-                src={src}
-                alt={`Image ${index + 1} for ${article.title}`}
-                fill
-                className="object-cover hover:scale-105 transition-transform duration-500"
-              />
-            </div>
+            <ArticleImage 
+              key={index} 
+              src={src} 
+              alt={`Image ${index + 1} for ${article.title}`} 
+            />
           ))}
         </div>
       )}
 
       {/* Main Content */}
       <div className="prose prose-indigo prose-lg max-w-none">
-        <div className="text-gray-800 leading-extra-relaxed whitespace-pre-line text-lg md:text-xl">
+        <div className="text-gray-800 leading-[1.8] whitespace-pre-line text-lg md:text-xl">
           {article.content.trim()}
         </div>
       </div>
@@ -96,7 +90,7 @@ export default async function ArticlePage({ params }) {
           <p className="text-indigo-700 mb-6">Stay tuned for more articles like this.</p>
           <Link 
             href="/articles" 
-            className="inline-block bg-indigo-600 text-white px-6 py-3 rounded-full font-semibold hover:bg-indigo-700 transition-colors"
+            className="inline-block bg-indigo-600 text-white px-8 py-3 rounded-full font-semibold hover:bg-indigo-700 transition-all shadow-md hover:shadow-lg"
           >
             Explore More Content
           </Link>
