@@ -162,10 +162,11 @@ export default function JoinUsPage() {
       subtitle:
         "Support environmental education, field activities, and community learning.",
       description:
-        "Volunteers work closely with our team during nature walks, school programs, biodiversity surveys, and outreach. No prior expertise needed—only curiosity.",
+        "Volunteers work closely with our team during nature walks, school programs, biodiversity surveys, and outreach. No prior expertise needed.",
       icon: <Users className="w-8 h-8" />,
       color: "bg-emerald-50",
       accent: "text-emerald-600",
+      btnHover: "hover:bg-emerald-600",
       points: [
         "Nature Walks & Field Activities",
         "School Programs",
@@ -182,6 +183,7 @@ export default function JoinUsPage() {
       icon: <GraduationCap className="w-8 h-8" />,
       color: "bg-blue-50",
       accent: "text-blue-600",
+      btnHover: "hover:bg-blue-600",
       points: [
         "Fungal Biodiversity Research",
         "Environmental Education",
@@ -198,6 +200,7 @@ export default function JoinUsPage() {
       icon: <Microscope className="w-8 h-8" />,
       color: "bg-orange-50",
       accent: "text-orange-600",
+      btnHover: "hover:bg-orange-600",
       points: [
         "Mushroom Observation",
         "Responsible Photography",
@@ -231,8 +234,7 @@ export default function JoinUsPage() {
             className="text-xl md:text-2xl text-emerald-100 font-medium leading-relaxed"
           >
             At Eco Vigyan Foundation, we believe that care for nature grows
-            through participation. There is a meaningful way for everyone to be
-            part of our journey.
+            through participation.
           </motion.p>
         </div>
       </section>
@@ -246,21 +248,24 @@ export default function JoinUsPage() {
               initial={{ y: 30, opacity: 0 }}
               whileInView={{ y: 0, opacity: 1 }}
               viewport={{ once: true }}
+              // LIFT EFFECT ON HOVER
+              whileHover={{ y: -10, transition: { duration: 0.1 } }}
               transition={{ delay: idx * 0.1 }}
-              className={`${item.color} rounded-[2.5rem] p-8 md:p-10 shadow-xl border border-white flex flex-col`}
+              className={`${item.color} group relative rounded-[2.5rem] p-8 md:p-10 shadow-xl border border-white flex flex-col transition-all duration-300 hover:shadow-2xl`}
             >
               <div
-                className={`${item.accent} flex items-center mb-6 p-4 bg-white rounded-2xl shadow-sm w-fit mx-auto`}
+                className={`${item.accent} flex items-center mb-6 p-4 bg-white rounded-2xl shadow-sm w-fit mx-auto transition-transform duration-300 group-hover:scale-110`}
               >
                 {item.icon}
               </div>
-              <h2 className="text-2xl font-black text-stone-900 mb-2 uppercase">
+              
+              <h2 className="text-2xl font-black text-stone-900 mb-2 uppercase text-center">
                 {item.title}
               </h2>
-              <p className="font-bold text-stone-600 mb-4 text-sm uppercase tracking-wide">
+              <p className="font-bold text-stone-600 mb-4 text-sm uppercase tracking-wide text-center">
                 {item.subtitle}
               </p>
-              <p className="text-stone-600 mb-8 leading-relaxed">
+              <p className="text-stone-600 mb-8 leading-relaxed text-center">
                 {item.description}
               </p>
 
@@ -271,7 +276,7 @@ export default function JoinUsPage() {
                     className="flex items-center gap-3 text-stone-700 font-medium"
                   >
                     <CheckCircle2
-                      className={`w-5 h-5 ${item.accent} flex-shrink-0`}
+                      className={`w-5 h-5 ${item.accent} flex-shrink-0 transition-transform group-hover:rotate-12`}
                     />
                     <span className="text-sm">{point}</span>
                   </div>
@@ -280,7 +285,7 @@ export default function JoinUsPage() {
 
               <button
                 onClick={() => setModalType(item.id)}
-                className={`w-full py-4 cursor-pointer rounded-2xl bg-white text-stone-900 font-black flex items-center justify-center gap-2 hover:shadow-lg transition-all active:scale-95 group border-b-4 border-stone-200`}
+                className={`w-full py-4 cursor-pointer rounded-2xl bg-white text-stone-900 font-black flex items-center justify-center gap-2 transition-all duration-200 active:scale-95 border-b-4 border-stone-200 group-hover:border-emerald-700 group-hover:bg-emerald-600 group-hover:text-white`}
               >
                 {item.id === "volunteer" && "Volunteer with Eco Vigyan"}
                 {item.id === "intern" && "Apply for Internship"}
@@ -305,17 +310,16 @@ export default function JoinUsPage() {
             </h2>
             <p className="text-emerald-100 text-lg mb-8 leading-relaxed">
               You don’t need to be a scientist to contribute. We guide you on
-              how to observe, photograph, and record fungi responsibly—starting
-              right where you live.
+              how to observe, photograph, and record fungi responsibly.
             </p>
             <div className="grid grid-cols-2 gap-4">
-              <div className="flex items-center gap-2 bg-emerald-800/50 p-3 rounded-xl">
+              <div className="flex items-center gap-2 bg-emerald-800/50 p-3 rounded-xl hover:bg-emerald-700/50 transition-colors">
                 <Camera className="w-5 h-5 text-emerald-400" />
                 <span className="text-xs font-bold uppercase tracking-wider">
                   Learn Photography
                 </span>
               </div>
-              <div className="flex items-center gap-2 bg-emerald-800/50 p-3 rounded-xl">
+              <div className="flex items-center gap-2 bg-emerald-800/50 p-3 rounded-xl hover:bg-emerald-700/50 transition-colors">
                 <MapIcon className="w-5 h-5 text-emerald-400" />
                 <span className="text-xs font-bold uppercase tracking-wider">
                   Map Fungi
