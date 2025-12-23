@@ -12,7 +12,6 @@ const useCountUp = (end, duration = 2000, start = 0) => {
   const frameRef = useRef(null);
 
   useEffect(() => {
-    // If end == start (e.g. still 0), don't animate
     if (end === start) {
       setCount(start);
       return;
@@ -28,8 +27,8 @@ const useCountUp = (end, duration = 2000, start = 0) => {
 
       // cubic ease-out
       const eased = 1 - Math.pow(1 - progress, 3);
-
       const value = start + (end - start) * eased;
+
       setCount(Math.round(value));
 
       if (progress < 1) {
@@ -51,55 +50,91 @@ const useCountUp = (end, duration = 2000, start = 0) => {
    Formatting helper
 ---------------------------------------- */
 const formatCount = (count, endValue) => {
-  // Big numbers like 20000 -> 20K+
   if (endValue >= 10000) {
-    if (count >= endValue) return `${endValue / 1000}K+`; // final display
-    return count.toLocaleString(); // intermediate values: 3,520, 7,830, etc.
+    if (count >= endValue) return `${endValue / 1000}K+`;
+    return count.toLocaleString();
   }
 
-  // Others like 300 -> 300+
   if (count >= endValue) return `${endValue}+`;
 
   return count.toLocaleString();
 };
 
 /* ---------------------------------------
-   Impact Card
+   Tailwind-safe color styles
+---------------------------------------- */
+const colorStyles = {
+  blue: {
+    bg: "bg-blue-50",
+    border: "border-blue-200",
+    icon: "text-blue-600",
+    text: "text-blue-900",
+  },
+  green: {
+    bg: "bg-green-50",
+    border: "border-green-200",
+    icon: "text-green-600",
+    text: "text-green-900",
+  },
+  emerald: {
+    bg: "bg-emerald-50",
+    border: "border-emerald-200",
+    icon: "text-emerald-600",
+    text: "text-emerald-900",
+  },
+  pink: {
+    bg: "bg-pink-50",
+    border: "border-pink-200",
+    icon: "text-pink-600",
+    text: "text-pink-900",
+  },
+  purple: {
+    bg: "bg-purple-50",
+    border: "border-purple-200",
+    icon: "text-purple-600",
+    text: "text-purple-900",
+  },
+  orange: {
+    bg: "bg-orange-50",
+    border: "border-orange-200",
+    icon: "text-orange-600",
+    text: "text-orange-900",
+  },
+};
+
+/* ---------------------------------------
+   Impact Card Component
 ---------------------------------------- */
 export default function ImpactCard({ Icon: IconName, endValue, label, color }) {
   const Icon = Icons[IconName];
+  const styles = colorStyles[color] || colorStyles.blue;
 
-  // Observe when this card enters viewport
   const { ref, inView } = useInView({
-    triggerOnce: true, // only once
-    threshold: 0.3,    // 30% visible
+    triggerOnce: true,
+    threshold: 0.3,
   });
 
   const [hasStarted, setHasStarted] = useState(false);
 
-  // When in view for the first time -> start animation
   useEffect(() => {
     if (inView && !hasStarted) {
       setHasStarted(true);
     }
   }, [inView, hasStarted]);
 
-  const animatedCount = useCountUp(
-    hasStarted ? endValue : 0, // 0 until we start
-    2000,
-    0
-  );
-
+  const animatedCount = useCountUp(hasStarted ? endValue : 0, 2000, 0);
   const formattedCount = formatCount(animatedCount, endValue);
 
   return (
     <div
       ref={ref}
-      className={`bg-${color}-50 border border-${color}-100 p-6 rounded-2xl shadow-lg text-center transition-all duration-300 hover:shadow-xl hover:scale-[1.05] cursor-default`}
+      className={`${styles.bg} ${styles.border} border p-6 rounded-2xl shadow-lg text-center transition-all duration-300 hover:shadow-xl hover:scale-[1.05] cursor-default`}
     >
-      <Icon className={`w-8 h-8 text-${color}-600 mb-4 mx-auto`} />
+      {Icon && (
+        <Icon className={`w-8 h-8 ${styles.icon} mb-4 mx-auto`} />
+      )}
 
-      <p className={`text-4xl md:text-5xl font-black text-${color}-900 drop-shadow-sm`}>
+      <p className={`text-4xl md:text-5xl font-black ${styles.text} drop-shadow-sm`}>
         {formattedCount}
       </p>
 
