@@ -6,8 +6,8 @@ import { MapPin, Phone, Mail, Facebook, Instagram, Linkedin, ArrowRight, Heart }
 
 export default function Footer() {
   const volunteerPrograms = [
-    "Community Dev", "Cultural Exchange", "Eco Awareness", 
-    "Nature Walks", "School Gardens", "Waste Mgmt"
+     
+    "Guided Mushroom Walks",
   ];
 
   const socialLinks = [
@@ -36,7 +36,7 @@ export default function Footer() {
                 EcoVigyan <span className="text-emerald-500">Foundation</span>
               </h3>
               <p className="text-xs font-bold tracking-widest text-white mt-1 uppercase">
-                Est. 2024 • Shimla
+                Est. 2022 • Shimla
               </p>
             </div>
             {/* Increased from text-xs to text-sm */}
@@ -117,12 +117,8 @@ export default function Footer() {
 
         {/* Copyright Section: Adjusted text size */}
         <div className="border-t border-emerald-900 pt-6 flex flex-col md:flex-row justify-between items-center text-xs text-emerald-600 font-bold uppercase tracking-wider">
-          <p>© {new Date().getFullYear()} Eco Vigyan Foundation.</p>
-          <div className="flex space-x-6 mt-4 md:mt-0">
-            <a href="/privacy" className="hover:text-emerald-400">Privacy Policy</a>
-            <a href="/terms" className="hover:text-emerald-400">Terms of Use</a>
-            
-          </div>
+          <p>© 2022 Eco Vigyan Foundation.</p>
+         
         </div>
       </motion.div>
     </footer>

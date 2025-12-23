@@ -79,7 +79,7 @@ export default function HomePage() {
             <FramerAnimation delay={0.3}>
               <div className="space-y-6 text-xl lg:text-left text-slate-700 leading-relaxed mx-auto font-semibold tracking-[0.1px] text-center ">
                 <p>
-                  Eco Vigyan Foundation came into existence just last year with
+                  Eco Vigyan Foundation came into existence in 2022 with
                   a clear purpose – to enhance eco-club activities in schools
                   throughout India. We hold a special fascination for unveiling
                   the hidden significance of fungi in the grand tapestry of
@@ -185,7 +185,8 @@ export default function HomePage() {
       <section className="py-12 bg-white">
         <div className="max-w-7xl mx-auto px-4">
           <FramerAnimation delay={0.4}>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            {/* Changed md:grid-cols-5 to md:grid-cols-3 and added lg:grid-cols-6 for better spacing */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               <ImpactCard
                 Icon="BookOpen"
                 endValue={300}
@@ -217,7 +218,16 @@ export default function HomePage() {
                 color="purple"
               />
 
-              <div className="mt-6 col-span-2 md:col-span-5 rounded-3xl shadow-2xl overflow-hidden relative group">
+              {/* New Mushroom Trails Card */}
+              <ImpactCard
+                Icon="Compass"
+                endValue={12}
+                label="Mushroom Trails Created"
+                color="orange"
+              />
+
+              {/* Updated col-span to match the new 6-column layout */}
+              <div className="mt-6 col-span-2 md:col-span-3 lg:col-span-6 rounded-3xl shadow-2xl overflow-hidden relative group">
                 <div className="absolute inset-0 bg-gradient-to-r from-emerald-700 to-teal-700 transition-transform group-hover:scale-[1.02] duration-500"></div>
                 <div className="relative p-10 flex flex-col md:flex-row items-center justify-between gap-6">
                   <div className="text-center md:text-left">
