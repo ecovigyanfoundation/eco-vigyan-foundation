@@ -40,7 +40,13 @@ export default function Map({ data = [], filters = {}, mode, onMarkerSelect }) {
     });
 
     map.addControl(new mapboxgl.NavigationControl(), "top-right");
+    map.on("mouseenter", "mushroom-points", () => {
+      map.getCanvas().style.cursor = "pointer";
+    });
 
+    map.on("mouseleave", "mushroom-points", () => {
+      map.getCanvas().style.cursor = "";
+    });
     map.on("load", () => {
       setMapLoaded(true);
       map.resize();
