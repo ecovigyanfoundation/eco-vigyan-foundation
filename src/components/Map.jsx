@@ -10,27 +10,16 @@ if (MAPBOX_TOKEN) {
   mapboxgl.accessToken = MAPBOX_TOKEN;
 }
 
-const ICONS = {
-  food: "/icons/mushroom.png",
-  education: "/icons/book.png",
-  health: "/icons/health.png",
-  shelter: "/icons/home.png",
-};
-
-const DEFAULT_ICON_PATH = "/icons/mushroom.png";
-
 export default function Map({ data = [], filters = {}, mode, onMarkerSelect }) {
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
-  const markersRef = useRef([]);
 
-  const [mapLoaded, setMapLoaded] = useState(false); // 🔥 FIX
+  const [mapLoaded, setMapLoaded] = useState(false);
   const [mapError, setMapError] = useState(null);
 
   const isTokenMissing = useMemo(() => !MAPBOX_TOKEN, []);
-  const INDIA_CENTER = [77.41, 23.25];
 
-  /* ---------------- FILTER LOGIC ---------------- */
+  /* ---------------- FILTER ---------------- */
   const isItemActive = (item) => {
     if (!filters || Object.keys(filters).length === 0) return true;
     const key = mode === "category" ? item.category : item.use;
@@ -53,17 +42,12 @@ export default function Map({ data = [], filters = {}, mode, onMarkerSelect }) {
     map.addControl(new mapboxgl.NavigationControl(), "top-right");
 
     map.on("load", () => {
-      setMapLoaded(true); // 🔥 STATE, not ref
-      setTimeout(() => map.resize(), 0);
+      setMapLoaded(true);
+      map.resize();
     });
 
-    map.on("error", (event) => {
-      if (event?.error) {
-        setMapError(
-          event.error.message ||
-            "Map failed to load. Check Mapbox token or network."
-        );
-      }
+    map.on("error", (e) => {
+      setMapError(e?.error?.message || "Map failed to load");
     });
 
     mapRef.current = map;
@@ -74,89 +58,124 @@ export default function Map({ data = [], filters = {}, mode, onMarkerSelect }) {
     };
   }, [isTokenMissing]);
 
-  /* ---------------- MARKERS ---------------- */
+  /* ---------------- DATA + LAYERS ---------------- */
   useEffect(() => {
-    if (isTokenMissing) return;
-    if (!mapRef.current || !mapLoaded) return; // 🔥 now reacts to state
+    if (!mapLoaded || !mapRef.current) return;
 
-    // Clear old markers
-    markersRef.current.forEach((m) => m.remove());
-    markersRef.current = [];
+    const map = mapRef.current;
 
-    const activeItems = data.filter((item) => {
-      if (!item) return false;
-      if (item.latitude == null || item.longitude == null) return false;
-      return isItemActive(item);
-    });
+    const features = data
+      .filter((d) => d.latitude && d.longitude && isItemActive(d))
+      .map((d) => ({
+        type: "Feature",
+        properties: d,
+        geometry: {
+          type: "Point",
+          coordinates: [Number(d.longitude), Number(d.latitude)],
+        },
+      }));
 
-    if (!activeItems.length) return;
+    const geojson = {
+      type: "FeatureCollection",
+      features,
+    };
 
-    const bounds = new mapboxgl.LngLatBounds();
-
-    activeItems.forEach((item) => {
-      const lat = Number(item.latitude);
-      const lng = Number(item.longitude);
-      if (Number.isNaN(lat) || Number.isNaN(lng)) return;
-
-      const iconPath = ICONS[item.category] || DEFAULT_ICON_PATH;
-
-      const el = document.createElement("div");
-      el.style.width = "40px";
-      el.style.height = "40px";
-      el.style.backgroundImage = `url(${iconPath})`;
-      el.style.backgroundSize = "contain";
-      el.style.backgroundRepeat = "no-repeat";
-      el.style.cursor = "pointer";
-
-      const popup = new mapboxgl.Popup({
-        offset: 25,
-        closeButton: false,
-      }).setHTML(`
-        <div style="min-width:200px;font-family:system-ui">
-          <h3 style="margin:0;font-size:16px;font-weight:700">
-            ${item.name}
-          </h3>
-          <p style="margin:4px 0;font-size:12px;color:#555">
-            ${item.category} • ${item.use}
-          </p>
-          <p style="margin:0;font-size:11px;color:#777">
-            Contributor: ${item.contributor}
-          </p>
-        </div>
-      `);
-
-      const marker = new mapboxgl.Marker(el)
-        .setLngLat([lng, lat])
-        .setPopup(popup)
-        .addTo(mapRef.current);
-
-      el.addEventListener("click", () => {
-        onMarkerSelect?.(item);
-        mapRef.current.flyTo({
-          center: [lng, lat],
-          zoom: 8.5, // ⬅️ REAL zoom-in
-          speed: 0.9, // smooth animation
-          curve: 1.4, // natural easing
-          essential: true,
-          offset: [0, -80], // ⬅️ lifts marker slightly up (optional)
-        });
+    /* SOURCE */
+    if (!map.getSource("mushrooms")) {
+      map.addSource("mushrooms", {
+        type: "geojson",
+        data: geojson,
       });
+    } else {
+      map.getSource("mushrooms").setData(geojson);
+    }
 
-      markersRef.current.push(marker);
-      bounds.extend([lng, lat]);
+    /* HEATMAP */
+    if (!map.getLayer("mushroom-heat")) {
+      map.addLayer({
+        id: "mushroom-heat",
+        type: "heatmap",
+        source: "mushrooms",
+        maxzoom: 6,
+        paint: {
+          "heatmap-radius": 30,
+          "heatmap-intensity": 1,
+          "heatmap-opacity": 0.85,
+          "heatmap-color": [
+            "interpolate",
+            ["linear"],
+            ["heatmap-density"],
+            0,
+            "rgba(0,0,0,0)",
+            0.3,
+            "#a7f3d0",
+            0.5,
+            "#34d399",
+            0.7,
+            "#10b981",
+            1,
+            "#064e3b",
+          ],
+        },
+      });
+    }
+
+    /* ICON IMAGE (SAFE LOAD) */
+    if (!map.hasImage("mushroom-icon")) {
+      map.loadImage("/icons/mushroom.png", (err, img) => {
+        if (err || !img) return;
+        if (!map.hasImage("mushroom-icon")) {
+          map.addImage("mushroom-icon", img);
+        }
+      });
+    }
+
+    /* SYMBOL LAYER */
+    if (!map.getLayer("mushroom-points")) {
+      map.addLayer({
+        id: "mushroom-points",
+        type: "symbol",
+        source: "mushrooms",
+        minzoom: 6,
+        layout: {
+          "icon-image": "mushroom-icon",
+          "icon-size": 0.08,
+          "icon-allow-overlap": true,
+        },
+      });
+    }
+
+    /* CLICK */
+    map.on("click", "mushroom-points", (e) => {
+      const f = e.features?.[0];
+      if (!f) return;
+
+      const item = f.properties;
+      const [lng, lat] = f.geometry.coordinates;
+
+      onMarkerSelect?.(item);
+
+      map.flyTo({
+        center: [lng, lat],
+        zoom: 8.5,
+        speed: 0.9,
+        curve: 1.4,
+        offset: [0, -80],
+        essential: true,
+      });
     });
-  }, [data, filters, mode, mapLoaded, onMarkerSelect, isTokenMissing]);
+  }, [data, filters, mode, mapLoaded, onMarkerSelect]);
 
   /* ---------------- UI ---------------- */
   return (
     <div className="absolute inset-0">
       {isTokenMissing ? (
         <div className="w-full h-full flex items-center justify-center bg-gray-900 text-white text-sm">
-          <p>Mapbox token missing</p>
+          Mapbox token missing (check Vercel env vars)
         </div>
       ) : mapError ? (
         <div className="w-full h-full flex items-center justify-center bg-gray-900 text-white text-sm">
-          <p>{mapError}</p>
+          {mapError}
         </div>
       ) : (
         <div ref={mapContainerRef} className="w-full h-full" />
