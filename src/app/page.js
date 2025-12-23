@@ -40,7 +40,7 @@ export default function HomePage() {
           <FramerAnimation delay={0.4}>
             <div className="bg-emerald-50 border-t-8 border-emerald-500 rounded-[2.5rem] p-8 shadow-2xl shadow-emerald-200/50">
               <div className="flex justify-center mb-4">
-                <h3 className="text-3xl font-bold text-black uppercase tracking-wider">
+                <h3 className="text-3xl font-bold text-emerald-600 uppercase tracking-wider">
                   Our Mission
                 </h3>
               </div>
@@ -67,7 +67,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 relative z-10">
           <FramerAnimation delay={0.2}>
             <div className="text-center mb-10">
-              <h2 className="mt-3 text-4xl md:text-5xl font-extrabold text-slate-900">
+              <h2 className="mt-3 text-4xl md:text-5xl font-bold text-slate-900">
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500 drop-shadow-md">
                   Who We Are
                 </span>
@@ -76,108 +76,113 @@ export default function HomePage() {
           </FramerAnimation>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-  <FramerAnimation delay={0.3}>
-    {/* Kept original alignment: text-center lg:text-left */}
-    <div className="space-y-6 text-lg lg:text-xl lg:text-left text-center text-slate-600 leading-relaxed mx-auto font-medium tracking-normal">
-      <p>
-        Eco Vigyan Foundation came into existence in 2022 with
-        a clear purpose – to enhance eco-club activities in schools
-        throughout India. We hold a special fascination for unveiling
-        the hidden significance of fungi in the grand tapestry of
-        nature.
-      </p>
-      
-      <p>
-        This endeavour was co-founded by{" "}
-        <Link
-          href="https://wiprofoundation.org/earthian/earthjust/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="font-bold text-black hover:text-emerald-800 underline underline-offset-4 decoration-emerald-200"
-        >
-          Shrey Gupta & Ashish Palyal
-        </Link>
-        , sustainability educators with a profound commitment to
-        environmental causes. Their expertise spans biodiversity
-        conservation, waste management, and fostering learning through
-        nature.
-      </p>
+            <FramerAnimation delay={0.3}>
+              {/* Kept original alignment: text-center lg:text-left */}
+              <div className="space-y-6 text-lg lg:text-xl lg:text-left text-center text-slate-600 leading-relaxed mx-auto font-medium tracking-normal">
+                <p>
+                  Eco Vigyan Foundation came into existence in 2022 with a clear
+                  purpose – to enhance eco-club activities in schools throughout
+                  India. We hold a special fascination for unveiling the hidden
+                  significance of fungi in the grand tapestry of nature.
+                </p>
 
-      <p>
-        Together, they&apos;ve collaborated with
-        <strong className="text-black font-bold">
-          {" "}
-          over 200 schools
-        </strong>
-        , reached more than
-        <strong className="text-black font-bold"> 10,000 students</strong>
-        , partnered with
-        <strong className="text-black font-bold"> 300+ teachers</strong>,
-        and shared their knowledge with
-        <strong className="text-black font-bold">
-          {" "}
-          over 100 community members and naturalists
-        </strong>
-        .
-      </p>
+                <p>
+                  This endeavour was co-founded by{" "}
+                  <Link
+                    href="https://wiprofoundation.org/earthian/earthjust/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-bold text-black hover:text-emerald-800 underline underline-offset-4 decoration-emerald-200"
+                  >
+                    Shrey Gupta & Ashish Palyal
+                  </Link>
+                  , sustainability educators with a profound commitment to
+                  environmental causes. Their expertise spans biodiversity
+                  conservation, waste management, and fostering learning through
+                  nature.
+                </p>
 
-      <p>
-        Our journey is rooted in the belief that{" "}
-        <strong className="text-slate-800">
-          every child harbours a budding scientist within
-        </strong>{" "}
-        and{" "}
-        <strong className="text-slate-800">
-          every educator has the potential to be a nature guide
-        </strong>
-        . Our mission is to foster a culture of sustainability and
-        learning through nature in schools across India.
-      </p>
+                <p>
+                  Together, they&apos;ve collaborated with
+                  <strong className="text-black font-bold">
+                    {" "}
+                    over 200 schools
+                  </strong>
+                  , reached more than
+                  <strong className="text-black font-bold">
+                    {" "}
+                    10,000 students
+                  </strong>
+                  , partnered with
+                  <strong className="text-black font-bold">
+                    {" "}
+                    300+ teachers
+                  </strong>
+                  , and shared their knowledge with
+                  <strong className="text-black font-bold">
+                    {" "}
+                    over 100 community members and naturalists
+                  </strong>
+                  .
+                </p>
 
-      <p>
-        We&apos;ve only just begun—and we invite you to join us in
-        building a greener, more eco-conscious future. Every school,
-        student, and community member plays a part in this shared
-        mission.
-      </p>
-    </div>
-  </FramerAnimation>
+                <p>
+                  Our journey is rooted in the belief that{" "}
+                  <strong className="text-slate-800">
+                    every child harbours a budding scientist within
+                  </strong>{" "}
+                  and{" "}
+                  <strong className="text-slate-800">
+                    every educator has the potential to be a nature guide
+                  </strong>
+                  . Our mission is to foster a culture of sustainability and
+                  learning through nature in schools across India.
+                </p>
 
-  <FramerAnimation delay={0.4}>
-    <div className="relative group">
-      <div className="absolute -inset-3 bg-gradient-to-r from-sky-500 to-emerald-500 opacity-30 blur-xl rounded-3xl group-hover:opacity-60 transition duration-700"></div>
-      <div className="relative aspect-video bg-slate-900 overflow-hidden rounded-2xl shadow-2xl">
-        {!playVideo && (
-          <>
-            <img
-              src="https://img.youtube.com/vi/cZVHtG2_Vhs/maxresdefault.jpg"
-              className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-700"
-              alt="Eco Vigyan Activity"
-            />
-            <div
-              onClick={() => setPlayVideo(true)}
-              className="absolute inset-0 flex items-center justify-center cursor-pointer bg-black/30 hover:bg-black/10 transition"
-            >
-              <div className="w-16 h-16 bg-white/90 rounded-full shadow-2xl flex items-center justify-center hover:scale-110 transition-all border-4 border-white/50">
-                <div className="ml-1 w-0 h-0 border-l-[20px] border-l-emerald-600 border-t-[12px] border-b-[12px] border-t-transparent border-b-transparent" />
+                <p>
+                  We&apos;ve only just begun—and we invite you to join us in
+                  building a greener, more eco-conscious future. Every school,
+                  student, and community member plays a part in this shared
+                  mission.
+                </p>
               </div>
-            </div>
-          </>
-        )}
+            </FramerAnimation>
 
-        {playVideo && (
-          <iframe
-            className="w-full h-full"
-            src="https://www.youtube.com/embed/cZVHtG2_Vhs?autoplay=1&controls=1"
-            title="Eco Vigyan Video"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
-        )}
-      </div>
-    </div>
-  </FramerAnimation>
-</div>
+            <FramerAnimation delay={0.4}>
+              <div className="relative group">
+                <div className="absolute -inset-3 bg-gradient-to-r from-sky-500 to-emerald-500 opacity-30 blur-xl rounded-3xl group-hover:opacity-60 transition duration-700"></div>
+                <div className="relative aspect-video bg-slate-900 overflow-hidden rounded-2xl shadow-2xl">
+                  {!playVideo && (
+                    <>
+                      <img
+                        src="https://img.youtube.com/vi/cZVHtG2_Vhs/maxresdefault.jpg"
+                        className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-700"
+                        alt="Eco Vigyan Activity"
+                      />
+                      <div
+                        onClick={() => setPlayVideo(true)}
+                        className="absolute inset-0 flex items-center justify-center cursor-pointer bg-black/30 hover:bg-black/10 transition"
+                      >
+                        <div className="w-16 h-16 bg-white/90 rounded-full shadow-2xl flex items-center justify-center hover:scale-110 transition-all border-4 border-white/50">
+                          <div className="ml-1 w-0 h-0 border-l-[20px] border-l-emerald-600 border-t-[12px] border-b-[12px] border-t-transparent border-b-transparent" />
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {playVideo && (
+                    <iframe
+                      className="w-full h-full"
+                      src="https://www.youtube.com/embed/cZVHtG2_Vhs?autoplay=1&controls=1"
+                      title="Eco Vigyan Video"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  )}
+                </div>
+              </div>
+            </FramerAnimation>
+          </div>
         </div>
       </section>
 
