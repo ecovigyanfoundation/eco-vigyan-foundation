@@ -38,9 +38,10 @@ export default function Navbar() {
   }, []);
 
   const navLinks = [
-    { name: "Home", path: "/" },
     { name: "About", path: "/#about" },
     { name: "Explore", path: "/explore", isNew: true },
+    { name: "Join Us", path: "/join-us" },
+
   ];
 
   const programLinks = [
@@ -48,7 +49,6 @@ export default function Navbar() {
     { name: "Programs", path: "/programs" },
     { name: "Reports", path: "/reports" },
     { name: "Gallery", path: "/gallery" },
-    { name: "Join Us", path: "/join-us" },
     { name: "Contact Us", path: "/contact" },
   ];
 
