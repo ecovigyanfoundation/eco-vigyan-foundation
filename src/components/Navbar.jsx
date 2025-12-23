@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import Link from "next/link"; // Import Link from Next.js
+import Link from "next/link";
 import {
   Phone,
   Mail,
@@ -11,29 +11,24 @@ import {
   X,
   Heart,
   ChevronDown,
+  LogIn,
 } from "lucide-react";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-
   const [isProgramsOpen, setIsProgramsOpen] = useState(false);
   const dropdownRef = useRef(null);
   const leaveTimeoutRef = useRef(null);
 
   const handleNavClick = useCallback((event, link) => {
-    // Only intercept for hash links on the same page
     if (!link.path.startsWith("/#")) return;
-
     const hash = link.path.split("#")[1];
     if (!hash) return;
-
     if (window.location.pathname === "/") {
       event.preventDefault();
       const el = document.getElementById(hash);
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, []);
 
@@ -41,7 +36,6 @@ export default function Navbar() {
     { name: "About", path: "/#about" },
     { name: "Explore", path: "/explore", isNew: true },
     { name: "Join Us", path: "/join-us" },
-
   ];
 
   const programLinks = [
@@ -53,22 +47,9 @@ export default function Navbar() {
   ];
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
-    };
+    const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  // ... (handleMouseEnter, handleMouseLeave, handleClickOutside remain same)
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (window.innerWidth >= 768 && dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setIsProgramsOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const handleMouseEnter = () => {
@@ -133,7 +114,6 @@ export default function Navbar() {
             </Link>
 
             {/* Desktop Navigation Wrapper */}
-            {/* Added flex-1 and justify-end to push contents to the right */}
             <div className="hidden md:flex flex-1 justify-end items-center space-x-8">
               {navLinks.map((link) => (
                 <Link
@@ -154,7 +134,7 @@ export default function Navbar() {
               ))}
 
               {/* OUR PROGRAMS DROPDOWN */}
-              <div className="relative font-bold " ref={dropdownRef} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+              <div className="relative font-bold" ref={dropdownRef} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
                 <button
                   onClick={() => setIsProgramsOpen((p) => !p)}
                   className="flex cursor-pointer items-center gap-1 py-2 text-sm font-bold text-slate-600 hover:text-emerald-700 focus:outline-none relative group"
@@ -180,10 +160,20 @@ export default function Navbar() {
                 </div>
               </div>
 
-              {/* Donate Button: Now at the extreme right of the container */}
+              {/* LOGIN BUTTON (Inside Nav Flow) */}
+              <Link 
+                href="/login" 
+                className="group relative py-2 text-sm font-bold text-slate-600 hover:text-emerald-700 transition-colors flex items-center gap-2"
+              >
+                <LogIn className="w-4 h-4" />
+                Login
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-emerald-600 transition-all duration-300 group-hover:w-full"></span>
+              </Link>
+
+              {/* DONATE BUTTON (Final Right Position) */}
               <Link
                 href="/donate"
-                className="group relative px-6  py-2.5 bg-gradient-to-r from-emerald-600 to-green-700 text-white font-bold text-sm rounded-full shadow-lg hover:-translate-y-0.5 transition-all duration-300 overflow-hidden"
+                className="group relative px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-green-700 text-white font-bold text-sm rounded-full shadow-lg hover:-translate-y-0.5 transition-all duration-300 overflow-hidden"
               >
                 <span className="relative z-10 flex items-center">
                   Donate Now <Heart className="w-4 h-4 ml-2 fill-white/20 group-hover:fill-white" />
@@ -200,8 +190,8 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Mobile Menu (Updated to use Link) */}
-        <div className={`md:hidden absolute top-full left-0 w-full bg-white border-t transition-all duration-300 origin-top ${isOpen ? "opacity-100 scale-y-100" : "opacity-0 scale-y-0 h-0"}`}>
+        {/* Mobile Menu */}
+        <div className={`md:hidden absolute top-full left-0 w-full bg-white border-t transition-all duration-300 origin-top ${isOpen ? "opacity-100 scale-y-100" : "opacity-0 scale-y-0 h-0 overflow-hidden"}`}>
           <div className="px-4 py-6 space-y-4 flex flex-col items-center">
             {navLinks.map((link) => (
               <Link key={link.name} href={link.path} className="text-lg font-medium text-slate-700 w-full text-center py-2" onClick={() => setIsOpen(false)}>
@@ -216,6 +206,11 @@ export default function Navbar() {
                 </Link>
               ))}
             </div>
+            
+            {/* Mobile Login and Donate grouped together */}
+            <Link href="/login" className="w-full text-center px-6 py-3 border border-emerald-600 text-emerald-700 font-bold rounded-lg" onClick={() => setIsOpen(false)}>
+              Member Login
+            </Link>
             <Link href="/donate" className="w-full text-center px-6 py-3 bg-emerald-600 text-white font-bold rounded-lg" onClick={() => setIsOpen(false)}>
               Donate Now
             </Link>
