@@ -46,9 +46,9 @@ export default function Navbar() {
 
   const programLinks = [
     { name: "Articles", path: "/articles" },
+    { name: "Eco-Art Gallery", path: "/gallery" },
     { name: "Programs", path: "/programs" },
     { name: "Reports", path: "/reports" },
-    { name: "Gallery", path: "/gallery" },
     { name: "Contact Us", path: "/contact" },
   ];
 

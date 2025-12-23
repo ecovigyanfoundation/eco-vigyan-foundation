@@ -40,7 +40,7 @@ export default function HomePage() {
           <FramerAnimation delay={0.4}>
             <div className="bg-emerald-50 border-t-8 border-emerald-500 rounded-[2.5rem] p-8 shadow-2xl shadow-emerald-200/50">
               <div className="flex justify-center mb-4">
-                <h3 className="text-3xl font-bold text-emerald-700 uppercase tracking-wider">
+                <h3 className="text-3xl font-bold text-black uppercase tracking-wider">
                   Our Mission
                 </h3>
               </div>
@@ -76,113 +76,115 @@ export default function HomePage() {
           </FramerAnimation>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-            <FramerAnimation delay={0.3}>
-              <div className="space-y-6 text-xl lg:text-left text-slate-700 leading-relaxed mx-auto font-semibold tracking-[0.1px] text-center ">
-                <p>
-                  Eco Vigyan Foundation came into existence in 2022 with
-                  a clear purpose – to enhance eco-club activities in schools
-                  throughout India. We hold a special fascination for unveiling
-                  the hidden significance of fungi in the grand tapestry of
-                  nature.
-                </p>
-                <p>
-                  This endeavour was co-founded by{" "}
-                  <Link
-                    href="https://wiprofoundation.org/earthian/earthjust/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-semibold text-emerald-700 hover:text-emerald-900 underline underline-offset-2"
-                  >
-                    Shrey Gupta & Ashish Palyal
-                  </Link>
-                  , sustainability educators with a profound commitment to
-                  environmental causes. Their expertise spans biodiversity
-                  conservation, waste management, and fostering learning through
-                  nature.
-                </p>
+  <FramerAnimation delay={0.3}>
+    {/* Kept original alignment: text-center lg:text-left */}
+    <div className="space-y-6 text-lg lg:text-xl lg:text-left text-center text-slate-600 leading-relaxed mx-auto font-medium tracking-normal">
+      <p>
+        Eco Vigyan Foundation came into existence in 2022 with
+        a clear purpose – to enhance eco-club activities in schools
+        throughout India. We hold a special fascination for unveiling
+        the hidden significance of fungi in the grand tapestry of
+        nature.
+      </p>
+      
+      <p>
+        This endeavour was co-founded by{" "}
+        <Link
+          href="https://wiprofoundation.org/earthian/earthjust/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-bold text-black hover:text-emerald-800 underline underline-offset-4 decoration-emerald-200"
+        >
+          Shrey Gupta & Ashish Palyal
+        </Link>
+        , sustainability educators with a profound commitment to
+        environmental causes. Their expertise spans biodiversity
+        conservation, waste management, and fostering learning through
+        nature.
+      </p>
 
-                <p>
-                  Together, they&apos;ve collaborated with
-                  <strong className="text-emerald-700">
-                    {" "}
-                    over 200 schools
-                  </strong>
-                  , reached more than
-                  <strong className="text-emerald-700"> 10,000 students</strong>
-                  , partnered with
-                  <strong className="text-emerald-700"> 300+ teachers</strong>,
-                  and shared their knowledge with
-                  <strong className="text-emerald-700">
-                    {" "}
-                    over 100 community members and naturalists
-                  </strong>
-                  .
-                </p>
+      <p>
+        Together, they&apos;ve collaborated with
+        <strong className="text-black font-bold">
+          {" "}
+          over 200 schools
+        </strong>
+        , reached more than
+        <strong className="text-black font-bold"> 10,000 students</strong>
+        , partnered with
+        <strong className="text-black font-bold"> 300+ teachers</strong>,
+        and shared their knowledge with
+        <strong className="text-black font-bold">
+          {" "}
+          over 100 community members and naturalists
+        </strong>
+        .
+      </p>
 
-                <p>
-                  Our journey is rooted in the belief that{" "}
-                  <strong>
-                    every child harbours a budding scientist within
-                  </strong>{" "}
-                  and{" "}
-                  <strong>
-                    every educator has the potential to be a nature guide
-                  </strong>
-                  . Our mission is to foster a culture of sustainability and
-                  learning through nature in schools across India.
-                </p>
+      <p>
+        Our journey is rooted in the belief that{" "}
+        <strong className="text-slate-800">
+          every child harbours a budding scientist within
+        </strong>{" "}
+        and{" "}
+        <strong className="text-slate-800">
+          every educator has the potential to be a nature guide
+        </strong>
+        . Our mission is to foster a culture of sustainability and
+        learning through nature in schools across India.
+      </p>
 
-                <p>
-                  We&apos;ve only just begun—and we invite you to join us in
-                  building a greener, more eco-conscious future. Every school,
-                  student, and community member plays a part in this shared
-                  mission.
-                </p>
+      <p>
+        We&apos;ve only just begun—and we invite you to join us in
+        building a greener, more eco-conscious future. Every school,
+        student, and community member plays a part in this shared
+        mission.
+      </p>
+    </div>
+  </FramerAnimation>
+
+  <FramerAnimation delay={0.4}>
+    <div className="relative group">
+      <div className="absolute -inset-3 bg-gradient-to-r from-sky-500 to-emerald-500 opacity-30 blur-xl rounded-3xl group-hover:opacity-60 transition duration-700"></div>
+      <div className="relative aspect-video bg-slate-900 overflow-hidden rounded-2xl shadow-2xl">
+        {!playVideo && (
+          <>
+            <img
+              src="https://img.youtube.com/vi/cZVHtG2_Vhs/maxresdefault.jpg"
+              className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-700"
+              alt="Eco Vigyan Activity"
+            />
+            <div
+              onClick={() => setPlayVideo(true)}
+              className="absolute inset-0 flex items-center justify-center cursor-pointer bg-black/30 hover:bg-black/10 transition"
+            >
+              <div className="w-16 h-16 bg-white/90 rounded-full shadow-2xl flex items-center justify-center hover:scale-110 transition-all border-4 border-white/50">
+                <div className="ml-1 w-0 h-0 border-l-[20px] border-l-emerald-600 border-t-[12px] border-b-[12px] border-t-transparent border-b-transparent" />
               </div>
-            </FramerAnimation>
+            </div>
+          </>
+        )}
 
-            <FramerAnimation delay={0.4}>
-              <div className="relative group">
-                <div className="absolute -inset-3 bg-gradient-to-r from-sky-500 to-emerald-500 opacity-30 blur-xl rounded-3xl group-hover:opacity-60 transition duration-700"></div>
-                <div className="relative aspect-video bg-slate-900 overflow-hidden rounded-2xl shadow-2xl">
-                  {!playVideo && (
-                    <>
-                      <img
-                        src="https://img.youtube.com/vi/cZVHtG2_Vhs/maxresdefault.jpg"
-                        className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-700"
-                        alt="Eco Vigyan Activity"
-                      />
-                      <div
-                        onClick={() => setPlayVideo(true)}
-                        className="absolute inset-0 flex items-center justify-center cursor-pointer bg-black/30 hover:bg-black/10 transition"
-                      >
-                        <div className="w-16 h-16 bg-white/90 rounded-full shadow-2xl flex items-center justify-center hover:scale-110 transition-all border-4 border-white/50">
-                          <div className="ml-1 w-0 h-0 border-l-[20px] border-l-emerald-600 border-t-[12px] border-b-[12px] border-t-transparent border-b-transparent" />
-                        </div>
-                      </div>
-                    </>
-                  )}
-
-                  {playVideo && (
-                    <iframe
-                      className="w-full h-full"
-                      src="https://www.youtube.com/embed/cZVHtG2_Vhs?autoplay=1&controls=1"
-                      title="Eco Vigyan Video"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    />
-                  )}
-                </div>
-              </div>
-            </FramerAnimation>
-          </div>
+        {playVideo && (
+          <iframe
+            className="w-full h-full"
+            src="https://www.youtube.com/embed/cZVHtG2_Vhs?autoplay=1&controls=1"
+            title="Eco Vigyan Video"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        )}
+      </div>
+    </div>
+  </FramerAnimation>
+</div>
         </div>
       </section>
 
       {/* -------------------------------------------------------------------
         IMPACT SECTION (Reduced py-24 to py-12)
       ------------------------------------------------------------------- */}
-      <section className="py-12 bg-white">
+      <section className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4">
           <FramerAnimation delay={0.4}>
             {/* Changed md:grid-cols-5 to md:grid-cols-3 and added lg:grid-cols-6 for better spacing */}
@@ -241,7 +243,7 @@ export default function HomePage() {
                   </div>
                   <Link
                     href="/donate"
-                    className="px-8 py-4 bg-white text-emerald-700 font-bold rounded-full shadow-lg hover:bg-stone-100 transition-all hover:scale-105 active:scale-95 flex items-center"
+                    className="px-8 py-4 bg-white text-black font-bold rounded-full shadow-lg hover:bg-stone-100 transition-all hover:scale-105 active:scale-95 flex items-center"
                   >
                     Donate Now{" "}
                     <Heart className="ml-2 w-5 h-5 fill-pink-500 text-pink-500 border-none" />
