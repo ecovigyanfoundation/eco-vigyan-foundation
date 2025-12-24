@@ -4,55 +4,77 @@ import { useEffect, useState } from "react";
 import CategoryFilter from "@/components/CategoryFilter";
 import dynamic from "next/dynamic";
 import {
-  Menu,
   X,
   Search,
   Map as MapIcon,
-  Grid,
+  Plus,
+  Filter,
+  Camera,
   Trophy,
+  Grid,
   Navigation,
   Layers,
   Users,
+  Info,
+  MapPin,
+  Utensils,
+  FlaskConical,
+  Skull,
   Leaf,
   Flame,
-  Info,
+  Zap,
 } from "lucide-react";
 
 const Map = dynamic(() => import("@/components/Map"), { ssr: false });
 
+/* ----------------------------------
+    COMPONENT: DUAL ICON BADGE
+    Shows the 'Use' Icon + 'Category' Text
+---------------------------------- */
+const MushroomBadge = ({ category, use, variant = "small" }) => {
+  const getUseIcon = (useType) => {
+    const iconSize = variant === "small" ? 12 : 16;
+    switch (useType?.toLowerCase()) {
+      case "culinary": case "edible": return <Utensils size={iconSize} className="text-emerald-400" />;
+      case "medicinal": return <FlaskConical size={iconSize} className="text-blue-400" />;
+      case "poisonous": return <Skull size={iconSize} className="text-red-500" />;
+      case "research": return <Leaf size={iconSize} className="text-orange-400" />;
+      case "fuel": return <Flame size={iconSize} className="text-yellow-500" />;
+      default: return <Zap size={iconSize} className="text-purple-400" />;
+    }
+  };
+
+  return (
+    <div className={`flex items-center gap-2 bg-black/60 backdrop-blur-md border border-white/10 rounded-full ${variant === "small" ? "px-2 py-0.5" : "px-4 py-2"}`}>
+      {getUseIcon(use)}
+      <span className={`font-black uppercase tracking-tighter text-white ${variant === "small" ? "text-[9px]" : "text-xs"}`}>
+        {category}
+      </span>
+    </div>
+  );
+};
+
 export default function MapPage() {
   const [data, setData] = useState([]);
-  const [mode, setMode] = useState("category");
+  const [mode, setMode] = useState("category"); // Toggle b/w 'category' vs 'use'
   const [filters, setFilters] = useState({});
   const [selectedMushroom, setSelectedMushroom] = useState(null);
-  const [isMounted, setIsMounted] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
   const [view, setView] = useState("map");
-  const [roleMode, setRoleMode] = useState("use");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [isMounted, setIsMounted] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [searchQuery, setSearchQuery] = useState({ species: "", place: "" });
 
-  const [formData, setFormData] = useState({
-    name: "",
-    contributor: "",
-    category: "",
-    use: "",
-    latitude: "",
-    longitude: "",
-  });
-
+  const [formData, setFormData] = useState({ name: "", category: "", use: "", latitude: "", longitude: "" });
   const [imageFile, setImageFile] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
-    fetch("/api/mushrooms")
-      .then((res) => res.json())
-      .then((d) => {
-        setData(d || []);
-        initializeFilters(d || [], "category");
-      })
-      .catch(console.error);
+    fetch("/api/mushrooms").then(res => res.json()).then(d => {
+      setData(d || []);
+      initializeFilters(d || [], "category");
+    }).catch(console.error);
   }, []);
 
   const initializeFilters = (dataset, filterMode) => {
@@ -64,315 +86,162 @@ export default function MapPage() {
     setFilters(f);
   };
 
-  const toggleFilter = (key) =>
-    setFilters((prev) => ({ ...prev, [key]: !prev[key] }));
-
   const switchMode = (newMode) => {
     setMode(newMode);
     initializeFilters(data, newMode);
   };
 
-  const handleFormChange = (e) =>
-    setFormData((p) => ({ ...p, [e.target.name]: e.target.value }));
-
-  const handleFormSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    try {
-      const formPayload = new FormData();
-      Object.entries(formData).forEach(([k, v]) => formPayload.append(k, v));
-      if (imageFile) formPayload.append("image", imageFile);
-
-      const res = await fetch("/api/mushrooms", {
-        method: "POST",
-        body: formPayload,
-      });
-      const payload = await res.json();
-      if (!res.ok) throw new Error(payload.message);
-
-      setData((prev) => [...prev, payload]);
-      if (window.innerWidth < 768) setIsSidebarOpen(false);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  const toggleFilter = (key) => setFilters(prev => ({ ...prev, [key]: !prev[key] }));
 
   return (
-    <div className="flex flex-col h-screen w-screen bg-gray-900 overflow-hidden relative">
-      <style jsx global>{`
-        .leaflet-marker-icon,
-        .leaflet-interactive,
-        .map-marker {
-          cursor: pointer !important;
-        }
-      `}</style>
-
-      {/* --- HEADER (Added fixed height h-[73px]) --- */}
-      <header className="h-[73px] z-[100] bg-gray-800 border-b border-gray-700 px-4 py-3 flex items-center justify-between gap-4 shadow-xl shrink-0 relative">
-        <div className="flex items-center gap-4">
-          <div className="flex flex-col">
-            <h1 className="text-white font-bold text-lg flex items-center gap-2">
-              <MapIcon className="text-green-500" size={20} /> Explore
-            </h1>
-            <div className="group relative flex items-center gap-1 text-xs text-gray-400 cursor-help">
-              <Users size={12} /> Citizen Scientists <Info size={12} />
-              <span className="absolute top-6 left-0 w-48 bg-gray-700 text-white p-2 rounded shadow-lg hidden group-hover:block z-[110]">
-                Community members contributing fungal observations.
-              </span>
+    <div className="flex flex-col h-screen w-screen bg-gray-950 overflow-hidden text-white">
+      {/* ================= HEADER ================= */}
+      <header className="z-[100] bg-gray-900 border-b border-gray-800 shadow-2xl shrink-0">
+        <div className="h-[73px] px-6 flex items-center justify-between gap-6">
+          <div className="flex items-center gap-3">
+            <div className="bg-green-600 p-2 rounded-xl"><MapIcon size={24} /></div>
+            <div>
+              <h1 className="font-black text-xl tracking-tighter leading-none">ECOVIGYAN</h1>
+              <div className="flex items-center gap-1.5 mt-1 group cursor-help text-[10px] text-gray-500 font-bold uppercase">
+                <Users size={12} className="text-green-500" /> Citizen Scientists <Info size={10} />
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="flex-1 max-w-2xl flex items-center gap-3">
-          <div className="relative flex-1">
-            <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
-              size={16}
-            />
-            <input
-              type="text"
-              placeholder="Search..."
-              className="w-full bg-gray-900 border border-gray-700 rounded-full pl-10 pr-4 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-green-500"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+          <div className="flex-1 max-w-2xl flex items-center bg-gray-800 rounded-2xl border border-gray-700 overflow-hidden px-4 gap-2">
+             <Search size={16} className="text-gray-500" />
+             <input placeholder="Search Species..." className="bg-transparent flex-1 py-2.5 text-sm outline-none" />
+             <div className="w-px h-4 bg-gray-700 mx-2" />
+             <MapPin size={16} className="text-gray-500" />
+             <input placeholder="Place..." className="bg-transparent flex-1 py-2.5 text-sm outline-none" />
           </div>
 
-          <nav className="hidden lg:flex items-center bg-gray-900 rounded-lg p-1 border border-gray-700">
-            <button
-              onClick={() => setView("map")}
-              className={`px-3 py-1.5 rounded-md text-xs flex items-center gap-2 cursor-pointer ${
-                view === "map" ? "bg-green-600 text-white" : "text-gray-400"
-              }`}
-            >
-              <MapIcon size={14} /> Map
-            </button>
-            <button
-              onClick={() => setView("grid")}
-              className={`px-3 py-1.5 rounded-md text-xs flex items-center gap-2 cursor-pointer ${
-                view === "grid" ? "bg-green-600 text-white" : "text-gray-400"
-              }`}
-            >
-              <Grid size={14} /> Grid
-            </button>
-            <button
-              onClick={() => setView("leaderboard")}
-              className={`px-3 py-1.5 rounded-md text-xs flex items-center gap-2 cursor-pointer ${
-                view === "leaderboard"
-                  ? "bg-green-600 text-white"
-                  : "text-gray-400"
-              }`}
-            >
-              <Trophy size={14} /> Leaderboard
-            </button>
-          </nav>
+          <button onClick={() => setShowAddModal(true)} className="bg-green-600 hover:bg-green-700 px-6 py-2.5 rounded-xl font-black text-sm flex items-center gap-2 transition-all shadow-lg shadow-green-900/40">
+            <Plus size={18} /> <span className="hidden lg:inline">ADD OBSERVATION</span>
+          </button>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => window.open("https://maps.google.com", "_blank")}
-            className="hidden sm:flex items-center gap-2 bg-blue-600 text-white px-3 py-2 rounded-lg text-xs font-bold cursor-pointer"
-          >
-            <Navigation size={14} /> Trail
-          </button>
-          <button className="hidden sm:flex items-center gap-2 bg-gray-700 text-white px-3 py-2 rounded-lg text-xs font-bold cursor-pointer">
-            <Layers size={14} /> Eco Zones
-          </button>
+        <div className="h-12 px-6 flex items-center justify-between bg-gray-900/50 border-t border-gray-800/50">
+          <nav className="flex h-full">
+            {[{ id: 'map', label: 'Explore', icon: MapIcon }, { id: 'grid', label: 'Observations', icon: Grid }, { id: 'leaderboard', label: 'Leaderboard', icon: Trophy }].map((tab) => (
+              <button key={tab.id} onClick={() => setView(tab.id)} className={`flex items-center gap-2 px-6 h-full border-b-2 transition-all text-[10px] font-black uppercase tracking-widest ${view === tab.id ? "border-green-500 text-green-500 bg-green-500/5" : "border-transparent text-gray-500 hover:text-gray-300"}`}>
+                <tab.icon size={14} /> {tab.label}
+              </button>
+            ))}
+          </nav>
+          <div className="flex items-center gap-3">
+            <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-[10px] font-black uppercase tracking-tighter"><Navigation size={12} className="text-blue-400" /> Trail</button>
+            <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-[10px] font-black uppercase tracking-tighter"><Layers size={12} className="text-orange-400" /> Eco Zones</button>
+          </div>
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden relative bg-gray-900">
-        {/* --- ASIDE (Updated fixed top-[73px] and z-index) --- */}
-        <aside
-          className={`
-    fixed top-[64px] left-0 z-50
-    h-[calc(100vh-64px)]
-    w-[300px] sm:w-[350px]
-    bg-gray-800 border-r border-gray-700
-    transition-transform duration-300 ease-in-out
-    md:relative md:top-0 md:h-full md:translate-x-0
-    md:w-1/3 lg:w-1/4
-    ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
-    overflow-y-auto custom-scrollbar shadow-2xl flex flex-col
-  `}
-        >
-          <button
-            onClick={() => setIsSidebarOpen(false)}
-            className="md:hidden absolute top-4 right-4 z-[60] p-2 bg-gray-900 rounded-lg text-gray-400 cursor-pointer"
-          >
-            <X size={20} />
-          </button>
-
-          <div className="p-6 space-y-6">
-            <div className="bg-gray-700/50 rounded-xl p-4 border border-gray-600 min-h-[150px]">
-              <h2 className="text-lg font-bold text-green-400 mb-3">
-                Selected Mushroom Info
-              </h2>
-              {selectedMushroom ? (
-                <div className="space-y-4 text-gray-200">
-                  {selectedMushroom.image && (
-                    <img
-                      src={selectedMushroom.image}
-                      className="w-full h-40 object-cover rounded-xl border border-gray-600"
-                    />
-                  )}
-                  <h3 className="text-xl font-bold text-white">
-                    {selectedMushroom.name}
-                  </h3>
-                  <div className="grid grid-cols-2 gap-2 text-xs text-center">
-                    <div className="bg-gray-800/80 p-2 rounded-lg border border-gray-700">
-                      <span className="text-gray-500 block text-[10px] uppercase font-bold">
-                        Category
-                      </span>
-                      {selectedMushroom.category}
-                    </div>
-                    <div className="bg-gray-800/80 p-2 rounded-lg border border-gray-700">
-                      <span className="text-gray-500 block text-[10px] uppercase font-bold">
-                        Use
-                      </span>
-                      {selectedMushroom.use}
-                    </div>
-                  </div>
+      {/* ================= MAIN CONTENT ================= */}
+      <main className="flex-1 relative overflow-hidden">
+        {view === "map" && isMounted && (
+          <>
+            <Map data={data} filters={filters} mode={mode} onMarkerSelect={(m) => setSelectedMushroom(m)} />
+            <button onClick={() => setShowFilters(!showFilters)} className="absolute top-6 left-6 z-20 p-4 rounded-2xl bg-gray-800 border border-gray-700 shadow-2xl hover:bg-gray-700">
+              <Filter size={20} className={showFilters ? "text-green-500" : "text-white"} />
+            </button>
+            {showFilters && (
+              <div className="absolute top-20 left-6 z-20 w-64 bg-gray-800/95 backdrop-blur-md p-5 rounded-[2rem] border border-gray-700 shadow-2xl animate-in fade-in slide-in-from-top-2">
+                 <div className="flex bg-gray-900 p-1 rounded-xl border border-gray-700 mb-4">
+                  <button onClick={() => switchMode('category')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${mode === 'category' ? 'bg-green-600 text-white' : 'text-gray-500'}`}>Category</button>
+                  <button onClick={() => switchMode('use')} className={`flex-1 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${mode === 'use' ? 'bg-green-600 text-white' : 'text-gray-500'}`}>Use</button>
                 </div>
-              ) : (
-                <div className="h-32 flex flex-col items-center justify-center text-gray-500 text-sm italic border-2 border-dashed border-gray-700 rounded-lg">
-                  <p>Select a location on the map</p>
-                </div>
-              )}
-            </div>
-
-            <hr className="border-gray-700" />
-
-            <div className="space-y-3">
-              <p className="text-sm font-semibold text-gray-300">
-                Filter Mode:
-              </p>
-              <div className="relative flex p-1 bg-gray-900 rounded-full w-full border border-gray-700">
-                <div
-                  className={`absolute top-1 bottom-1 w-1/2 bg-green-700 rounded-full transition-transform duration-300 ${
-                    mode === "category" ? "translate-x-0" : "translate-x-full"
-                  }`}
-                ></div>
-                <button
-                  className="w-1/2 py-2 text-sm z-10 cursor-pointer text-white"
-                  onClick={() => switchMode("category")}
-                >
-                  Category
-                </button>
-                <button
-                  className="w-1/2 py-2 text-sm z-10 cursor-pointer text-white"
-                  onClick={() => switchMode("use")}
-                >
-                  Use
-                </button>
+                <CategoryFilter categories={Object.keys(filters)} filters={filters} toggle={toggleFilter} />
               </div>
-            </div>
-
-            <div className="space-y-3">
-              <p className="text-sm font-semibold text-gray-300">
-                Active Filters:
-              </p>
-              <div className="bg-gray-900/40 rounded-xl p-1">
-                <CategoryFilter
-                  categories={Object.keys(filters)}
-                  filters={filters}
-                  toggle={toggleFilter}
-                />
-              </div>
-            </div>
-
-            <div className="bg-gray-700/40 border border-gray-600 rounded-xl p-4">
-              <h3 className="text-md font-bold text-green-400 mb-4 uppercase">
-                Contribute
-              </h3>
-              <form className="space-y-3" onSubmit={handleFormSubmit}>
-                <input
-                  name="name"
-                  value={formData.name}
-                  onChange={handleFormChange}
-                  placeholder="Specimen Name"
-                  className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white"
-                  required
-                />
-                <button
-                  disabled={isSubmitting}
-                  className="w-full bg-green-600 py-3 rounded-xl text-sm font-bold text-white cursor-pointer active:scale-95"
-                >
-                  {isSubmitting ? "Uploading..." : "Add to Map"}
-                </button>
-              </form>
-            </div>
-          </div>
-        </aside>
-
-        {/* MOBILE BACKDROP (Updated fixed top-[73px]) */}
-        {isSidebarOpen && (
-          <div
-            className="fixed top-[73px] inset-0 bg-black/70 backdrop-blur-sm z-[40] md:hidden"
-            onClick={() => setIsSidebarOpen(false)}
-          />
+            )}
+          </>
         )}
 
-        <main className="flex-1 relative z-10 h-full">
-          {view === "map" ? (
-            isMounted && (
-              <Map
-                data={data}
-                filters={filters}
-                mode={mode}
-                onMarkerSelect={(m) => {
-                  setSelectedMushroom(m);
-                  setIsSidebarOpen(true);
-                }}
-              />
-            )
-          ) : view === "grid" ? (
-            <div className="p-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 overflow-y-auto h-full text-white custom-scrollbar bg-gray-950">
-              {data
-                .filter((item) => filters[item.category] || filters[item.use])
-                .map((item, idx) => (
-                  <div
-                    key={idx}
-                    className="bg-gray-800 rounded-xl overflow-hidden border border-gray-700 hover:border-green-500 transition cursor-pointer group"
-                    onClick={() => {
-                      setSelectedMushroom(item);
-                      setView("map");
-                      setIsSidebarOpen(true);
-                    }}
-                  >
-                    <img
-                      src={item.image || "/placeholder.jpg"}
-                      className="h-48 w-full object-cover group-hover:scale-105 transition"
-                    />
-                    <div className="p-4 text-center">
-                      <h4 className="font-bold text-lg">{item.name}</h4>
-                      <p className="text-xs text-gray-400">{item.category}</p>
+        {view === "grid" && (
+          <div className="p-8 h-full overflow-y-auto bg-gray-950 custom-scrollbar">
+            <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+              {data.map((item, index) => (
+                <div key={item.id || item._id || index} onClick={() => setSelectedMushroom(item)} className="group bg-gray-900 border border-gray-800 rounded-[2rem] p-3 hover:border-green-500 transition-all cursor-pointer">
+                  <div className="aspect-square bg-gray-950 rounded-[1.5rem] mb-4 overflow-hidden relative shadow-inner">
+                    {item.image ? <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" /> : <div className="w-full h-full flex items-center justify-center opacity-10"><MapIcon size={48} /></div>}
+                    <div className="absolute top-3 left-3">
+                      <MushroomBadge category={item.category} use={item.use} />
                     </div>
                   </div>
-                ))}
+                  <div className="px-2">
+                    <h3 className="font-black text-lg group-hover:text-green-400 transition-colors truncate">{item.name}</h3>
+                    <p className="text-[10px] font-black text-gray-600 uppercase tracking-widest mt-1">By {item.contributor || "Scientist"}</p>
+                  </div>
+                </div>
+              ))}
             </div>
-          ) : (
-            <div className="p-8 text-white h-full bg-gray-950">
-              <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-                <Trophy className="text-yellow-500" /> Top Contributors
-              </h2>
-              <p className="text-gray-400 italic">
-                Leaderboard content goes here...
-              </p>
-            </div>
-          )}
-        </main>
-      </div>
+          </div>
+        )}
 
-      {!isSidebarOpen && (
-        <button
-          onClick={() => setIsSidebarOpen(true)}
-          className="md:hidden fixed bottom-6 left-6 z-[60] p-4 bg-green-600 text-white rounded-full shadow-2xl cursor-pointer transition-transform"
-        >
-          <Menu size={24} />
-        </button>
+        {/* ================= DETAIL OVERLAY ================= */}
+        {selectedMushroom && (
+          <div className="absolute inset-0 z-[110] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
+            <div className="bg-gray-800 border border-gray-700 w-full max-w-lg rounded-[3rem] overflow-hidden shadow-2xl animate-in zoom-in-95">
+              <div className="relative h-64 bg-gray-900">
+                {selectedMushroom.image && <img src={selectedMushroom.image} alt={selectedMushroom.name} className="w-full h-full object-cover" />}
+                <button onClick={() => setSelectedMushroom(null)} className="absolute top-6 right-6 p-3 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-2xl"><X size={20} /></button>
+              </div>
+              <div className="p-10">
+                <div className="mb-6"><MushroomBadge category={selectedMushroom.category} use={selectedMushroom.use} variant="large" /></div>
+                <h2 className="text-4xl font-black mt-3 leading-tight mb-8 tracking-tighter">{selectedMushroom.name}</h2>
+                <div className="grid grid-cols-2 gap-4 mb-8">
+                  <div className="bg-gray-950 p-4 rounded-3xl border border-gray-700">
+                    <p className="text-[9px] font-black text-gray-600 uppercase mb-1">Contributor</p>
+                    <p className="text-sm font-bold truncate">{selectedMushroom.contributor || "Anonymous"}</p>
+                  </div>
+                  <div className="bg-gray-950 p-4 rounded-3xl border border-gray-700">
+                    <p className="text-[9px] font-black text-gray-600 uppercase mb-1">Coordinates</p>
+                    <p className="text-sm font-mono truncate">{selectedMushroom.latitude}, {selectedMushroom.longitude}</p>
+                  </div>
+                </div>
+                <button onClick={() => setSelectedMushroom(null)} className="w-full bg-white text-black hover:bg-gray-200 py-5 rounded-[1.5rem] font-black text-xl shadow-xl">Return to Map</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* ================= ADD MODAL ================= */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-in fade-in">
+          <div className="bg-gray-800 border border-gray-700 w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl relative">
+            <button onClick={() => setShowAddModal(false)} className="absolute top-6 right-6 text-gray-500 hover:text-white"><X size={28}/></button>
+            <h2 className="text-3xl font-black mb-8 italic">Add Specimen</h2>
+            <form onSubmit={async (e) => { e.preventDefault(); setShowAddModal(false); }} className="space-y-4">
+              <input name="name" placeholder="Species Name" className="w-full bg-gray-900 border border-gray-700 rounded-2xl px-5 py-4 focus:ring-2 focus:ring-green-500 outline-none" required />
+              <div className="grid grid-cols-2 gap-4">
+                <input name="latitude" placeholder="Lat" className="w-full bg-gray-900 border border-gray-700 rounded-2xl px-5 py-4 outline-none" required />
+                <input name="longitude" placeholder="Long" className="w-full bg-gray-900 border border-gray-700 rounded-2xl px-5 py-4 outline-none" required />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <select name="category" className="w-full bg-gray-900 border border-gray-700 rounded-2xl px-4 py-4 outline-none" required>
+                  <option value="">Category...</option>
+                  <option value="Edible">Edible</option>
+                  <option value="Medicinal">Medicinal</option>
+                  <option value="Poisonous">Poisonous</option>
+                </select>
+                <select name="use" className="w-full bg-gray-900 border border-gray-700 rounded-2xl px-4 py-4 outline-none" required>
+                  <option value="">Use...</option>
+                  <option value="Culinary">Culinary</option>
+                  <option value="Research">Research</option>
+                  <option value="Fuel">Fuel</option>
+                </select>
+              </div>
+              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-700 rounded-2xl cursor-pointer hover:bg-gray-900 transition-all">
+                <Camera className="text-gray-500 mb-2" size={24} />
+                <p className="text-[10px] text-gray-500 uppercase font-black">{imageFile ? imageFile.name : "Specimen Photo"}</p>
+                <input type="file" className="hidden" onChange={(e) => setImageFile(e.target.files[0])} accept="image/*" />
+              </label>
+              <button disabled={isSubmitting} className="w-full bg-green-600 hover:bg-green-500 py-5 rounded-2xl text-white font-black text-lg transition-all active:scale-95 shadow-xl shadow-green-900/40">
+                {isSubmitting ? "PROCESSING..." : "SUBMIT OBSERVATION"}
+              </button>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );
