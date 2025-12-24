@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import {
   Phone,
@@ -16,7 +16,6 @@ import {
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
   const [isProgramsOpen, setIsProgramsOpen] = useState(false);
   const dropdownRef = useRef(null);
   const leaveTimeoutRef = useRef(null);
@@ -46,12 +45,6 @@ export default function Navbar() {
     { name: "Contact Us", path: "/contact" },
   ];
 
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
   const handleMouseEnter = () => {
     if (leaveTimeoutRef.current) clearTimeout(leaveTimeoutRef.current);
     if (window.innerWidth >= 768) setIsProgramsOpen(true);
@@ -69,12 +62,14 @@ export default function Navbar() {
       <div className="bg-emerald-950 text-emerald-50 text-xs sm:text-sm py-2.5 relative z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
           <div className="hidden md:flex items-center space-x-6">
-            <span className="text-emerald-400 font-medium tracking-wide text-xs uppercase">Follow Us:</span>
+            <span className="text-emerald-400 font-medium tracking-wide text-xs uppercase">
+              Follow Us:
+            </span>
             <div className="flex space-x-4">
-              <Link href="#" className="hover:text-emerald-400 transition-colors duration-300">
+              <Link href="#" className="hover:text-emerald-400 transition">
                 <Facebook className="w-4 h-4" />
               </Link>
-              <Link href="#" className="hover:text-emerald-400 transition-colors duration-300">
+              <Link href="#" className="hover:text-emerald-400 transition">
                 <Instagram className="w-4 h-4" />
               </Link>
             </div>
@@ -93,34 +88,32 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* --- MAIN NAVIGATION BAR --- */}
-      <nav
-        className={`sticky top-0 z-40 w-full transition-all duration-300 border-b ${
-          scrolled
-            ? "bg-white/90 backdrop-blur-md shadow-lg border-stone-200 py-2"
-            : "bg-white border-transparent py-4"
-        }`}
-      >
+      {/* --- MAIN NAVBAR (NOT STICKY, FIXED HEIGHT) --- */}
+      <nav className="relative z-[200] w-full bg-white border-b border-stone-200 py-4 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center">
-            {/* Logo Group */}
+            {/* Logo */}
             <Link href="/" className="group flex items-center space-x-2 shrink-0">
               <div className="w-12 h-12 rounded-xl overflow-hidden shadow-lg group-hover:scale-105 transition-transform bg-white">
-                <img src="/gallery/logo4.png" alt="Logo" className="w-full h-full object-contain" />
+                <img
+                  src="/gallery/logo4.png"
+                  alt="Logo"
+                  className="w-full h-full object-contain"
+                />
               </div>
-              <span className="text-2xl font-extrabold text-emerald-700 leading-none tracking-tight">
+              <span className="text-2xl font-extrabold text-emerald-700 tracking-tight">
                 Eco Vigyan Foundation
               </span>
             </Link>
 
-            {/* Desktop Navigation Wrapper */}
+            {/* Desktop Menu */}
             <div className="hidden md:flex flex-1 justify-end items-center space-x-8">
               {navLinks.map((link) => (
                 <Link
                   key={link.name}
                   href={link.path}
-                  className="relative group py-2 text-sm font-bold text-slate-600 hover:text-emerald-700 transition-colors"
                   onClick={(e) => handleNavClick(e, link)}
+                  className="relative group py-2 text-sm font-bold text-slate-600 hover:text-emerald-700 transition"
                 >
                   {link.name}
                   {link.isNew && (
@@ -129,30 +122,42 @@ export default function Navbar() {
                       <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                     </span>
                   )}
-                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-emerald-600 transition-all duration-300 group-hover:w-full"></span>
+                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-emerald-600 transition-all group-hover:w-full"></span>
                 </Link>
               ))}
 
-              {/* OUR PROGRAMS DROPDOWN */}
-              <div className="relative font-bold" ref={dropdownRef} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+              {/* Programs Dropdown */}
+              <div
+                className="relative font-bold"
+                ref={dropdownRef}
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+              >
                 <button
                   onClick={() => setIsProgramsOpen((p) => !p)}
-                  className="flex cursor-pointer items-center gap-1 py-2 text-sm font-bold text-slate-600 hover:text-emerald-700 focus:outline-none relative group"
+                  className="flex items-center gap-1 py-2 text-sm font-bold text-slate-600 hover:text-emerald-700 group cursor-pointer"
                 >
                   Our Programs
-                  <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isProgramsOpen ? "rotate-180" : ""}`} />
-                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-emerald-600 transition-all duration-300 group-hover:w-full"></span>
+                  <ChevronDown
+                    className={`w-4 h-4 transition-transform ${
+                      isProgramsOpen ? "rotate-180" : ""
+                    }`}
+                  />
                 </button>
 
-                <div className={`absolute top-full left-1/2 mt-3 w-48 bg-white rounded-xl shadow-2xl border border-gray-100 transform transition-all duration-300 origin-top -translate-x-1/2 ${
-                  isProgramsOpen ? "opacity-100 scale-y-100" : "opacity-0 scale-y-0 pointer-events-none"
-                }`}>
+                <div
+                  className={`absolute top-full left-1/2 mt-3 w-48 bg-white rounded-xl shadow-2xl border transform -translate-x-1/2 transition-all origin-top ${
+                    isProgramsOpen
+                      ? "opacity-100 scale-y-100"
+                      : "opacity-0 scale-y-0 pointer-events-none"
+                  }`}
+                >
                   {programLinks.map((item) => (
                     <Link
                       key={item.name}
                       href={item.path}
-                      className="block px-5 py-3 text-sm text-slate-700 hover:bg-emerald-50 transition-colors rounded-xl mx-1 my-1"
                       onClick={() => setIsProgramsOpen(false)}
+                      className="block px-5 py-3 text-sm text-slate-700 hover:bg-emerald-50 rounded-xl mx-1 my-1"
                     >
                       {item.name}
                     </Link>
@@ -160,30 +165,25 @@ export default function Navbar() {
                 </div>
               </div>
 
-              {/* LOGIN BUTTON (Inside Nav Flow) */}
-              <Link 
-                href="/login" 
-                className="group relative py-2 text-sm font-bold text-slate-600 hover:text-emerald-700 transition-colors flex items-center gap-2"
-              >
+              {/* Login */}
+              <Link href="/login" className="flex items-center gap-2 font-bold text-sm text-slate-600 hover:text-emerald-700 group">
                 <LogIn className="w-4 h-4" />
                 Login
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-emerald-600 transition-all duration-300 group-hover:w-full"></span>
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-emerald-600 transition-all group-hover:w-full"></span>
               </Link>
 
-              {/* DONATE BUTTON (Final Right Position) */}
+              {/* Donate */}
               <Link
                 href="/donate"
-                className="group relative px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-green-700 text-white font-bold text-sm rounded-full shadow-lg hover:-translate-y-0.5 transition-all duration-300 overflow-hidden"
+                className="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-green-700 text-white font-bold text-sm rounded-full shadow-lg hover:-translate-y-0.5 transition"
               >
-                <span className="relative z-10 flex items-center">
-                  Donate Now <Heart className="w-4 h-4 ml-2 fill-white/20 group-hover:fill-white" />
-                </span>
+                Donate Now <Heart className="inline w-4 h-4 ml-2 fill-white/20" />
               </Link>
             </div>
 
-            {/* Mobile Menu Button */}
-            <div className="md:hidden flex items-center">
-              <button onClick={() => setIsOpen(!isOpen)} className="text-slate-600 p-2">
+            {/* Mobile Toggle */}
+            <div className="md:hidden">
+              <button onClick={() => setIsOpen(!isOpen)}>
                 {isOpen ? <X className="w-7 h-7" /> : <Menu className="w-7 h-7" />}
               </button>
             </div>
@@ -191,27 +191,17 @@ export default function Navbar() {
         </div>
 
         {/* Mobile Menu */}
-        <div className={`md:hidden absolute top-full left-0 w-full bg-white border-t transition-all duration-300 origin-top ${isOpen ? "opacity-100 scale-y-100" : "opacity-0 scale-y-0 h-0 overflow-hidden"}`}>
-          <div className="px-4 py-6 space-y-4 flex flex-col items-center">
+        <div className={`md:hidden bg-white border-t transition-all ${isOpen ? "block" : "hidden"}`}>
+          <div className="px-4 py-6 space-y-4 text-center">
             {navLinks.map((link) => (
-              <Link key={link.name} href={link.path} className="text-lg font-medium text-slate-700 w-full text-center py-2" onClick={() => setIsOpen(false)}>
+              <Link key={link.name} href={link.path} onClick={() => setIsOpen(false)} className="block text-lg">
                 {link.name}
               </Link>
             ))}
-            <div className="w-full text-center pt-2 border-t border-stone-100">
-              <p className="text-sm uppercase text-slate-400 my-2 font-semibold">Our Programs</p>
-              {programLinks.map((item) => (
-                <Link key={item.name} href={item.path} className="block py-2 text-slate-700" onClick={() => setIsOpen(false)}>
-                  {item.name}
-                </Link>
-              ))}
-            </div>
-            
-            {/* Mobile Login and Donate grouped together */}
-            <Link href="/login" className="w-full text-center px-6 py-3 border border-emerald-600 text-emerald-700 font-bold rounded-lg" onClick={() => setIsOpen(false)}>
+            <Link href="/login" onClick={() => setIsOpen(false)} className="block font-bold text-emerald-700">
               Member Login
             </Link>
-            <Link href="/donate" className="w-full text-center px-6 py-3 bg-emerald-600 text-white font-bold rounded-lg" onClick={() => setIsOpen(false)}>
+            <Link href="/donate" onClick={() => setIsOpen(false)} className="block bg-emerald-600 text-white py-3 rounded-lg">
               Donate Now
             </Link>
           </div>
