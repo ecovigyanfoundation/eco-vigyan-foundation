@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
+import { createRoot } from "react-dom/client";
 import "mapbox-gl/dist/mapbox-gl.css";
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
@@ -13,6 +14,7 @@ if (MAPBOX_TOKEN) {
 export default function Map({ data = [], filters = {}, mode, onMarkerSelect }) {
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
+  const popupRef = useRef(null);
 
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapError, setMapError] = useState(null);
@@ -28,9 +30,7 @@ export default function Map({ data = [], filters = {}, mode, onMarkerSelect }) {
 
   /* ---------------- MAP INIT ---------------- */
   useEffect(() => {
-    if (isTokenMissing) return;
-    if (mapRef.current) return;
-    if (!mapContainerRef.current) return;
+    if (isTokenMissing || mapRef.current || !mapContainerRef.current) return;
 
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
@@ -40,13 +40,7 @@ export default function Map({ data = [], filters = {}, mode, onMarkerSelect }) {
     });
 
     map.addControl(new mapboxgl.NavigationControl(), "top-right");
-    map.on("mouseenter", "mushroom-points", () => {
-      map.getCanvas().style.cursor = "pointer";
-    });
 
-    map.on("mouseleave", "mushroom-points", () => {
-      map.getCanvas().style.cursor = "";
-    });
     map.on("load", () => {
       setMapLoaded(true);
       map.resize();
@@ -59,6 +53,7 @@ export default function Map({ data = [], filters = {}, mode, onMarkerSelect }) {
     mapRef.current = map;
 
     return () => {
+      popupRef.current?.remove();
       map.remove();
       mapRef.current = null;
     };
@@ -67,7 +62,6 @@ export default function Map({ data = [], filters = {}, mode, onMarkerSelect }) {
   /* ---------------- DATA + LAYERS ---------------- */
   useEffect(() => {
     if (!mapLoaded || !mapRef.current) return;
-
     const map = mapRef.current;
 
     const features = data
@@ -86,17 +80,12 @@ export default function Map({ data = [], filters = {}, mode, onMarkerSelect }) {
       features,
     };
 
-    /* SOURCE */
     if (!map.getSource("mushrooms")) {
-      map.addSource("mushrooms", {
-        type: "geojson",
-        data: geojson,
-      });
+      map.addSource("mushrooms", { type: "geojson", data: geojson });
     } else {
       map.getSource("mushrooms").setData(geojson);
     }
 
-    /* HEATMAP */
     if (!map.getLayer("mushroom-heat")) {
       map.addLayer({
         id: "mushroom-heat",
@@ -105,7 +94,6 @@ export default function Map({ data = [], filters = {}, mode, onMarkerSelect }) {
         maxzoom: 6,
         paint: {
           "heatmap-radius": 30,
-          "heatmap-intensity": 1,
           "heatmap-opacity": 0.85,
           "heatmap-color": [
             "interpolate",
@@ -126,17 +114,14 @@ export default function Map({ data = [], filters = {}, mode, onMarkerSelect }) {
       });
     }
 
-    /* ICON IMAGE (SAFE LOAD) */
     if (!map.hasImage("mushroom-icon")) {
       map.loadImage("/icons/mushroom.png", (err, img) => {
-        if (err || !img) return;
-        if (!map.hasImage("mushroom-icon")) {
+        if (!err && img && !map.hasImage("mushroom-icon")) {
           map.addImage("mushroom-icon", img);
         }
       });
     }
 
-    /* SYMBOL LAYER */
     if (!map.getLayer("mushroom-points")) {
       map.addLayer({
         id: "mushroom-points",
@@ -151,8 +136,9 @@ export default function Map({ data = [], filters = {}, mode, onMarkerSelect }) {
       });
     }
 
-    /* CLICK */
-    map.on("click", "mushroom-points", (e) => {
+    /* ---------------- CLICK POPUP (CENTERED) ---------------- */
+    /* ---------------- CLICK POPUP (NO GLITCH) ---------------- */
+    const handleClick = (e) => {
       const f = e.features?.[0];
       if (!f) return;
 
@@ -160,16 +146,95 @@ export default function Map({ data = [], filters = {}, mode, onMarkerSelect }) {
       const [lng, lat] = f.geometry.coordinates;
 
       onMarkerSelect?.(item);
+      popupRef.current?.remove();
 
-      map.flyTo({
+      // FIRST: move map (no popup yet)
+      map.easeTo({
         center: [lng, lat],
-        zoom: 8.5,
-        speed: 0.9,
-        curve: 1.4,
-        offset: [0, -80],
+        zoom: 9,
+        duration: 800,
+        padding: { top: 120, bottom: 120 },
         essential: true,
       });
-    });
+      
+
+      // THEN: open popup AFTER movement finishes
+      map.once("moveend", () => {
+        const popupNode = document.createElement("div");
+
+        const popup = new mapboxgl.Popup({
+          closeButton: true,
+          closeOnClick: true,
+          closeOnMove: false, // 🔒 critical
+          anchor: "bottom", // 🔒 lock anchor
+          offset: [0, 12], // stable offset
+          maxWidth: "none",
+          className: "mushroom-popup-container",
+        })
+          .setLngLat([lng, lat])
+          .setDOMContent(popupNode)
+          .addTo(map);
+
+        popupRef.current = popup;
+
+        createRoot(popupNode).render(
+          <div className="w-[300px] sm:w-[350px] bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-100">
+            {item.image && (
+              <div className="w-full h-40 bg-gray-200">
+                <img
+                  src={item.image}
+                  alt={item.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
+
+            <div className="p-4">
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="text-xl font-bold text-gray-900 leading-tight">
+                  {item.name}
+                </h3>
+                <span
+                  className={`text-[10px] font-bold px-2 py-1 rounded uppercase text-white ${
+                    item.category === "food" ? "bg-green-600" : "bg-blue-600"
+                  }`}
+                >
+                  {item.category}
+                </span>
+              </div>
+
+              <p className="text-xs text-emerald-700 font-semibold mb-3">
+                By {item.contributor || "Anonymous"}
+              </p>
+
+              <p className="text-sm text-gray-600 italic">
+                {item.info || "No description provided."}
+              </p>
+
+              <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between text-[10px] font-mono text-gray-400">
+                <span>{lat.toFixed(5)}°N</span>
+                <span>{lng.toFixed(5)}°E</span>
+              </div>
+            </div>
+          </div>
+        );
+      });
+    };
+    
+
+    // IMPORTANT: prevent duplicate listeners
+    map.off("click", "mushroom-points", handleClick);
+    map.on("click", "mushroom-points", handleClick);
+
+    /* ---------------- CURSOR POINTER ON HOVER ---------------- */
+map.on("mouseenter", "mushroom-points", () => {
+  map.getCanvas().style.cursor = "pointer";
+});
+
+map.on("mouseleave", "mushroom-points", () => {
+  map.getCanvas().style.cursor = "";
+});
+
   }, [data, filters, mode, mapLoaded, onMarkerSelect]);
 
   /* ---------------- UI ---------------- */
@@ -177,7 +242,7 @@ export default function Map({ data = [], filters = {}, mode, onMarkerSelect }) {
     <div className="absolute inset-0">
       {isTokenMissing ? (
         <div className="w-full h-full flex items-center justify-center bg-gray-900 text-white text-sm">
-          Mapbox token missing (check Vercel env vars)
+          Mapbox token missing
         </div>
       ) : mapError ? (
         <div className="w-full h-full flex items-center justify-center bg-gray-900 text-white text-sm">

@@ -140,7 +140,8 @@ export default function MapPage() {
       <main className="flex-1 relative overflow-hidden">
         {view === "map" && isMounted && (
           <>
-            <Map data={data} filters={filters} mode={mode} onMarkerSelect={(m) => setSelectedMushroom(m)} />
+          <Map data={data} filters={filters} mode={mode} />
+
             <button onClick={() => setShowFilters(!showFilters)} className="absolute top-6 left-6 z-20 p-4 rounded-2xl bg-gray-800 border border-gray-700 shadow-2xl hover:bg-gray-700">
               <Filter size={20} className={showFilters ? "text-green-500" : "text-white"} />
             </button>
@@ -177,32 +178,7 @@ export default function MapPage() {
           </div>
         )}
 
-        {/* ================= DETAIL OVERLAY ================= */}
-        {selectedMushroom && (
-          <div className="absolute inset-0 z-[110] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
-            <div className="bg-gray-800 border border-gray-700 w-full max-w-lg rounded-[3rem] overflow-hidden shadow-2xl animate-in zoom-in-95">
-              <div className="relative h-64 bg-gray-900">
-                {selectedMushroom.image && <img src={selectedMushroom.image} alt={selectedMushroom.name} className="w-full h-full object-cover" />}
-                <button onClick={() => setSelectedMushroom(null)} className="absolute top-6 right-6 p-3 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-2xl"><X size={20} /></button>
-              </div>
-              <div className="p-10">
-                <div className="mb-6"><MushroomBadge category={selectedMushroom.category} use={selectedMushroom.use} variant="large" /></div>
-                <h2 className="text-4xl font-black mt-3 leading-tight mb-8 tracking-tighter">{selectedMushroom.name}</h2>
-                <div className="grid grid-cols-2 gap-4 mb-8">
-                  <div className="bg-gray-950 p-4 rounded-3xl border border-gray-700">
-                    <p className="text-[9px] font-black text-gray-600 uppercase mb-1">Contributor</p>
-                    <p className="text-sm font-bold truncate">{selectedMushroom.contributor || "Anonymous"}</p>
-                  </div>
-                  <div className="bg-gray-950 p-4 rounded-3xl border border-gray-700">
-                    <p className="text-[9px] font-black text-gray-600 uppercase mb-1">Coordinates</p>
-                    <p className="text-sm font-mono truncate">{selectedMushroom.latitude}, {selectedMushroom.longitude}</p>
-                  </div>
-                </div>
-                <button onClick={() => setSelectedMushroom(null)} className="w-full bg-white text-black hover:bg-gray-200 py-5 rounded-[1.5rem] font-black text-xl shadow-xl">Return to Map</button>
-              </div>
-            </div>
-          </div>
-        )}
+       
       </main>
 
       {/* ================= ADD MODAL ================= */}

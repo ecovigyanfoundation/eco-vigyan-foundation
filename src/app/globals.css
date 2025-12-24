@@ -1,2 +1,28 @@
 @import "tailwindcss";
 
+/* Remove default Mapbox styles that cause alignment/cutting issues */
+.mapboxgl-popup-content {
+  padding: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 12px;
+}
+
+.mapboxgl-popup-close-button {
+  padding: 5px 10px;
+  color: white; /* Makes 'X' visible against images */
+  font-size: 20px;
+  z-index: 10;
+}
+
+/* Custom scrollbar for the info text */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #10b981;
+  border-radius: 10px;
+}
