@@ -191,21 +191,32 @@ export default function Navbar() {
         </div>
 
         {/* Mobile Menu */}
-        <div className={`md:hidden bg-white border-t transition-all ${isOpen ? "block" : "hidden"}`}>
-          <div className="px-4 py-6 space-y-4 text-center">
+        <div className={`md:hidden absolute top-full left-0 w-full bg-white border-t transition-all duration-300 origin-top ${isOpen ? "opacity-100 scale-y-100" : "opacity-0 scale-y-0 h-0 overflow-hidden"}`}>
+          <div className="px-4 py-6 space-y-4 flex flex-col items-center">
             {navLinks.map((link) => (
-              <Link key={link.name} href={link.path} onClick={() => setIsOpen(false)} className="block text-lg">
+              <Link key={link.name} href={link.path} className="text-lg font-medium text-slate-700 w-full text-center py-2" onClick={() => setIsOpen(false)}>
                 {link.name}
               </Link>
             ))}
-            <Link href="/login" onClick={() => setIsOpen(false)} className="block font-bold text-emerald-700">
+            <div className="w-full text-center pt-2 border-t border-stone-100">
+              <p className="text-sm uppercase text-slate-400 my-2 font-semibold">Our Programs</p>
+              {programLinks.map((item) => (
+                <Link key={item.name} href={item.path} className="block py-2 text-slate-700" onClick={() => setIsOpen(false)}>
+                  {item.name}
+                </Link>
+              ))}
+            </div>
+            
+            {/* Mobile Login and Donate grouped together */}
+            <Link href="/login" className="w-full text-center px-6 py-3 border border-emerald-600 text-emerald-700 font-bold rounded-lg" onClick={() => setIsOpen(false)}>
               Member Login
             </Link>
-            <Link href="/donate" onClick={() => setIsOpen(false)} className="block bg-emerald-600 text-white py-3 rounded-lg">
+            <Link href="/donate" className="w-full text-center px-6 py-3 bg-emerald-600 text-white font-bold rounded-lg" onClick={() => setIsOpen(false)}>
               Donate Now
             </Link>
           </div>
         </div>
+
       </nav>
     </>
   );

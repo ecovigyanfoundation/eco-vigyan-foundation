@@ -130,14 +130,13 @@ export default function Map({ data = [], filters = {}, mode, onMarkerSelect }) {
         minzoom: 6,
         layout: {
           "icon-image": "mushroom-icon",
-          "icon-size": 0.08,
+          "icon-size": 0.05,
           "icon-allow-overlap": true,
         },
       });
     }
 
     /* ---------------- CLICK POPUP (CENTERED) ---------------- */
-    /* ---------------- CLICK POPUP (NO GLITCH) ---------------- */
     const handleClick = (e) => {
       const f = e.features?.[0];
       if (!f) return;
