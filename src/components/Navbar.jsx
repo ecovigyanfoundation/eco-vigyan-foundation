@@ -7,6 +7,7 @@ import {
   Mail,
   Facebook,
   Instagram,
+  Linkedin,
   Menu,
   X,
   Heart,
@@ -66,10 +67,10 @@ export default function Navbar() {
               Follow Us:
             </span>
             <div className="flex space-x-4">
-              <Link href="#" className="hover:text-emerald-400 transition">
+              <Link href="https://www.facebook.com/people/Eco-Vigyan-Foundation/100090610935292/?rdid=qQ3Ik930QW0SHoiR&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F1BcJ2mxyDF%2F" className="hover:text-emerald-400 transition">
                 <Facebook className="w-4 h-4" />
               </Link>
-              <Link href="#" className="hover:text-emerald-400 transition">
+              <Link href="https://www.instagram.com/ecovigyan/?igsh=MXdpdWFhbDd5amg4dQ%3D%3D#" className="hover:text-emerald-400 transition">
                 <Instagram className="w-4 h-4" />
               </Link>
             </div>

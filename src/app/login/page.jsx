@@ -17,14 +17,7 @@ export default function LoginPage() {
             <Leaf className="w-64 h-64 text-emerald-400 rotate-45" />
           </div>
           
-          <div className="relative z-10">
-            <Link href="/" className="inline-flex items-center gap-2 group">
-              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
-                <img src="/gallery/logo4.png" alt="Logo" className="w-7 h-7 object-contain" />
-              </div>
-              <span className="text-white font-bold text-xl tracking-tight">Eco Vigyan</span>
-            </Link>
-          </div>
+         
 
           <div className="relative z-10">
             <h1 className="text-4xl font-extrabold text-white leading-tight">

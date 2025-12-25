@@ -11,9 +11,9 @@ export default function Footer() {
   ];
 
   const socialLinks = [
-    { icon: Facebook, href: "#" },
-    { icon: Instagram, href: "#" },
-    { icon: Linkedin, href: "#" },
+    { icon: Facebook, href: "https://www.facebook.com/people/Eco-Vigyan-Foundation/100090610935292/?rdid=qQ3Ik930QW0SHoiR&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F1BcJ2mxyDF%2F" },
+    { icon: Instagram, href: "https://www.instagram.com/ecovigyan/" },
+    { icon: Linkedin, href: "https://www.linkedin.com/in/eco-vigyan-2a51b536b/" },
   ];
 
   return (
