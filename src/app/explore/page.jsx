@@ -1,4 +1,5 @@
 "use client";
+import { motion } from "framer-motion";
 
 import { useEffect, useState } from "react";
 import CategoryFilter from "@/components/CategoryFilter";
@@ -123,93 +124,95 @@ export default function MapPage() {
   return (
     <div className="flex flex-col min-h-dvh w-screen bg-gray-950 overflow-x-hidden text-white">
       {/* ================= HEADER ================= */}
-      <header className="z-[100] bg-gray-900 border-b border-gray-800 shadow-2xl shrink-0 sticky top-0">
-        <div className="min-h-[73px] px-4 py-2 flex items-center justify-between gap-3">
-          {/* LEFT LOGO */}
-          <div className="flex items-center gap-3 shrink-0">
-            <div className="bg-green-600 p-2 rounded-xl">
-              <MapIcon size={24} />
-            </div>
-            <div>
-              
-              <div className="flex items-center gap-1.5 mt-1 text-[10px] text-gray-500 font-bold uppercase">
-                <Users size={12} className="text-green-500" />
-                Citizen Scientists
-                <Info size={10} />
-              </div>
-            </div>
-          </div>
-
-          {/* SEARCH BAR — DESKTOP ONLY */}
-          <div className="hidden md:flex flex-1 max-w-2xl items-center bg-gray-800 rounded-2xl border border-gray-700 overflow-hidden px-4 gap-2">
-            <Search size={16} className="text-gray-500" />
-            <input
-              placeholder="Search Species..."
-              className="bg-transparent flex-1 py-2.5 text-sm outline-none"
-            />
-            <div className="w-px h-4 bg-gray-700 mx-2" />
-            <MapPin size={16} className="text-gray-500" />
-            <input
-              placeholder="Place..."
-              className="bg-transparent flex-1 py-2.5 text-sm outline-none"
-            />
-          </div>
-
-          {/* RIGHT ACTIONS */}
-          <div className="flex items-center gap-2 shrink-0">
-            {/* SEARCH ICON — MOBILE ONLY */}
-            <button
-              onClick={() => setShowMobileSearch(true)}
-              className="md:hidden p-3 rounded-xl bg-gray-800 border border-gray-700"
-            >
-              <Search size={18} />
-            </button>
-
-            {/* ADD OBSERVATION — UNCHANGED */}
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="bg-green-600 hover:bg-green-700 px-4 py-2.5 rounded-xl font-black text-sm flex items-center gap-2 shadow-lg shadow-green-900/40"
-            >
-              <Plus size={18} />
-              <span className="hidden lg:inline">ADD OBSERVATION</span>
-            </button>
-          </div>
+      <header className="z-[100] bg-white/100 backdrop-blur-md border-b border-stone-200 shadow-sm shrink-0 sticky top-0">
+  <div className="min-h-[73px] px-6 py-2 flex items-center justify-between gap-4">
+    
+    {/* LEFT LOGO & BRANDING */}
+    <div className="flex items-center gap-4 shrink-0">
+      <div className="bg-emerald-600 p-2.5 rounded-2xl shadow-lg shadow-emerald-200">
+        <MapIcon size={24} className="text-white" />
+      </div>
+      <div>
+        <h2 className="text-lg font-black text-emerald-900 leading-tight uppercase tracking-tight">
+          Eco <span className="text-emerald-600">Vigyan</span>
+        </h2>
+        <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-stone-400 font-black uppercase tracking-widest">
+          <Users size={12} className="text-emerald-500" />
+          Citizen Scientists
         </div>
+      </div>
+    </div>
 
-        {/* SECOND ROW NAV — UNCHANGED */}
-        <div className="h-12 px-4 flex items-center justify-between bg-gray-900/50 border-t border-gray-800/50 overflow-x-auto">
-          <nav className="flex h-full">
-            {[
-              { id: "map", label: "Explore", icon: MapIcon },
-              { id: "grid", label: "Observations", icon: Grid },
-              { id: "leaderboard", label: "Leaderboard", icon: Trophy },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setView(tab.id)}
-                className={`flex items-center gap-2 px-4 h-full border-b-2 text-[10px] font-black uppercase tracking-widest whitespace-nowrap ${
-                  view === tab.id
-                    ? "border-green-500 text-green-500 bg-green-500/5"
-                    : "border-transparent text-gray-500"
-                }`}
-              >
-                <tab.icon size={14} />
-                {tab.label}
-              </button>
-            ))}
-          </nav>
+    {/* SEARCH BAR — LIGHT THEME */}
+    <div className="hidden md:flex flex-1 max-w-2xl items-center bg-stone-100 rounded-2xl border border-stone-200 overflow-hidden px-5 gap-3 focus-within:bg-white focus-within:border-emerald-500 focus-within:ring-4 focus-within:ring-emerald-500/10 transition-all">
+      <Search size={18} className="text-stone-400" />
+      <input
+        placeholder="Search Species..."
+        className="bg-transparent flex-1 py-3 text-sm outline-none text-stone-800 placeholder:text-stone-400 font-medium"
+      />
+      <div className="w-px h-5 bg-stone-300 mx-1" />
+      <MapPin size={18} className="text-stone-400" />
+      <input
+        placeholder="Location..."
+        className="bg-transparent flex-1 py-3 text-sm outline-none text-stone-800 placeholder:text-stone-400 font-medium"
+      />
+    </div>
 
-          <div className="flex items-center gap-2">
-            <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-[10px] font-black uppercase">
-              <Navigation size={12} className="text-blue-400" /> Trail
-            </button>
-            <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-[10px] font-black uppercase">
-              <Layers size={12} className="text-orange-400" /> Eco Zones
-            </button>
-          </div>
-        </div>
-      </header>
+    {/* RIGHT ACTIONS */}
+    <div className="flex items-center gap-3 shrink-0">
+      {/* MOBILE SEARCH TOGGLE */}
+      <button
+        onClick={() => setShowMobileSearch(true)}
+        className="md:hidden p-3 rounded-xl bg-stone-100 text-stone-600 border border-stone-200"
+      >
+        <Search size={20} />
+      </button>
 
+      {/* ADD OBSERVATION — BRAND BUTTON */}
+      <button
+        onClick={() => setShowAddModal(true)}
+        className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-2xl font-black text-xs flex items-center gap-2 shadow-xl shadow-emerald-200 transition-all active:scale-95 uppercase tracking-wider"
+      >
+        <Plus size={20} strokeWidth={3} />
+        <span className="hidden lg:inline">Add Observation</span>
+      </button>
+    </div>
+  </div>
+
+  {/* SECOND ROW NAVIGATION */}
+  <div className="h-14 px-6 flex items-center justify-between bg-stone-50/50 border-t border-stone-100 overflow-x-auto">
+    <nav className="flex h-full gap-2">
+      {[
+        { id: "map", label: "Explore Map", icon: MapIcon },
+        { id: "grid", label: "Observations", icon: Grid },
+        { id: "leaderboard", label: "Top Contributors", icon: Trophy },
+      ].map((tab) => (
+        <button
+          key={tab.id}
+          onClick={() => setView(tab.id)}
+          className={`flex items-center gap-2 px-5 h-full transition-all text-xs font-black uppercase tracking-widest whitespace-nowrap ${
+            view === tab.id
+              ? "text-emerald-700 border-b-4 border-emerald-600"
+              : "text-stone-400 hover:text-stone-600 border-b-4 border-transparent"
+          }`}
+        >
+          <tab.icon size={16} />
+          {tab.label}
+        </button>
+      ))}
+    </nav>
+
+    {/* SECONDARY FILTERS */}
+    <div className="flex items-center gap-3 ml-6">
+      <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-stone-200 text-[11px] font-black uppercase text-stone-600 hover:border-emerald-500 hover:text-emerald-600 transition-all shadow-sm">
+        <Navigation size={14} className="text-emerald-500" /> Trails
+      </button>
+      <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-stone-200 text-[11px] font-black uppercase text-stone-600 hover:border-emerald-500 hover:text-emerald-600 transition-all shadow-sm">
+        <Layers size={14} className="text-emerald-500" /> Zones
+      </button>
+    </div>
+  </div>
+</header>
       {/* ================= MAIN CONTENT ================= */}
       <main className="flex-1 relative overflow-hidden">
         {view === "map" && isMounted && (
@@ -259,166 +262,265 @@ export default function MapPage() {
           </>
         )}
 
-        {view === "grid" && (
-          <div className="p-8 h-full overflow-y-auto bg-gray-950 custom-scrollbar">
-            <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
-              {data.map((item, index) => (
-                <div
-                  key={item.id || item._id || index}
-                  onClick={() => setSelectedMushroom(item)}
-                  className="group bg-gray-900 border border-gray-800 rounded-[2rem] p-3 hover:border-green-500 transition-all cursor-pointer"
-                >
-                  <div className="aspect-square bg-gray-950 rounded-[1.5rem] mb-4 overflow-hidden relative shadow-inner">
-                    {item.image ? (
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center opacity-10">
-                        <MapIcon size={48} />
-                      </div>
-                    )}
-                    <div className="absolute top-3 left-3">
-                      <MushroomBadge category={item.category} use={item.use} />
-                    </div>
-                  </div>
-                  <div className="px-2">
-                    <h3 className="font-black text-lg group-hover:text-green-400 transition-colors truncate">
-                      {item.name}
-                    </h3>
-                    <p className="text-[10px] font-black text-gray-600 uppercase tracking-widest mt-1">
-                      By {item.contributor || "Scientist"}
-                    </p>
-                  </div>
+       {view === "grid" && (
+  <div className="p-8 h-full overflow-y-auto bg-stone-50 custom-scrollbar">
+    <div className="max-w-7xl mx-auto">
+      
+      {/* SECTION HEADER */}
+      <div className="flex flex-col md:flex-row justify-between items-end mb-10 gap-4 border-b border-stone-200 pb-8">
+        <div>
+          <span className="text-emerald-600 font-bold uppercase tracking-widest text-[10px] flex items-center gap-2 mb-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            Live Database
+          </span>
+          <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">
+            Community <span className="text-emerald-600">Observations</span>
+          </h2>
+        </div>
+        <p className="text-stone-400 font-bold text-xs uppercase tracking-widest bg-white px-4 py-2 rounded-full border border-stone-100 shadow-sm">
+          {data.length} Specimens Documented
+        </p>
+      </div>
+
+      {/* THE GRID */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
+        {data.map((item, index) => (
+          <motion.div
+            key={item.id || item._id || index}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.03, ease: "easeOut" }}
+            onClick={() => setSelectedMushroom(item)}
+            className="group bg-white border border-stone-200 rounded-[2.5rem] p-3 hover:border-emerald-500 hover:shadow-2xl hover:shadow-emerald-900/10 transition-all cursor-pointer relative"
+          >
+            {/* IMAGE AREA */}
+            <div className="aspect-square bg-stone-100 rounded-[2rem] mb-4 overflow-hidden relative shadow-inner">
+              {item.image ? (
+                <img
+                  src={item.image}
+                  alt={item.name}
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center text-stone-300 gap-2">
+                  <MapIcon size={40} strokeWidth={1} />
+                  <span className="text-[8px] font-black uppercase tracking-tighter">No Photo</span>
                 </div>
-              ))}
+              )}
+              
+              {/* CATEGORY BADGE */}
+              <div className="absolute top-3 left-3 scale-90 origin-top-left transition-transform group-hover:scale-100">
+                <MushroomBadge category={item.category} use={item.use} />
+              </div>
+
+              {/* DATE OVERLAY */}
+              <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg text-[8px] font-black text-emerald-900 shadow-sm border border-white/50">
+                   {new Date(item.createdAt || Date.now()).toLocaleDateString('en-GB')}
+                </div>
+              </div>
             </div>
+
+            {/* INFO AREA */}
+            <div className="px-3 pb-2">
+              <h3 className="font-black text-sm text-slate-800 group-hover:text-emerald-700 transition-colors uppercase tracking-tight truncate mb-1">
+                {item.name || "Unknown Species"}
+              </h3>
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-1.5 h-1.5 bg-stone-200 rounded-full group-hover:bg-emerald-400 transition-colors" />
+                  <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest truncate max-w-[80px]">
+                    {item.contributor || "Guest Scientist"}
+                  </p>
+                </div>
+                
+                {/* LOCATION ICON */}
+                <Navigation size={10} className="text-stone-300 group-hover:text-emerald-500 transition-colors" />
+              </div>
+            </div>
+
+            {/* HOVER GLOW EFFECT */}
+            <div className="absolute inset-0 rounded-[2.5rem] border-2 border-emerald-500/0 group-hover:border-emerald-500/10 pointer-events-none transition-all" />
+          </motion.div>
+        ))}
+      </div>
+
+      {/* EMPTY STATE */}
+      {data.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-32 text-center">
+          <div className="bg-white p-8 rounded-full shadow-xl border border-stone-100 mb-6">
+            <Search size={48} className="text-stone-200" />
           </div>
-        )}
+          <h3 className="text-xl font-black text-slate-400 uppercase tracking-widest">No observations found</h3>
+          <p className="text-stone-400 text-sm mt-2">Try adjusting your filters or add a new specimen.</p>
+        </div>
+      )}
+    </div>
+  </div>
+)}
       </main>
 
       {showMobileSearch && (
-        <div className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-md flex items-start p-4 md:hidden">
-          <div className="w-full bg-gray-900 border border-gray-800 rounded-2xl p-4 shadow-2xl animate-in slide-in-from-top-4">
-            {/* HEADER */}
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-black text-sm uppercase tracking-wider">
-                Search Observations
-              </h3>
-              <button
-                onClick={() => setShowMobileSearch(false)}
-                className="p-2 rounded-lg bg-gray-800"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* SEARCH INPUTS */}
-            <div className="space-y-3">
-              <div className="flex items-center bg-gray-800 border border-gray-700 rounded-xl px-3 gap-2">
-                <Search size={16} className="text-gray-500" />
-                <input
-                  placeholder="Search Species..."
-                  className="bg-transparent flex-1 py-3 text-sm outline-none"
-                />
-              </div>
-
-              <div className="flex items-center bg-gray-800 border border-gray-700 rounded-xl px-3 gap-2">
-                <MapPin size={16} className="text-gray-500" />
-                <input
-                  placeholder="Place..."
-                  className="bg-transparent flex-1 py-3 text-sm outline-none"
-                />
-              </div>
-            </div>
-          </div>
+  <div className="fixed inset-0 z-[200] bg-emerald-950/40 backdrop-blur-md flex items-start p-4 md:hidden">
+    <div className="w-full bg-white border border-stone-200 rounded-[2rem] p-6 shadow-2xl animate-in slide-in-from-top-4 duration-300">
+      
+      {/* HEADER */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-6 bg-emerald-500 rounded-full" />
+          <h3 className="font-black text-xs uppercase tracking-[0.2em] text-emerald-900">
+            Search Species
+          </h3>
         </div>
-      )}
+        <button
+          onClick={() => setShowMobileSearch(false)}
+          className="p-2 rounded-xl bg-stone-100 text-stone-500 hover:bg-emerald-50 hover:text-emerald-600 transition-colors"
+        >
+          <X size={20} strokeWidth={2.5} />
+        </button>
+      </div>
+
+      {/* SEARCH INPUTS */}
+      <div className="space-y-4">
+        {/* Species Search */}
+        <div className="flex items-center bg-stone-100 border border-stone-200 rounded-2xl px-4 gap-3 focus-within:bg-white focus-within:border-emerald-500 transition-all">
+          <Search size={18} className="text-emerald-600" />
+          <input
+            placeholder="What did you find?"
+            className="bg-transparent flex-1 py-4 text-sm outline-none text-stone-800 placeholder:text-stone-400 font-medium"
+          />
+        </div>
+
+        {/* Location Search */}
+        <div className="flex items-center bg-stone-100 border border-stone-200 rounded-2xl px-4 gap-3 focus-within:bg-white focus-within:border-emerald-500 transition-all">
+          <MapPin size={18} className="text-emerald-600" />
+          <input
+            placeholder="Where?"
+            className="bg-transparent flex-1 py-4 text-sm outline-none text-stone-800 placeholder:text-stone-400 font-medium"
+          />
+        </div>
+
+        {/* Search Action Button */}
+        <button 
+          onClick={() => setShowMobileSearch(false)}
+          className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-emerald-200 active:scale-95 transition-all mt-2"
+        >
+          Explore Now
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
       {/* ================= ADD MODAL ================= */}
       {showAddModal && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-in fade-in">
-          <div className="bg-gray-800 border border-gray-700 w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl relative">
-            <button
-              onClick={() => setShowAddModal(false)}
-              className="absolute top-6 right-6 text-gray-500 hover:text-white"
-            >
-              <X size={28} />
-            </button>
-            <h2 className="text-3xl font-black mb-8 italic">Add Specimen</h2>
-            <form
-              onSubmit={async (e) => {
-                e.preventDefault();
-                setShowAddModal(false);
-              }}
-              className="space-y-4"
-            >
-              <input
-                name="name"
-                placeholder="Species Name"
-                className="w-full bg-gray-900 border border-gray-700 rounded-2xl px-5 py-4 focus:ring-2 focus:ring-green-500 outline-none"
-                required
-              />
-              <div className="grid grid-cols-2 gap-4">
-                <input
-                  name="latitude"
-                  placeholder="Lat"
-                  className="w-full bg-gray-900 border border-gray-700 rounded-2xl px-5 py-4 outline-none"
-                  required
-                />
-                <input
-                  name="longitude"
-                  placeholder="Long"
-                  className="w-full bg-gray-900 border border-gray-700 rounded-2xl px-5 py-4 outline-none"
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <select
-                  name="category"
-                  className="w-full bg-gray-900 border border-gray-700 rounded-2xl px-4 py-4 outline-none"
-                  required
-                >
-                  <option value="">Category...</option>
-                  <option value="Edible">Edible</option>
-                  <option value="Medicinal">Medicinal</option>
-                  <option value="Poisonous">Poisonous</option>
-                </select>
-                <select
-                  name="use"
-                  className="w-full bg-gray-900 border border-gray-700 rounded-2xl px-4 py-4 outline-none"
-                  required
-                >
-                  <option value="">Use...</option>
-                  <option value="Culinary">Culinary</option>
-                  <option value="Research">Research</option>
-                  <option value="Fuel">Fuel</option>
-                </select>
-              </div>
-              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-700 rounded-2xl cursor-pointer hover:bg-gray-900 transition-all">
-                <Camera className="text-gray-500 mb-2" size={24} />
-                <p className="text-[10px] text-gray-500 uppercase font-black">
-                  {imageFile ? imageFile.name : "Specimen Photo"}
-                </p>
-                <input
-                  type="file"
-                  className="hidden"
-                  onChange={(e) => setImageFile(e.target.files[0])}
-                  accept="image/*"
-                />
-              </label>
-              <button
-                disabled={isSubmitting}
-                className="w-full bg-green-600 hover:bg-green-500 py-5 rounded-2xl text-white font-black text-lg transition-all active:scale-95 shadow-xl shadow-green-900/40"
-              >
-                {isSubmitting ? "PROCESSING..." : "SUBMIT OBSERVATION"}
-              </button>
-            </form>
-          </div>
+  <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-emerald-950/40 backdrop-blur-md animate-in fade-in duration-300">
+    <div className="bg-white border border-stone-200 w-full max-w-md rounded-[2.5rem] p-8 md:p-10 shadow-2xl relative animate-in zoom-in-95 duration-300">
+      
+      {/* CLOSE BUTTON */}
+      <button
+        onClick={() => setShowAddModal(false)}
+        className="absolute top-8 right-8 text-stone-400 hover:text-emerald-600 transition-colors"
+      >
+        <X size={24} strokeWidth={2.5} />
+      </button>
+
+      {/* HEADER */}
+      <div className="mb-8">
+        <div className="flex items-center gap-2 mb-2">
+          <div className="w-2 h-6 bg-emerald-500 rounded-full" />
+          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600">
+            Citizen Science
+          </span>
         </div>
-      )}
+        <h2 className="text-3xl font-black text-emerald-900 uppercase tracking-tight">
+          Add <span className="text-emerald-600 italic">Specimen</span>
+        </h2>
+      </div>
+
+      <form
+        onSubmit={async (e) => {
+          e.preventDefault();
+          setShowAddModal(false);
+        }}
+        className="space-y-4"
+      >
+        {/* SPECIES NAME */}
+        <input
+          name="name"
+          placeholder="Species Name (e.g. Oyster Mushroom)"
+          className="w-full bg-stone-100 border border-stone-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white outline-none transition-all font-medium text-stone-800 placeholder:text-stone-400"
+          required
+        />
+
+        {/* LAT/LONG GRID */}
+        <div className="grid grid-cols-2 gap-4">
+          <input
+            name="latitude"
+            placeholder="Latitude"
+            className="w-full bg-stone-100 border border-stone-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white outline-none transition-all font-medium text-stone-800 placeholder:text-stone-400"
+            required
+          />
+          <input
+            name="longitude"
+            placeholder="Longitude"
+            className="w-full bg-stone-100 border border-stone-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white outline-none transition-all font-medium text-stone-800 placeholder:text-stone-400"
+            required
+          />
+        </div>
+
+        {/* CATEGORY/USE GRID */}
+        <div className="grid grid-cols-2 gap-4">
+          <select
+            name="category"
+            className="w-full bg-stone-100 border border-stone-200 rounded-2xl px-4 py-4 outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white transition-all font-bold text-stone-600 appearance-none cursor-pointer"
+            required
+          >
+            <option value="">Category...</option>
+            <option value="Edible">Edible</option>
+            <option value="Medicinal">Medicinal</option>
+            <option value="Poisonous">Poisonous</option>
+          </select>
+          <select
+            name="use"
+            className="w-full bg-stone-100 border border-stone-200 rounded-2xl px-4 py-4 outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white transition-all font-bold text-stone-600 appearance-none cursor-pointer"
+            required
+          >
+            <option value="">Primary Use...</option>
+            <option value="Culinary">Culinary</option>
+            <option value="Research">Research</option>
+            <option value="Fuel">Fuel</option>
+          </select>
+        </div>
+
+        {/* PHOTO UPLOAD */}
+        <label className="flex flex-col items-center justify-center w-full h-36 border-2 border-dashed border-stone-200 rounded-3xl cursor-pointer hover:bg-emerald-50 hover:border-emerald-300 group transition-all">
+          <div className="bg-white p-3 rounded-full shadow-sm group-hover:scale-110 transition-transform">
+             <Camera className="text-emerald-600" size={24} />
+          </div>
+          <p className="mt-3 text-[10px] text-stone-400 group-hover:text-emerald-700 uppercase font-black tracking-widest">
+            {imageFile ? imageFile.name : "Upload Specimen Photo"}
+          </p>
+          <input
+            type="file"
+            className="hidden"
+            onChange={(e) => setImageFile(e.target.files[0])}
+            accept="image/*"
+          />
+        </label>
+
+        {/* SUBMIT BUTTON */}
+        <button
+          disabled={isSubmitting}
+          className="w-full bg-emerald-600 hover:bg-emerald-700 py-5 rounded-2xl text-white font-black text-sm uppercase tracking-[0.2em] transition-all active:scale-95 shadow-xl shadow-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+        >
+          {isSubmitting ? "Processing..." : "Submit Observation"}
+        </button>
+      </form>
+    </div>
+  </div>
+)}
     </div>
   );
 }

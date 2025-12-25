@@ -61,7 +61,8 @@ export default function Map({ data = [], filters = {}, mode, onMarkerSelect }) {
 
   /* ---------------- DATA + LAYERS ---------------- */
   useEffect(() => {
-    if (!mapLoaded || !mapRef.current) return;
+    if (!mapLoaded || !mapRef.current || !mapRef.current.isStyleLoaded()) return;
+
     const map = mapRef.current;
 
     const features = data
