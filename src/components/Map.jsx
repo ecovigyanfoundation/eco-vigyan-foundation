@@ -37,6 +37,8 @@ export default function Map({ data = [], filters = {}, mode, onMarkerSelect }) {
       style: "mapbox://styles/mapbox/light-v11",
       center: [80.5, 23.0],
       zoom: 4.2,
+       projection: "mercator", // 👈 THIS LINE
+       minZoom: 2.5,
     });
 
     map.addControl(new mapboxgl.NavigationControl(), "top-right");
