@@ -25,7 +25,7 @@ export async function POST(req) {
       const cookieObj = cookieHeader.split(";").reduce((acc, cookie) => {
         const [key, value] = cookie.trim().split("=");
         if (key && value) {
-          acc[key] = decodeURIComponent(value);
+          acc[key] = value; // Don't decode here, decode after getting token
         }
         return acc;
       }, {});
@@ -35,7 +35,7 @@ export async function POST(req) {
     // Fallback: try using cookies() API if header method fails
     if (!token) {
       try {
-        const cookieStore = cookies();
+        const cookieStore = await cookies();
         if (cookieStore && typeof cookieStore.get === "function") {
           token = cookieStore.get("token")?.value;
         }
@@ -51,7 +51,7 @@ export async function POST(req) {
       );
     }
 
-    // Decode URL-encoded token
+    // Decode URL-encoded token (only once)
     const decodedToken = decodeURIComponent(token);
     const decoded = jwt.verify(decodedToken, process.env.JWT_SECRET);
 

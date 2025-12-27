@@ -48,6 +48,7 @@ export default function EcoArtGallery() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
   const [editing, setEditing] = useState(false);
+  const [viewingImage, setViewingImage] = useState(null);
 
   // Fetch uploaded images
   useEffect(() => {
@@ -341,7 +342,10 @@ export default function EcoArtGallery() {
                     className="bg-white p-4 rounded-[2rem] shadow-xl hover:shadow-2xl transition-all group"
                   >
                     {/* Image Container */}
-                    <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-stone-100 mb-4">
+                    <div 
+                      className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-stone-100 mb-4 cursor-pointer"
+                      onClick={() => setViewingImage(painting)}
+                    >
                       <img
                         src={painting.src}
                         alt={`Painting by ${painting.studentName}`}
@@ -355,16 +359,25 @@ export default function EcoArtGallery() {
 
                       {/* Edit/Delete Buttons for Writers/Admins (only on uploaded images) */}
                       {canUpload && (
-                        <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div 
+                          className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <button
-                            onClick={() => handleEdit(painting)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEdit(painting);
+                            }}
                             className="p-2 bg-white/90 rounded-full hover:bg-white transition shadow-lg"
                             title="Edit"
                           >
                             <Edit className="w-4 h-4 text-emerald-700" />
                           </button>
                           <button
-                            onClick={() => confirmDelete(painting.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              confirmDelete(painting.id);
+                            }}
                             className="p-2 bg-red-500/90 rounded-full hover:bg-red-500 transition shadow-lg"
                             title="Delete"
                           >
@@ -374,7 +387,7 @@ export default function EcoArtGallery() {
                       )}
                     </div>
 
-                    {/* Captions */}
+                    {/* Captions - Only name and school, no description */}
                     <div className="px-2 space-y-2">
                       <div className="flex items-center gap-2 text-stone-700">
                         <User className="w-4 h-4 text-emerald-500" />
@@ -388,11 +401,6 @@ export default function EcoArtGallery() {
                           {painting.schoolName}
                         </span>
                       </div>
-                      {painting.description && (
-                        <p className="text-xs text-stone-600 mt-2 line-clamp-2">
-                          {painting.description}
-                        </p>
-                      )}
                     </div>
                   </motion.div>
                 ))
@@ -695,6 +703,111 @@ export default function EcoArtGallery() {
           </motion.div>
         </div>
       )}
+
+      {/* View Image Modal */}
+      <AnimatePresence>
+        {viewingImage && (
+          <div 
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+            onClick={() => setViewingImage(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+            >
+            <div className="p-6 border-b border-stone-200 flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-stone-800">
+                Artwork Details
+              </h2>
+              <button
+                onClick={() => setViewingImage(null)}
+                className="p-2 hover:bg-stone-100 rounded-full transition"
+              >
+                <X className="w-5 h-5 text-stone-600" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Image */}
+              <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-stone-100">
+                <img
+                  src={viewingImage.src}
+                  alt={`Painting by ${viewingImage.studentName}`}
+                  className="w-full h-full object-contain"
+                />
+              </div>
+
+              {/* Details */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 text-stone-700">
+                  <User className="w-5 h-5 text-emerald-600" />
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-widest text-stone-500 mb-1">
+                      Student Name
+                    </p>
+                    <p className="text-lg font-bold text-stone-800">
+                      {viewingImage.studentName}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 text-stone-700">
+                  <School className="w-5 h-5 text-emerald-600" />
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-widest text-stone-500 mb-1">
+                      School Name
+                    </p>
+                    <p className="text-lg font-semibold text-stone-800">
+                      {viewingImage.schoolName}
+                    </p>
+                  </div>
+                </div>
+
+                {viewingImage.description && (
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-widest text-stone-500 mb-2">
+                      Description
+                    </p>
+                    <p className="text-base text-stone-700 leading-relaxed whitespace-pre-wrap">
+                      {viewingImage.description}
+                    </p>
+                  </div>
+                )}
+
+                {/* Edit/Delete Buttons for Writers/Admins */}
+                {canUpload && (
+                  <div className="flex gap-3 pt-4 border-t border-stone-200">
+                    <button
+                      onClick={() => {
+                        setViewingImage(null);
+                        handleEdit(viewingImage);
+                      }}
+                      className="flex-1 px-6 py-3 rounded-xl border border-emerald-600 text-emerald-700 font-bold hover:bg-emerald-50 transition flex items-center justify-center gap-2"
+                    >
+                      <Edit className="w-4 h-4" />
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => {
+                        setViewingImage(null);
+                        confirmDelete(viewingImage.id);
+                      }}
+                      className="flex-1 px-6 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition flex items-center justify-center gap-2"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Delete
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        </div>
+        )}
+      </AnimatePresence>
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
