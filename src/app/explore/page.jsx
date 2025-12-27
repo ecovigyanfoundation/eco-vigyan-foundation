@@ -1,8 +1,9 @@
 "use client";
 import { motion } from "framer-motion";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import CategoryFilter from "@/components/CategoryFilter";
+import Link from "next/link";
 import dynamic from "next/dynamic";
 import {
   X,
@@ -24,8 +25,9 @@ import {
   Leaf,
   Flame,
   Zap,
+  LogOut
 } from "lucide-react";
-
+import { useAuth } from "@/context/AuthContext";
 const Map = dynamic(() => import("@/components/Map"), { ssr: false });
 
 /* ----------------------------------
@@ -71,6 +73,10 @@ const MushroomBadge = ({ category, use, variant = "small" }) => {
 };
 
 export default function MapPage() {
+  const { user, logout } = useAuth();
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef(null);
+
   const [data, setData] = useState([]);
   const [mode, setMode] = useState("category"); // Toggle b/w 'category' vs 'use'
   const [filters, setFilters] = useState({});
@@ -92,6 +98,22 @@ export default function MapPage() {
   });
   const [imageFile, setImageFile] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
+        setUserMenuOpen(false);
+      }
+    };
+
+    if (userMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [userMenuOpen]);
 
   useEffect(() => {
     setIsMounted(true);
@@ -167,38 +189,93 @@ export default function MapPage() {
           </div>
 
           {/* RIGHT: NAVIGATION & ACTIONS */}
-          <div className="flex items-center gap-2 md:gap-5 shrink-0">
-            <nav className="hidden lg:flex items-center gap-6 mr-2">
-              <a
-                href="/"
-                className="text-[11px] font-black uppercase tracking-widest text-emerald-700 border-b-2 border-emerald-600 pb-1"
-              >
-                Home
-              </a>
-              <a
-                href="/login"
-                className="text-[11px] font-black uppercase tracking-widest text-stone-400 hover:text-emerald-600 transition-colors pb-1 border-b-2 border-transparent"
-              >
-                Login
-              </a>
-            </nav>
+          <div className="flex items-center gap-3 md:gap-5 shrink-0">
+  {/* HOME LINK — RESTORED */}
+  <Link
+    href="/"
+    className="hidden lg:block text-[11px] font-black uppercase tracking-widest text-emerald-700 border-b-2 border-emerald-600 pb-1"
+  >
+    Home
+  </Link>
 
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-2xl font-black text-xs flex items-center gap-2 shadow-xl shadow-emerald-200 transition-all active:scale-95 uppercase tracking-wider"
-            >
-              <Plus size={20} strokeWidth={3} />
-              <span className="hidden xl:inline">Add Observation</span>
-            </button>
+  {/* LOGIN — only when logged out */}
+  {!user && (
+    <Link
+      href="/login"
+      className="text-[11px] font-black uppercase tracking-widest text-stone-400 hover:text-emerald-600 transition-colors"
+    >
+      Login
+    </Link>
+  )}
 
-            {/* MOBILE SEARCH TOGGLE */}
-            <button
-              onClick={() => setShowMobileSearch(true)}
-              className="md:hidden p-3 rounded-xl bg-stone-100 text-stone-600 border border-stone-200"
-            >
-              <Search size={20} />
-            </button>
+  {/* USER MENU — exactly like second code */}
+  {user && (
+    <div className="relative" ref={userMenuRef}>
+      {/* Avatar */}
+      <button
+        onClick={() => setUserMenuOpen((p) => !p)}
+        className="flex items-center gap-2 hover:opacity-80 transition"
+      >
+        <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-emerald-600 shadow-md">
+          {user.dp?.url ? (
+            <img
+              src={user.dp.url}
+              alt={user.name || "User"}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-emerald-600 flex items-center justify-center">
+              <User className="w-5 h-5 text-white" />
+            </div>
+          )}
+        </div>
+      </button>
+
+      {/* DROPDOWN — now it WORKS */}
+      {userMenuOpen && (
+        <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-2xl border border-stone-200 overflow-hidden z-50">
+          <div className="px-4 py-3 border-b border-stone-100">
+            <p className="text-sm font-bold text-slate-800">
+              {user.name}
+            </p>
+            <p className="text-xs text-slate-500">{user.email}</p>
           </div>
+
+          <button
+            onClick={() => {
+              setUserMenuOpen(false);
+              logout();
+            }}
+            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition"
+          >
+            <LogOut className="w-4 h-4" />
+            Logout
+          </button>
+        </div>
+      )}
+    </div>
+  )}
+
+  {/* ADD OBSERVATION — logged in only */}
+  {user && (
+    <button
+      onClick={() => setShowAddModal(true)}
+      className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-2xl font-black text-xs flex items-center gap-2 shadow-xl shadow-emerald-200 transition-all active:scale-95 uppercase tracking-wider"
+    >
+      <Plus size={20} strokeWidth={3} />
+      <span className="hidden xl:inline">Add Observation</span>
+    </button>
+  )}
+
+  {/* MOBILE SEARCH */}
+  <button
+    onClick={() => setShowMobileSearch(true)}
+    className="md:hidden p-3 rounded-xl bg-stone-100 text-stone-600 border border-stone-200"
+  >
+    <Search size={20} />
+  </button>
+</div>
+
         </div>
 
         {/* SECOND ROW: TAB NAVIGATION & FILTERS */}

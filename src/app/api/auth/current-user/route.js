@@ -11,18 +11,26 @@ export async function GET() {
       return NextResponse.json({ user: null });
     }
 
-    const token = cookies().get("token")?.value;
+    // ✅ MUST await cookies()
+    const cookieStore = await cookies();
+    const token = cookieStore.get("token")?.value;
+
     if (!token) {
       return NextResponse.json({ user: null });
     }
 
-    // Decode URL-encoded token
+    // Decode URL-encoded token (good that you handled this)
     const decodedToken = decodeURIComponent(token);
-    const decoded = jwt.verify(decodedToken, process.env.JWT_SECRET);
+
+    const decoded = jwt.verify(
+      decodedToken,
+      process.env.JWT_SECRET
+    );
 
     await connectDB();
+
     const user = await User.findById(decoded.id).select("-password");
-    
+
     // Check if user exists and is not banned
     if (!user || user.isBanned) {
       return NextResponse.json({ user: null });
@@ -30,7 +38,7 @@ export async function GET() {
 
     return NextResponse.json({ user });
   } catch (error) {
-    console.error("Current user error:", error.message);
+    console.error("Current user error:", error);
     return NextResponse.json({ user: null });
   }
 }

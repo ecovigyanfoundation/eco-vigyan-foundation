@@ -23,8 +23,6 @@ import {
 export default function Navbar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
-  const hideNavbarRoutes = ["/explore"];
-  if (hideNavbarRoutes.includes(pathname)) return null;
 
   const [isOpen, setIsOpen] = useState(false);
   const [isProgramsOpen, setIsProgramsOpen] = useState(false);
@@ -49,6 +47,7 @@ export default function Navbar() {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [userMenuOpen]);
+  const hideNavbar = pathname.startsWith("/explore");
 
   // Handle logout
   const handleLogout = () => {
@@ -94,304 +93,313 @@ export default function Navbar() {
 
   return (
     <>
-      {/* --- TOP UTILITY BAR --- */}
-      {pathname === "/" && (
-        <div className="bg-emerald-950 text-emerald-50 text-xs sm:text-sm py-2.5 relative z-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-            <div className="hidden md:flex items-center space-x-6">
-              <span className="text-emerald-400 font-medium tracking-wide text-xs uppercase">
-                Follow Us:
-              </span>
-              <div className="flex space-x-4">
-                <Link
-                  href="https://www.facebook.com/people/Eco-Vigyan-Foundation/100090610935292/?rdid=qQ3Ik930QW0SHoiR&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F1BcJ2mxyDF%2F"
-                  className="hover:text-emerald-400 transition"
-                >
-                  <Facebook className="w-4 h-4" />
-                </Link>
-                <Link
-                  href="https://www.instagram.com/ecovigyan/?igsh=MXdpdWFhbDd5amg4dQ%3D%3D#"
-                  className="hover:text-emerald-400 transition"
-                >
-                  <Instagram className="w-4 h-4" />
-                </Link>
+      {!hideNavbar && (
+        <>
+          {/* --- TOP UTILITY BAR --- */}
+          {pathname === "/" && (
+            <div className="bg-emerald-950 text-emerald-50 text-xs sm:text-sm py-2.5 relative z-50">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
+                <div className="hidden md:flex items-center space-x-6">
+                  <span className="text-emerald-400 font-medium tracking-wide text-xs uppercase">
+                    Follow Us:
+                  </span>
+                  <div className="flex space-x-4">
+                    <Link
+                      href="https://www.facebook.com/people/Eco-Vigyan-Foundation/100090610935292/?rdid=qQ3Ik930QW0SHoiR&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F1BcJ2mxyDF%2F"
+                      className="hover:text-emerald-400 transition"
+                    >
+                      <Facebook className="w-4 h-4" />
+                    </Link>
+                    <Link
+                      href="https://www.instagram.com/ecovigyan/?igsh=MXdpdWFhbDd5amg4dQ%3D%3D#"
+                      className="hover:text-emerald-400 transition"
+                    >
+                      <Instagram className="w-4 h-4" />
+                    </Link>
+                  </div>
+                </div>
+
+                <div className="flex w-full md:w-auto justify-between md:justify-end md:space-x-8">
+                  <Link
+                    href="tel:+918894486066"
+                    className="flex items-center hover:text-emerald-200 transition"
+                  >
+                    <Phone className="w-3.5 h-3.5 mr-2 text-emerald-500" />
+                    <span className="font-medium">+91 8894486066</span>
+                  </Link>
+                  <Link
+                    href="mailto:ecovigyan@gmail.com"
+                    className="flex items-center hover:text-emerald-200 transition"
+                  >
+                    <Mail className="w-3.5 h-3.5 mr-2 text-emerald-500" />
+                    <span className="font-medium">ecovigyan@gmail.com</span>
+                  </Link>
+                </div>
               </div>
             </div>
+          )}
 
-            <div className="flex w-full md:w-auto justify-between md:justify-end md:space-x-8">
-              <Link
-                href="tel:+918894486066"
-                className="flex items-center hover:text-emerald-200 transition"
-              >
-                <Phone className="w-3.5 h-3.5 mr-2 text-emerald-500" />
-                <span className="font-medium">+91 8894486066</span>
-              </Link>
-              <Link
-                href="mailto:ecovigyan@gmail.com"
-                className="flex items-center hover:text-emerald-200 transition"
-              >
-                <Mail className="w-3.5 h-3.5 mr-2 text-emerald-500" />
-                <span className="font-medium">ecovigyan@gmail.com</span>
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* --- MAIN NAVBAR (NOT STICKY, FIXED HEIGHT) --- */}
-      <nav className="relative z-[200] w-full bg-white border-b border-stone-200 py-4 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center">
-            {/* Logo */}
-            <Link
-              href="/"
-              className="group flex items-center space-x-2 shrink-0"
-            >
-              <div className="w-12 h-12 rounded-xl overflow-hidden shadow-lg group-hover:scale-105 transition-transform bg-white">
-                <img
-                  src="/gallery/logo4.png"
-                  alt="Logo"
-                  className="w-full h-full object-contain"
-                />
-              </div>
-              <span className="text-2xl font-extrabold text-emerald-700 tracking-tight">
-                Eco Vigyan Foundation
-              </span>
-            </Link>
-
-            {/* Desktop Menu */}
-            <div className="hidden md:flex flex-1 justify-end items-center space-x-8">
-              {navLinks.map((link) => (
+          {/* --- MAIN NAVBAR (NOT STICKY, FIXED HEIGHT) --- */}
+          <nav className="relative z-[200] w-full bg-white border-b border-stone-200 py-4 shadow-sm">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex justify-between items-center">
+                {/* Logo */}
                 <Link
-                  key={link.name}
-                  href={link.path}
-                  onClick={(e) => handleNavClick(e, link)}
-                  className="relative group py-2 text-sm font-bold text-slate-600 hover:text-emerald-700 transition"
+                  href="/"
+                  className="group flex items-center space-x-2 shrink-0"
                 >
-                  {link.name}
-                  {link.isNew && (
-                    <span className="absolute -top-1 -right-3 flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                    </span>
+                  <div className="w-12 h-12 rounded-xl overflow-hidden shadow-lg group-hover:scale-105 transition-transform bg-white">
+                    <img
+                      src="/gallery/logo4.png"
+                      alt="Logo"
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                  <span className="text-2xl font-extrabold text-emerald-700 tracking-tight">
+                    Eco Vigyan Foundation
+                  </span>
+                </Link>
+
+                {/* Desktop Menu */}
+                <div className="hidden md:flex flex-1 justify-end items-center space-x-8">
+                  {navLinks.map((link) => (
+                    <Link
+                      key={link.name}
+                      href={link.path}
+                      onClick={(e) => handleNavClick(e, link)}
+                      className="relative group py-2 text-sm font-bold text-slate-600 hover:text-emerald-700 transition"
+                    >
+                      {link.name}
+                      {link.isNew && (
+                        <span className="absolute -top-1 -right-3 flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                      )}
+                      <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-emerald-600 transition-all group-hover:w-full"></span>
+                    </Link>
+                  ))}
+
+                  {/* Programs Dropdown */}
+                  <div
+                    className="relative font-bold"
+                    ref={dropdownRef}
+                    onMouseEnter={handleMouseEnter}
+                    onMouseLeave={handleMouseLeave}
+                  >
+                    <button
+                      onClick={() => setIsProgramsOpen((p) => !p)}
+                      className="flex items-center gap-1 py-2 text-sm font-bold text-slate-600 hover:text-emerald-700 group cursor-pointer"
+                    >
+                      Our Programs
+                      <ChevronDown
+                        className={`w-4 h-4 transition-transform ${
+                          isProgramsOpen ? "rotate-180" : ""
+                        }`}
+                      />
+                    </button>
+
+                    <div
+                      className={`absolute top-full left-1/2 mt-3 w-48 bg-white rounded-xl shadow-2xl border transform -translate-x-1/2 transition-all origin-top ${
+                        isProgramsOpen
+                          ? "opacity-100 scale-y-100"
+                          : "opacity-0 scale-y-0 pointer-events-none"
+                      }`}
+                    >
+                      {programLinks.map((item) => (
+                        <Link
+                          key={item.name}
+                          href={item.path}
+                          onClick={() => setIsProgramsOpen(false)}
+                          className="block px-5 py-3 text-sm text-slate-700 hover:bg-emerald-50 rounded-xl mx-1 my-1"
+                        >
+                          {item.name}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* User Profile or Login */}
+                  {user ? (
+                    <div className="relative" ref={userMenuRef}>
+                      <button
+                        onClick={() => setUserMenuOpen(!userMenuOpen)}
+                        className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+                      >
+                        <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-emerald-600 shadow-md">
+                          {user.dp?.url ? (
+                            <img
+                              src={user.dp.url}
+                              alt={user.name || "User"}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-emerald-600 flex items-center justify-center">
+                              <User className="w-5 h-5 text-white" />
+                            </div>
+                          )}
+                        </div>
+                      </button>
+
+                      {/* User Dropdown Menu */}
+                      {userMenuOpen && (
+                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-2xl border border-stone-200 overflow-hidden z-50">
+                          <div className="px-4 py-3 border-b border-stone-100">
+                            <p className="text-sm font-bold text-slate-800">
+                              {user.name}
+                            </p>
+                            <p className="text-xs text-slate-500">
+                              {user.email}
+                            </p>
+                            {user.role && (
+                              <span className="inline-block mt-1 px-2 py-0.5 text-xs font-semibold bg-emerald-100 text-emerald-700 rounded-full">
+                                {user.role.charAt(0).toUpperCase() +
+                                  user.role.slice(1)}
+                              </span>
+                            )}
+                          </div>
+                          <div className="py-1">
+                            <button
+                              onClick={handleLogout}
+                              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition"
+                            >
+                              <LogOut className="w-4 h-4" />
+                              Logout
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <Link
+                      href="/login"
+                      className="flex items-center gap-2 font-bold text-sm text-slate-600 hover:text-emerald-700 group"
+                    >
+                      <LogIn className="w-4 h-4" />
+                      Login
+                      <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-emerald-600 transition-all group-hover:w-full"></span>
+                    </Link>
                   )}
-                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-emerald-600 transition-all group-hover:w-full"></span>
-                </Link>
-              ))}
 
-              {/* Programs Dropdown */}
-              <div
-                className="relative font-bold"
-                ref={dropdownRef}
-                onMouseEnter={handleMouseEnter}
-                onMouseLeave={handleMouseLeave}
-              >
-                <button
-                  onClick={() => setIsProgramsOpen((p) => !p)}
-                  className="flex items-center gap-1 py-2 text-sm font-bold text-slate-600 hover:text-emerald-700 group cursor-pointer"
-                >
-                  Our Programs
-                  <ChevronDown
-                    className={`w-4 h-4 transition-transform ${
-                      isProgramsOpen ? "rotate-180" : ""
-                    }`}
-                  />
-                </button>
+                  {/* Donate */}
+                  <Link
+                    href="/donate"
+                    className="group flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-green-700 text-white font-bold text-sm rounded-full shadow-lg hover:-translate-y-0.5 transition"
+                  >
+                    Donate Now
+                    {/* The Heart Icon */}
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4 transition-colors duration-300 fill-transparent stroke-white group-hover:fill-white"
+                      viewBox="0 0 24 24"
+                      strokeWidth="2"
+                    >
+                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                    </svg>
+                  </Link>
+                </div>
 
-                <div
-                  className={`absolute top-full left-1/2 mt-3 w-48 bg-white rounded-xl shadow-2xl border transform -translate-x-1/2 transition-all origin-top ${
-                    isProgramsOpen
-                      ? "opacity-100 scale-y-100"
-                      : "opacity-0 scale-y-0 pointer-events-none"
-                  }`}
-                >
+                {/* Mobile Toggle */}
+                <div className="md:hidden">
+                  <button onClick={() => setIsOpen(!isOpen)}>
+                    {isOpen ? (
+                      <X className="w-7 h-7" />
+                    ) : (
+                      <Menu className="w-7 h-7" />
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Mobile Menu */}
+            <div
+              className={`md:hidden absolute top-full left-0 w-full bg-white border-t transition-all duration-300 origin-top ${
+                isOpen
+                  ? "opacity-100 scale-y-100"
+                  : "opacity-0 scale-y-0 h-0 overflow-hidden"
+              }`}
+            >
+              <div className="px-4 py-6 space-y-4 flex flex-col items-center">
+                {navLinks.map((link) => (
+                  <Link
+                    key={link.name}
+                    href={link.path}
+                    className="text-lg font-medium text-slate-700 w-full text-center py-2"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    {link.name}
+                  </Link>
+                ))}
+                <div className="w-full text-center pt-2 border-t border-stone-100">
+                  <p className="text-sm uppercase text-slate-400 my-2 font-semibold">
+                    Our Programs
+                  </p>
                   {programLinks.map((item) => (
                     <Link
                       key={item.name}
                       href={item.path}
-                      onClick={() => setIsProgramsOpen(false)}
-                      className="block px-5 py-3 text-sm text-slate-700 hover:bg-emerald-50 rounded-xl mx-1 my-1"
+                      className="block py-2 text-slate-700"
+                      onClick={() => setIsOpen(false)}
                     >
                       {item.name}
                     </Link>
                   ))}
                 </div>
-              </div>
 
-              {/* User Profile or Login */}
-              {user ? (
-                <div className="relative" ref={userMenuRef}>
-                  <button
-                    onClick={() => setUserMenuOpen(!userMenuOpen)}
-                    className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-                  >
-                    <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-emerald-600 shadow-md">
-                      {user.dp?.url ? (
-                        <img
-                          src={user.dp.url}
-                          alt={user.name || "User"}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-emerald-600 flex items-center justify-center">
-                          <User className="w-5 h-5 text-white" />
-                        </div>
-                      )}
-                    </div>
-                  </button>
-
-                  {/* User Dropdown Menu */}
-                  {userMenuOpen && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-2xl border border-stone-200 overflow-hidden z-50">
-                      <div className="px-4 py-3 border-b border-stone-100">
-                        <p className="text-sm font-bold text-slate-800">{user.name}</p>
-                        <p className="text-xs text-slate-500">{user.email}</p>
-                        {user.role && (
-                          <span className="inline-block mt-1 px-2 py-0.5 text-xs font-semibold bg-emerald-100 text-emerald-700 rounded-full">
-                            {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                          </span>
+                {/* Mobile User Profile or Login */}
+                {user ? (
+                  <div className="w-full space-y-2">
+                    <div className="flex items-center gap-3 px-4 py-3 bg-stone-50 rounded-lg">
+                      <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-emerald-600">
+                        {user.dp?.url ? (
+                          <img
+                            src={user.dp.url}
+                            alt={user.name || "User"}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-emerald-600 flex items-center justify-center">
+                            <User className="w-6 h-6 text-white" />
+                          </div>
                         )}
                       </div>
-                      <div className="py-1">
-                        <button
-                          onClick={handleLogout}
-                          className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition"
-                        >
-                          <LogOut className="w-4 h-4" />
-                          Logout
-                        </button>
+                      <div className="flex-1">
+                        <p className="font-bold text-slate-800">{user.name}</p>
+                        <p className="text-xs text-slate-500">{user.email}</p>
                       </div>
                     </div>
-                  )}
-                </div>
-              ) : (
-                <Link
-                  href="/login"
-                  className="flex items-center gap-2 font-bold text-sm text-slate-600 hover:text-emerald-700 group"
-                >
-                  <LogIn className="w-4 h-4" />
-                  Login
-                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-emerald-600 transition-all group-hover:w-full"></span>
-                </Link>
-              )}
-
-              {/* Donate */}
-              <Link
-                href="/donate"
-                className="group flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-green-700 text-white font-bold text-sm rounded-full shadow-lg hover:-translate-y-0.5 transition"
-              >
-                Donate Now
-                {/* The Heart Icon */}
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4 transition-colors duration-300 fill-transparent stroke-white group-hover:fill-white"
-                  viewBox="0 0 24 24"
-                  strokeWidth="2"
-                >
-                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                </svg>
-              </Link>
-            </div>
-
-            {/* Mobile Toggle */}
-            <div className="md:hidden">
-              <button onClick={() => setIsOpen(!isOpen)}>
-                {isOpen ? (
-                  <X className="w-7 h-7" />
+                    <button
+                      onClick={() => {
+                        handleLogout();
+                        setIsOpen(false);
+                      }}
+                      className="w-full text-center px-6 py-3 border border-red-600 text-red-600 font-bold rounded-lg hover:bg-red-50 transition"
+                    >
+                      Logout
+                    </button>
+                  </div>
                 ) : (
-                  <Menu className="w-7 h-7" />
+                  <Link
+                    href="/login"
+                    className="w-full text-center px-6 py-3 border border-emerald-600 text-emerald-700 font-bold rounded-lg"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    Member Login
+                  </Link>
                 )}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Mobile Menu */}
-        <div
-          className={`md:hidden absolute top-full left-0 w-full bg-white border-t transition-all duration-300 origin-top ${
-            isOpen
-              ? "opacity-100 scale-y-100"
-              : "opacity-0 scale-y-0 h-0 overflow-hidden"
-          }`}
-        >
-          <div className="px-4 py-6 space-y-4 flex flex-col items-center">
-            {navLinks.map((link) => (
-              <Link
-                key={link.name}
-                href={link.path}
-                className="text-lg font-medium text-slate-700 w-full text-center py-2"
-                onClick={() => setIsOpen(false)}
-              >
-                {link.name}
-              </Link>
-            ))}
-            <div className="w-full text-center pt-2 border-t border-stone-100">
-              <p className="text-sm uppercase text-slate-400 my-2 font-semibold">
-                Our Programs
-              </p>
-              {programLinks.map((item) => (
                 <Link
-                  key={item.name}
-                  href={item.path}
-                  className="block py-2 text-slate-700"
+                  href="/donate"
+                  className="w-full text-center px-6 py-3 bg-emerald-600 text-white font-bold rounded-lg"
                   onClick={() => setIsOpen(false)}
                 >
-                  {item.name}
+                  Donate Now
                 </Link>
-              ))}
-            </div>
-
-            {/* Mobile User Profile or Login */}
-            {user ? (
-              <div className="w-full space-y-2">
-                <div className="flex items-center gap-3 px-4 py-3 bg-stone-50 rounded-lg">
-                  <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-emerald-600">
-                    {user.dp?.url ? (
-                      <img
-                        src={user.dp.url}
-                        alt={user.name || "User"}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-emerald-600 flex items-center justify-center">
-                        <User className="w-6 h-6 text-white" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-bold text-slate-800">{user.name}</p>
-                    <p className="text-xs text-slate-500">{user.email}</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => {
-                    handleLogout();
-                    setIsOpen(false);
-                  }}
-                  className="w-full text-center px-6 py-3 border border-red-600 text-red-600 font-bold rounded-lg hover:bg-red-50 transition"
-                >
-                  Logout
-                </button>
               </div>
-            ) : (
-              <Link
-                href="/login"
-                className="w-full text-center px-6 py-3 border border-emerald-600 text-emerald-700 font-bold rounded-lg"
-                onClick={() => setIsOpen(false)}
-              >
-                Member Login
-              </Link>
-            )}
-            <Link
-              href="/donate"
-              className="w-full text-center px-6 py-3 bg-emerald-600 text-white font-bold rounded-lg"
-              onClick={() => setIsOpen(false)}
-            >
-              Donate Now
-            </Link>
-          </div>
-        </div>
-      </nav>
+            </div>
+          </nav>
+        </>
+      )}
     </>
   );
 }
