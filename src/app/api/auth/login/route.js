@@ -22,23 +22,28 @@ export async function POST(req) {
 
     if (!email || !password) {
       return NextResponse.json(
-        { error: "Email and password are required" },
+        { error: "Email/username and password are required" },
         { status: 400 }
       );
     }
 
-    // Trim and validate email format
-    const trimmedEmail = email.trim().toLowerCase();
+    // Trim the input
+    const trimmedInput = email.trim();
+    
+    // Determine if input is email or username
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(trimmedEmail)) {
-      return NextResponse.json(
-        { error: "Invalid email format" },
-        { status: 400 }
-      );
+    const isEmail = emailRegex.test(trimmedInput.toLowerCase());
+    
+    // Build query - check either email or username
+    let user;
+    if (isEmail) {
+      // If it's an email, search by email
+      user = await User.findOne({ email: trimmedInput.toLowerCase() }).select("+password");
+    } else {
+      // If it's not an email, search by username (convert to lowercase since schema has lowercase: true)
+      user = await User.findOne({ username: trimmedInput.toLowerCase() }).select("+password");
     }
-
-    // Select password field explicitly since it's set to select: false in schema
-    const user = await User.findOne({ email: trimmedEmail }).select("+password");
+    
     if (!user) {
       return NextResponse.json(
         { error: "Invalid credentials" },

@@ -4,7 +4,18 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";
-import { ChevronLeft, ChevronRight, Palette, School, User, Upload, X, Camera, Edit, Trash2 } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Palette,
+  School,
+  User,
+  Upload,
+  X,
+  Camera,
+  Edit,
+  Trash2,
+} from "lucide-react";
 
 /* ---------------------------------------------------------
    GALLERY DATA & CONFIG
@@ -12,18 +23,6 @@ import { ChevronLeft, ChevronRight, Palette, School, User, Upload, X, Camera, Ed
 const IMAGES_PER_PAGE = 9;
 
 // Generate array of static image objects
-const staticPaintings = Array.from({ length: 25 }, (_, i) => {
-  const id = i + 1;
-  const extension = id >= 16 ? "jpeg" : "jpg";
-
-  return {
-    id: `static-${id}`,
-    src: `/paintings/p${id}.${extension}`,
-    studentName: "Student Name",
-    schoolName: "Name of School",
-    isStatic: true,
-  };
-});
 
 export default function EcoArtGallery() {
   const { user, isWriterOrAdmin } = useAuth();
@@ -50,7 +49,6 @@ export default function EcoArtGallery() {
   const [deletingId, setDeletingId] = useState(null);
   const [editing, setEditing] = useState(false);
 
-
   // Fetch uploaded images
   useEffect(() => {
     const fetchImages = async () => {
@@ -64,7 +62,6 @@ export default function EcoArtGallery() {
             studentName: img.studentName,
             schoolName: img.schoolName,
             description: img.description || "",
-            isStatic: false,
           }));
           setUploadedImages(formattedImages);
         }
@@ -78,7 +75,7 @@ export default function EcoArtGallery() {
   }, []);
 
   // Combine static and uploaded images
-  const allImages = [...uploadedImages, ...staticPaintings];
+  const allImages = uploadedImages;
   const totalPages = Math.ceil(allImages.length / IMAGES_PER_PAGE);
 
   // Pagination Logic
@@ -117,7 +114,11 @@ export default function EcoArtGallery() {
     // Create preview
     const reader = new FileReader();
     reader.onloadend = () => {
-      setUploadForm({ ...uploadForm, image: file, imagePreview: reader.result });
+      setUploadForm({
+        ...uploadForm,
+        image: file,
+        imagePreview: reader.result,
+      });
     };
     reader.readAsDataURL(file);
   };
@@ -125,7 +126,11 @@ export default function EcoArtGallery() {
   // Handle upload
   const handleUpload = async (e) => {
     e.preventDefault();
-    if (!uploadForm.image || !uploadForm.studentName.trim() || !uploadForm.schoolName.trim()) {
+    if (
+      !uploadForm.image ||
+      !uploadForm.studentName.trim() ||
+      !uploadForm.schoolName.trim()
+    ) {
       toast.error("Please fill all fields");
       return;
     }
@@ -150,17 +155,6 @@ export default function EcoArtGallery() {
       }
 
       toast.success("Image uploaded successfully!");
-      
-      // Add new image to the list
-      const newImage = {
-        id: data.galleryItem.id,
-        src: data.galleryItem.image.url,
-        studentName: data.galleryItem.studentName,
-        schoolName: data.galleryItem.schoolName,
-        description: data.galleryItem.description || "",
-        isStatic: false,
-      };
-      setUploadedImages([newImage, ...uploadedImages]);
 
       // Reset form
       setUploadForm({
@@ -171,6 +165,11 @@ export default function EcoArtGallery() {
         description: "",
       });
       setShowUploadModal(false);
+
+      // Reload the page after a short delay to show the success message
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     } catch (error) {
       toast.error(error.message || "Failed to upload image");
     } finally {
@@ -215,19 +214,26 @@ export default function EcoArtGallery() {
       toast.success("Image updated successfully!");
 
       // Update the image in the list
-      setUploadedImages(uploadedImages.map((img) =>
-        img.id === editForm.id
-          ? {
-              ...img,
-              studentName: data.galleryItem.studentName,
-              schoolName: data.galleryItem.schoolName,
-              description: data.galleryItem.description || "",
-            }
-          : img
-      ));
+      setUploadedImages(
+        uploadedImages.map((img) =>
+          img.id === editForm.id
+            ? {
+                ...img,
+                studentName: data.galleryItem.studentName,
+                schoolName: data.galleryItem.schoolName,
+                description: data.galleryItem.description || "",
+              }
+            : img
+        )
+      );
 
       setShowEditModal(false);
-      setEditForm({ id: null, studentName: "", schoolName: "", description: "" });
+      setEditForm({
+        id: null,
+        studentName: "",
+        schoolName: "",
+        description: "",
+      });
     } catch (error) {
       toast.error(error.message || "Failed to update image");
     } finally {
@@ -275,26 +281,27 @@ export default function EcoArtGallery() {
       {/* --- Header Section --- */}
       <section className="bg-emerald-900 py-20 px-4 relative overflow-hidden">
         <div className="absolute inset-0 opacity-10">
-            <Palette className="w-96 h-96 absolute -bottom-20 -left-20 text-white" />
+          <Palette className="w-96 h-96 absolute -bottom-20 -left-20 text-white" />
         </div>
-        
+
         <div className="max-w-4xl mx-auto text-center relative z-10">
-          <motion.h1 
+          <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-4xl md:text-6xl font-black text-white mb-6 uppercase tracking-tight"
           >
             Eco-Art Gallery
           </motion.h1>
-          <motion.div 
+          <motion.div
             initial={{ width: 0 }}
             animate={{ width: "100px" }}
             className="h-1.5 bg-emerald-400 mx-auto mb-8 rounded-full"
           />
           <p className="text-xl md:text-2xl text-emerald-100 font-medium leading-relaxed">
-            Art is where young minds speak for the Earth. This gallery features paintings created by students during our nature education programs.
+            Art is where young minds speak for the Earth. This gallery features
+            paintings created by students during our nature education programs.
           </p>
-          
+
           {/* Upload Button for Writers/Admins */}
           {canUpload && (
             <motion.button
@@ -325,69 +332,69 @@ export default function EcoArtGallery() {
                 </div>
               ) : (
                 currentItems.map((painting) => (
-              <motion.div
-                key={painting.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.3 }}
-                className="bg-white p-4 rounded-[2rem] shadow-xl hover:shadow-2xl transition-all group"
-              >
-                {/* Image Container */}
-                <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-stone-100 mb-4">
-                  <img
-                    src={painting.src}
-                    alt={`Painting by ${painting.studentName}`}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                  />
-                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                     <span className="bg-white/90 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest text-emerald-900">
-                        View Artwork
-                     </span>
-                  </div>
-                  
-                  {/* Edit/Delete Buttons for Writers/Admins (only on uploaded images) */}
-                  {canUpload && !painting.isStatic && (
-                    <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => handleEdit(painting)}
-                        className="p-2 bg-white/90 rounded-full hover:bg-white transition shadow-lg"
-                        title="Edit"
-                      >
-                        <Edit className="w-4 h-4 text-emerald-700" />
-                      </button>
-                      <button
-                        onClick={() => confirmDelete(painting.id)}
-                        className="p-2 bg-red-500/90 rounded-full hover:bg-red-500 transition shadow-lg"
-                        title="Delete"
-                      >
-                        <Trash2 className="w-4 h-4 text-white" />
-                      </button>
-                    </div>
-                  )}
-                </div>
+                  <motion.div
+                    key={painting.id}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ duration: 0.3 }}
+                    className="bg-white p-4 rounded-[2rem] shadow-xl hover:shadow-2xl transition-all group"
+                  >
+                    {/* Image Container */}
+                    <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-stone-100 mb-4">
+                      <img
+                        src={painting.src}
+                        alt={`Painting by ${painting.studentName}`}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      />
+                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <span className="bg-white/90 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest text-emerald-900">
+                          View Artwork
+                        </span>
+                      </div>
 
-                {/* Captions */}
-                <div className="px-2 space-y-2">
-                  <div className="flex items-center gap-2 text-stone-700">
-                    <User className="w-4 h-4 text-emerald-500" />
-                    <span className="text-sm font-bold border-b border-stone-200 flex-grow pb-1 italic">
-                      {painting.studentName}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-stone-500">
-                    <School className="w-4 h-4 text-emerald-500" />
-                    <span className="text-xs font-semibold uppercase tracking-tight">
-                      {painting.schoolName}
-                    </span>
-                  </div>
-                  {painting.description && (
-                    <p className="text-xs text-stone-600 mt-2 line-clamp-2">
-                      {painting.description}
-                    </p>
-                  )}
-                </div>
-              </motion.div>
+                      {/* Edit/Delete Buttons for Writers/Admins (only on uploaded images) */}
+                      {canUpload && (
+                        <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => handleEdit(painting)}
+                            className="p-2 bg-white/90 rounded-full hover:bg-white transition shadow-lg"
+                            title="Edit"
+                          >
+                            <Edit className="w-4 h-4 text-emerald-700" />
+                          </button>
+                          <button
+                            onClick={() => confirmDelete(painting.id)}
+                            className="p-2 bg-red-500/90 rounded-full hover:bg-red-500 transition shadow-lg"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-4 h-4 text-white" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Captions */}
+                    <div className="px-2 space-y-2">
+                      <div className="flex items-center gap-2 text-stone-700">
+                        <User className="w-4 h-4 text-emerald-500" />
+                        <span className="text-sm font-bold border-b border-stone-200 flex-grow pb-1 italic">
+                          {painting.studentName}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-stone-500">
+                        <School className="w-4 h-4 text-emerald-500" />
+                        <span className="text-xs font-semibold uppercase tracking-tight">
+                          {painting.schoolName}
+                        </span>
+                      </div>
+                      {painting.description && (
+                        <p className="text-xs text-stone-600 mt-2 line-clamp-2">
+                          {painting.description}
+                        </p>
+                      )}
+                    </div>
+                  </motion.div>
                 ))
               )}
             </AnimatePresence>
@@ -406,19 +413,21 @@ export default function EcoArtGallery() {
             </button>
 
             <div className="flex gap-2">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((number) => (
-                <button
-                  key={number}
-                  onClick={() => paginate(number)}
-                  className={`w-12 h-12 rounded-full font-bold transition-all shadow-sm ${
-                    currentPage === number
-                      ? "bg-emerald-600 text-white scale-110 shadow-emerald-200"
-                      : "bg-white text-stone-600 hover:bg-emerald-50"
-                  }`}
-                >
-                  {number}
-                </button>
-              ))}
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                (number) => (
+                  <button
+                    key={number}
+                    onClick={() => paginate(number)}
+                    className={`w-12 h-12 rounded-full font-bold transition-all shadow-sm ${
+                      currentPage === number
+                        ? "bg-emerald-600 text-white scale-110 shadow-emerald-200"
+                        : "bg-white text-stone-600 hover:bg-emerald-50"
+                    }`}
+                  >
+                    {number}
+                  </button>
+                )
+              )}
             </div>
 
             <button
@@ -435,7 +444,8 @@ export default function EcoArtGallery() {
       {/* --- Quote Footer --- */}
       <section className="max-w-3xl mx-auto px-4 mt-20 text-center">
         <p className="text-stone-400 italic font-medium">
-          &ldquo;Every child is an artist. The problem is how to remain an artist once he grows up.&rdquo;
+          &ldquo;Every child is an artist. The problem is how to remain an
+          artist once he grows up.&rdquo;
         </p>
       </section>
 
@@ -448,7 +458,9 @@ export default function EcoArtGallery() {
             className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
           >
             <div className="p-6 border-b border-stone-200 flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-stone-800">Upload Gallery Image</h2>
+              <h2 className="text-2xl font-bold text-stone-800">
+                Upload Gallery Image
+              </h2>
               <button
                 onClick={() => setShowUploadModal(false)}
                 className="p-2 hover:bg-stone-100 rounded-full transition"
@@ -473,7 +485,13 @@ export default function EcoArtGallery() {
                       />
                       <button
                         type="button"
-                        onClick={() => setUploadForm({ ...uploadForm, image: null, imagePreview: null })}
+                        onClick={() =>
+                          setUploadForm({
+                            ...uploadForm,
+                            image: null,
+                            imagePreview: null,
+                          })
+                        }
                         className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full hover:bg-red-600"
                       >
                         <X className="w-4 h-4" />
@@ -507,7 +525,12 @@ export default function EcoArtGallery() {
                 <input
                   type="text"
                   value={uploadForm.studentName}
-                  onChange={(e) => setUploadForm({ ...uploadForm, studentName: e.target.value })}
+                  onChange={(e) =>
+                    setUploadForm({
+                      ...uploadForm,
+                      studentName: e.target.value,
+                    })
+                  }
                   placeholder="Enter student name"
                   className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none"
                   required
@@ -522,7 +545,9 @@ export default function EcoArtGallery() {
                 <input
                   type="text"
                   value={uploadForm.schoolName}
-                  onChange={(e) => setUploadForm({ ...uploadForm, schoolName: e.target.value })}
+                  onChange={(e) =>
+                    setUploadForm({ ...uploadForm, schoolName: e.target.value })
+                  }
                   placeholder="Enter school name"
                   className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none"
                   required
@@ -536,7 +561,12 @@ export default function EcoArtGallery() {
                 </label>
                 <textarea
                   value={uploadForm.description}
-                  onChange={(e) => setUploadForm({ ...uploadForm, description: e.target.value })}
+                  onChange={(e) =>
+                    setUploadForm({
+                      ...uploadForm,
+                      description: e.target.value,
+                    })
+                  }
                   placeholder="Enter description about the artwork..."
                   rows={3}
                   maxLength={500}
@@ -578,7 +608,9 @@ export default function EcoArtGallery() {
             className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
           >
             <div className="p-6 border-b border-stone-200 flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-stone-800">Edit Gallery Image</h2>
+              <h2 className="text-2xl font-bold text-stone-800">
+                Edit Gallery Image
+              </h2>
               <button
                 onClick={() => setShowEditModal(false)}
                 className="p-2 hover:bg-stone-100 rounded-full transition"
@@ -596,7 +628,9 @@ export default function EcoArtGallery() {
                 <input
                   type="text"
                   value={editForm.studentName}
-                  onChange={(e) => setEditForm({ ...editForm, studentName: e.target.value })}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, studentName: e.target.value })
+                  }
                   placeholder="Enter student name"
                   className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none"
                   required
@@ -611,7 +645,9 @@ export default function EcoArtGallery() {
                 <input
                   type="text"
                   value={editForm.schoolName}
-                  onChange={(e) => setEditForm({ ...editForm, schoolName: e.target.value })}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, schoolName: e.target.value })
+                  }
                   placeholder="Enter school name"
                   className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none"
                   required
@@ -625,7 +661,9 @@ export default function EcoArtGallery() {
                 </label>
                 <textarea
                   value={editForm.description}
-                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, description: e.target.value })
+                  }
                   placeholder="Enter description about the artwork..."
                   rows={3}
                   maxLength={500}
@@ -666,9 +704,12 @@ export default function EcoArtGallery() {
             animate={{ opacity: 1, scale: 1 }}
             className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6"
           >
-            <h2 className="text-2xl font-bold text-stone-800 mb-4">Delete Image?</h2>
+            <h2 className="text-2xl font-bold text-stone-800 mb-4">
+              Delete Image?
+            </h2>
             <p className="text-stone-600 mb-6">
-              Are you sure you want to delete this image? This action cannot be undone.
+              Are you sure you want to delete this image? This action cannot be
+              undone.
             </p>
             <div className="flex gap-4">
               <button

@@ -80,24 +80,24 @@ export default function LoginPage() {
 
           <form className="space-y-5" onSubmit={handleSubmit}>
             
-            {/* EMAIL */}
+            {/* EMAIL OR USERNAME */}
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-2 ml-1">
-                Email Address
+                Email or Username
               </label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                   <Mail className="h-5 w-5 text-slate-400 group-focus-within:text-emerald-600 transition-colors" />
                 </div>
                 <input
-                  type="email"
+                  type="text"
                   required
                   value={formData.email}
                   onChange={(e) =>
                     setFormData({ ...formData, email: e.target.value })
                   }
                   className="block w-full pl-11 pr-4 py-3.5 bg-stone-50 border border-stone-200 text-sm rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none"
-                  placeholder="name@example.com"
+                  placeholder="name@example.com or username"
                 />
               </div>
             </div>

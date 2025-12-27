@@ -25,7 +25,7 @@ import {
   Leaf,
   Flame,
   Zap,
-  LogOut
+  LogOut,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 const Map = dynamic(() => import("@/components/Map"), { ssr: false });
@@ -146,174 +146,162 @@ export default function MapPage() {
   return (
     <div className="flex flex-col min-h-dvh w-screen bg-gray-950 overflow-x-hidden text-white ">
       {/* ================= HEADER ================= */}
-      <header className="z-[100] bg-white backdrop-blur-md border-b border-stone-200 shadow-sm shrink-0 sticky top-0">
-        <div className="min-h-[73px] px-6 py-2 flex items-center justify-between gap-4">
-          {/* LEFT: BRANDING & HOME LINK */}
-          <a
-            href="/"
-            className="flex items-center gap-4 shrink-0 hover:opacity-90 transition-opacity group"
-          >
-            <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-lg shadow-emerald-100 bg-white flex items-center justify-center border border-stone-50 p-1">
-              <img
-                src="/icons/icon2.png"
-                alt="Mushroom Mania Logo"
-                className="w-full h-full object-contain group-hover:scale-105 transition-transform"
-              />
-            </div>
-            <div className="hidden sm:block">
-              <h2 className="text-xl font-black text-emerald-900 leading-tight uppercase tracking-tighter">
-                Mushroom <span className="text-emerald-600">Mania</span>
-              </h2>
-              <div className="flex items-center gap-1.5 mt-0.5 text-[9px] text-stone-400 font-black uppercase tracking-[0.2em]">
-                <span className="text-emerald-500 italic lowercase font-medium text-[11px]">
-                  An initiative of
-                </span>
-                Eco Vigyan Foundation
-              </div>
-            </div>
-          </a>
-
-          {/* CENTER: DUAL SEARCH BAR */}
-          <div className="hidden md:flex flex-1 max-w-xl items-center bg-stone-100 rounded-2xl border border-stone-200 overflow-hidden px-5 gap-3 focus-within:bg-white focus-within:border-emerald-500 focus-within:ring-4 focus-within:ring-emerald-500/10 transition-all">
-            <Search size={18} className="text-stone-400" />
-            <input
-              placeholder="Search Species..."
-              className="bg-transparent flex-1 py-3 text-sm outline-none text-stone-800 placeholder:text-stone-400 font-medium"
-            />
-            <div className="w-px h-5 bg-stone-300 mx-1" />
-            <MapPin size={18} className="text-stone-400" />
-            <input
-              placeholder="Location..."
-              className="bg-transparent flex-1 py-3 text-sm outline-none text-stone-800 placeholder:text-stone-400 font-medium"
-            />
-          </div>
-
-          {/* RIGHT: NAVIGATION & ACTIONS */}
-          <div className="flex items-center gap-3 md:gap-5 shrink-0">
-  {/* HOME LINK — RESTORED */}
-  <Link
-    href="/"
-    className="hidden lg:block text-[11px] font-black uppercase tracking-widest text-emerald-700 border-b-2 border-emerald-600 pb-1"
-  >
-    Home
-  </Link>
-
-  {/* LOGIN — only when logged out */}
-  {!user && (
-    <Link
-      href="/login"
-      className="text-[11px] font-black uppercase tracking-widest text-stone-400 hover:text-emerald-600 transition-colors"
-    >
-      Login
-    </Link>
-  )}
-
-  {/* USER MENU — exactly like second code */}
-  {user && (
-    <div className="relative" ref={userMenuRef}>
-      {/* Avatar */}
-      <button
-        onClick={() => setUserMenuOpen((p) => !p)}
-        className="flex items-center gap-2 hover:opacity-80 transition"
+      <header className="z-[100] bg-white/90 backdrop-blur-md border-b border-emerald-100 shadow-sm shrink-0 sticky top-0">
+  {/* TOP ROW: BRANDING, SEARCH, ACTIONS */}
+  <div className="border-b border-emerald-50/50">
+    <div className="max-w-7xl mx-auto min-h-[90px] px-6 lg:px-10 py-4 flex items-center justify-between gap-8">
+      
+      {/* LEFT: BRANDING */}
+      <a
+        href="/"
+        className="flex items-center gap-5 shrink-0 hover:opacity-90 transition-opacity group"
       >
-        <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-emerald-600 shadow-md">
-          {user.dp?.url ? (
-            <img
-              src={user.dp.url}
-              alt={user.name || "User"}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full bg-emerald-600 flex items-center justify-center">
-              <User className="w-5 h-5 text-white" />
-            </div>
-          )}
+        {/* LOGO: No background, transparent, and significantly larger */}
+        <div className="w-20 h-20 md:w-24 md:h-24 flex items-center justify-center transition-transform group-hover:scale-105">
+          <img
+            src="/icons/icon2.png"
+            alt="Mushroom Mania Logo"
+            className="w-full h-full object-contain"
+          />
         </div>
-      </button>
-
-      {/* DROPDOWN — now it WORKS */}
-      {userMenuOpen && (
-        <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-2xl border border-stone-200 overflow-hidden z-50">
-          <div className="px-4 py-3 border-b border-stone-100">
-            <p className="text-sm font-bold text-slate-800">
-              {user.name}
-            </p>
-            <p className="text-xs text-slate-500">{user.email}</p>
+        <div className="hidden sm:block">
+          <h2 className="text-2xl font-black text-emerald-950 leading-none uppercase tracking-tighter">
+            Mushroom <span className="text-emerald-500">Mania</span>
+          </h2>
+          <div className="flex items-center gap-2 mt-2 text-[10px] text-emerald-700/60 font-black uppercase tracking-[0.25em]">
+            <span className="text-emerald-500 italic lowercase font-medium text-[12px] tracking-normal">
+              An initiative of
+            </span>
+            Eco Vigyan
           </div>
+        </div>
+      </a>
 
-          <button
-            onClick={() => {
-              setUserMenuOpen(false);
-              logout();
-            }}
-            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition"
+      {/* CENTER: GREEN-TINTED SEARCH BAR */}
+      <div className="hidden md:flex flex-1 max-w-lg lg:max-w-xl items-center bg-emerald-50/60 rounded-2xl border border-emerald-100/50 overflow-hidden px-5 gap-3 focus-within:bg-white focus-within:border-emerald-500 focus-within:ring-4 focus-within:ring-emerald-500/10 transition-all duration-300">
+        <Search size={20} className="text-emerald-400 shrink-0" />
+        <input
+          placeholder="Search Species..."
+          className="bg-transparent flex-1 py-4 text-sm outline-none text-emerald-900 placeholder:text-emerald-300 font-medium min-w-0"
+        />
+        <div className="w-px h-6 bg-emerald-200 mx-1 shrink-0" />
+        <MapPin size={20} className="text-emerald-400 shrink-0" />
+        <input
+          placeholder="Location..."
+          className="bg-transparent flex-1 py-4 text-sm outline-none text-emerald-900 placeholder:text-emerald-300 font-medium min-w-0"
+        />
+      </div>
+
+      {/* RIGHT: NAVIGATION & ACTIONS */}
+      <div className="flex items-center gap-6 lg:gap-8 shrink-0">
+        <Link
+          href="/"
+          className="hidden lg:block text-[12px] font-black uppercase tracking-[0.2em] text-emerald-900 hover:text-emerald-500 transition-colors"
+        >
+          Home
+        </Link>
+
+        {!user ? (
+          <Link
+            href="/login"
+            className="text-[12px] font-black uppercase tracking-[0.2em] text-emerald-800/40 hover:text-emerald-600 transition-colors"
           >
-            <LogOut className="w-4 h-4" />
-            Logout
-          </button>
-        </div>
-      )}
+            Login
+          </Link>
+        ) : (
+          <div className="flex items-center gap-5">
+            {/* USER PROFILE */}
+            <div className="relative" ref={userMenuRef}>
+              <button
+                onClick={() => setUserMenuOpen((p) => !p)}
+                className="flex items-center justify-center w-12 h-12 rounded-full overflow-hidden border-2 border-emerald-500 shadow-lg shadow-emerald-100 hover:ring-4 hover:ring-emerald-100 transition-all"
+              >
+                {user.dp?.url ? (
+                  <img src={user.dp.url} alt={user.name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-emerald-600 flex items-center justify-center">
+                    <User className="w-6 h-6 text-white" />
+                  </div>
+                )}
+              </button>
+
+              {userMenuOpen && (
+                <div className="absolute right-0 mt-4 w-64 bg-white rounded-3xl shadow-2xl border border-emerald-100 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200">
+                  <div className="px-6 py-5 border-b border-emerald-50 bg-emerald-50/30">
+                    <p className="text-sm font-black text-emerald-950 truncate">{user.name}</p>
+                    <p className="text-xs font-medium text-emerald-600/70 truncate">{user.email}</p>
+                  </div>
+                  <button
+                    onClick={() => { setUserMenuOpen(false); logout(); }}
+                    className="w-full flex items-center gap-3 px-6 py-4 text-sm font-black text-red-500 hover:bg-red-50 transition-colors"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* ADD OBSERVATION BUTTON */}
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-2xl font-black text-[11px] flex items-center gap-3 shadow-xl shadow-emerald-200/60 transition-all active:scale-95 uppercase tracking-widest"
+            >
+              <Plus size={20} strokeWidth={3} />
+              <span className="hidden xl:inline">Add Observation</span>
+            </button>
+          </div>
+        )}
+
+        {/* MOBILE SEARCH ICON */}
+        <button
+          onClick={() => setShowMobileSearch(true)}
+          className="md:hidden p-3.5 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100 active:bg-emerald-100 transition-colors"
+        >
+          <Search size={22} />
+        </button>
+      </div>
     </div>
-  )}
+  </div>
 
-  {/* ADD OBSERVATION — logged in only */}
-  {user && (
-    <button
-      onClick={() => setShowAddModal(true)}
-      className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-2xl font-black text-xs flex items-center gap-2 shadow-xl shadow-emerald-200 transition-all active:scale-95 uppercase tracking-wider"
-    >
-      <Plus size={20} strokeWidth={3} />
-      <span className="hidden xl:inline">Add Observation</span>
-    </button>
-  )}
-
-  {/* MOBILE SEARCH */}
-  <button
-    onClick={() => setShowMobileSearch(true)}
-    className="md:hidden p-3 rounded-xl bg-stone-100 text-stone-600 border border-stone-200"
-  >
-    <Search size={20} />
-  </button>
-</div>
-
-        </div>
-
-        {/* SECOND ROW: TAB NAVIGATION & FILTERS */}
-        <div className="h-14 px-6 flex items-center justify-between bg-stone-50/50 border-t border-stone-100 overflow-x-auto no-scrollbar">
-          <div className="flex items-center gap-8 h-full">
-            <nav className="flex h-full gap-2">
-              {[
-                { id: "map", label: "Explore Map", icon: MapIcon },
-                { id: "grid", label: "Observations", icon: Grid },
-                { id: "leaderboard", label: "Top Contributors", icon: Trophy },
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setView(tab.id)}
-                  className={`flex items-center gap-2 px-5 h-full transition-all text-xs font-black uppercase tracking-widest whitespace-nowrap ${
-                    view === tab.id
-                      ? "text-emerald-700 border-b-4 border-emerald-600"
-                      : "text-stone-400 hover:text-stone-600 border-b-4 border-transparent"
-                  }`}
-                >
-                  <tab.icon size={16} />
-                  {tab.label}
-                </button>
-              ))}
-            </nav>
-          </div>
-
-          {/* SECONDARY FILTERS */}
-          <div className="flex items-center gap-3 ml-6">
-            <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-stone-200 text-[11px] font-black uppercase text-stone-600 hover:border-emerald-500 hover:text-emerald-600 transition-all shadow-sm">
-              <Navigation size={14} className="text-emerald-500" /> Trails
+  {/* SECOND ROW: GREENISH TAB NAVIGATION */}
+  <div className="bg-emerald-50/20">
+    <div className="max-w-7xl mx-auto h-16 px-6 lg:px-10 flex items-center justify-between">
+      <div className="flex items-center h-full overflow-x-auto no-scrollbar">
+        <nav className="flex h-full gap-10 lg:gap-14">
+          {[
+            { id: "map", label: "Explore Map", icon: MapIcon },
+            { id: "grid", label: "Observations", icon: Grid },
+            { id: "leaderboard", label: "Top Contributors", icon: Trophy },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setView(tab.id)}
+              className={`flex items-center gap-3.5 h-full transition-all text-[11px] font-black uppercase tracking-[0.2em] whitespace-nowrap border-b-4 ${
+                view === tab.id
+                  ? "text-emerald-700 border-emerald-500"
+                  : "text-emerald-900/40 hover:text-emerald-700 border-transparent"
+              }`}
+            >
+              <tab.icon size={20} className={view === tab.id ? "text-emerald-500" : "text-emerald-300"} />
+              {tab.label}
             </button>
-            <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-stone-200 text-[11px] font-black uppercase text-stone-600 hover:border-emerald-500 hover:text-emerald-600 transition-all shadow-sm">
-              <Layers size={14} className="text-emerald-500" /> Zones
-            </button>
-          </div>
-        </div>
-      </header>
+          ))}
+        </nav>
+      </div>
+
+      {/* SECONDARY ACTION BUTTONS */}
+      <div className="hidden sm:flex items-center gap-4 ml-10">
+        <button className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-white border border-emerald-100 text-[10px] font-black uppercase tracking-widest text-emerald-700 hover:bg-emerald-500 hover:text-white transition-all shadow-sm shadow-emerald-100/50">
+          <Navigation size={14} /> Trails
+        </button>
+        <button className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-white border border-emerald-100 text-[10px] font-black uppercase tracking-widest text-emerald-700 hover:bg-emerald-500 hover:text-white transition-all shadow-sm shadow-emerald-100/50">
+          <Layers size={14} /> Zones
+        </button>
+      </div>
+    </div>
+  </div>
+</header>
       {/* ================= MAIN CONTENT ================= */}
       <main className="flex-1 relative overflow-hidden">
         {view === "map" && isMounted && (
@@ -637,45 +625,3 @@ export default function MapPage() {
     </div>
   );
 }
-
-// function ExploreNavbar() {
-//   return (
-//     <nav className="fixed top-0 w-full z-[200] bg-white/90 backdrop-blur-md border-b border-stone-200 px-4 md:px-8 py-2 shadow-sm">
-//       <div className="max-w-7xl mx-auto flex justify-between items-center">
-
-//         {/* BRANDING: WIDE LOGO CONTAINER */}
-//         <div className="flex items-center group cursor-pointer">
-//           <div className="relative h-12 w-auto min-w-[120px] md:h-24 flex items-center">
-//             <img
-//               src="icons/icon2.png"
-//               alt="Mushroom Mania Logo"
-//               className="h-full w-auto object-contain transition-transform duration-300 group-hover:scale-[1.02]"
-//               // Fallback just in case the path is slightly different
-//               onError={(e) => { e.target.src = "https://i.ibb.co/vzB6yK6/logo-placeholder.png" }}
-//             />
-//           </div>
-//         </div>
-
-//         {/* NAVIGATION ACTIONS */}
-//         <div className="flex items-center gap-4 md:gap-8">
-//           <a
-//             href="/"
-//             className="text-[11px] font-black uppercase tracking-widest text-stone-500 hover:text-emerald-600 transition-colors hidden sm:block"
-//           >
-//             Home
-//           </a>
-
-//           <div className="flex items-center gap-3">
-//             <a
-//               href="/login"
-//               className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-emerald-100 active:scale-95"
-//             >
-//               Login
-//             </a>
-//           </div>
-//         </div>
-
-//       </div>
-//     </nav>
-//   );
-// }

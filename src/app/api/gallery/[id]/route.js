@@ -71,7 +71,8 @@ export async function PUT(req, { params }) {
       );
     }
 
-    const { id } = params;
+    // In Next.js 15+, params is a Promise that must be awaited
+    const { id } = await params;
     const galleryItem = await Gallery.findById(id);
 
     if (!galleryItem) {
@@ -207,7 +208,8 @@ export async function DELETE(req, { params }) {
       );
     }
 
-    const { id } = params;
+    // In Next.js 15+, params is a Promise that must be awaited
+    const { id } = await params;
     const galleryItem = await Gallery.findById(id);
 
     if (!galleryItem) {

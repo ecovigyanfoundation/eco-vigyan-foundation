@@ -91,7 +91,6 @@ export function AuthProvider({ children }) {
       await fetch("/api/auth/logout", { method: "POST" });
 
       toast.success("Logged out successfully");
-      router.push("/");
     } catch (error) {
       console.error("Logout error:", error);
       // Still clear local state even if API call fails
@@ -139,5 +138,6 @@ export function useAuth() {
   }
   return context;
 }
+
 
 
