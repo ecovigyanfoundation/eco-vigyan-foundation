@@ -26,7 +26,7 @@ export default function Footer() {
         whileInView="visible"
         viewport={{ once: true, amount: 0.2 }}
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
           
           {/* Column 1: Brand & About */}
           <div className="space-y-4">
@@ -63,7 +63,7 @@ export default function Footer() {
               {[
                 { name: "About Us", href: "/about" },
                 { name: "Our Activities", href: "/activities" },
-                { name: "Donate", href: "/donate", highlight: true },
+                { name: "Join Us", href: "/join-us", highlight: true },
                 { name: "Contact Us", href: "/contact" },
               ].map((link, idx) => (
                 <li key={idx}>
@@ -77,20 +77,7 @@ export default function Footer() {
           </div>
 
           {/* Column 3: Volunteer Programs */}
-          <div>
-            <h3 className="text-base font-bold text-white mb-5 flex items-center">
-              <span className="w-6 h-1 bg-emerald-500 rounded-full mr-3"></span>
-              Volunteer
-            </h3>
-            <div className="grid grid-cols-1 gap-y-2.5 text-sm font-medium"> {/* Increased size and spacing */}
-              {volunteerPrograms.map((program, index) => (
-                <a key={index} href="#" className="hover:text-emerald-400 flex items-center">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-700 mr-2.5"></span>
-                  {program}
-                </a>
-              ))}
-            </div>
-          </div>
+          
 
           {/* Column 4: Contact Info */}
           <div>

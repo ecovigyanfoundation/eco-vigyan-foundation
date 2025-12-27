@@ -8,7 +8,9 @@
     "start": "next start"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "framer-motion": "^12.23.25",
+    "jsonwebtoken": "^9.0.3",
     "lucide-react": "^0.556.0",
     "mapbox-gl": "^3.17.0",
     "mongodb": "^7.0.0",

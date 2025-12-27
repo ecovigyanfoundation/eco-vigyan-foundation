@@ -118,7 +118,7 @@ export default function Map({ data = [], filters = {}, mode, onMarkerSelect }) {
     }
 
     if (!map.hasImage("mushroom-icon")) {
-      map.loadImage("/icons/mushroom.png", (err, img) => {
+      map.loadImage("/icons/icon1.png", (err, img) => {
         if (!err && img && !map.hasImage("mushroom-icon")) {
           map.addImage("mushroom-icon", img);
         }
@@ -133,7 +133,7 @@ export default function Map({ data = [], filters = {}, mode, onMarkerSelect }) {
         minzoom: 6,
         layout: {
           "icon-image": "mushroom-icon",
-          "icon-size": 0.05,
+          "icon-size": 0.08,
           "icon-allow-overlap": true,
         },
       });

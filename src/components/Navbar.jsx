@@ -19,6 +19,8 @@ import {
 
 export default function Navbar() {
   const pathname = usePathname();
+   const hideNavbarRoutes = ["/explore"];
+     if (hideNavbarRoutes.includes(pathname)) return null;
 
   const [isOpen, setIsOpen] = useState(false);
   const [isProgramsOpen, setIsProgramsOpen] = useState(false);
@@ -200,10 +202,18 @@ export default function Navbar() {
               {/* Donate */}
               <Link
                 href="/donate"
-                className="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-green-700 text-white font-bold text-sm rounded-full shadow-lg hover:-translate-y-0.5 transition"
+                className="group flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-green-700 text-white font-bold text-sm rounded-full shadow-lg hover:-translate-y-0.5 transition"
               >
-                Donate Now{" "}
-                <Heart className="inline w-4 h-4 ml-2 fill-white/20" />
+                Donate Now
+                {/* The Heart Icon */}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4 transition-colors duration-300 fill-transparent stroke-white group-hover:fill-white"
+                  viewBox="0 0 24 24"
+                  strokeWidth="2"
+                >
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                </svg>
               </Link>
             </div>
 
