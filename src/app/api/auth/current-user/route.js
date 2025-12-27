@@ -6,18 +6,31 @@ import { NextResponse } from "next/server";
 
 export async function GET() {
   try {
+    if (!process.env.JWT_SECRET) {
+      console.error("JWT_SECRET is not configured");
+      return NextResponse.json({ user: null });
+    }
+
     const token = cookies().get("token")?.value;
     if (!token) {
       return NextResponse.json({ user: null });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // Decode URL-encoded token
+    const decodedToken = decodeURIComponent(token);
+    const decoded = jwt.verify(decodedToken, process.env.JWT_SECRET);
 
     await connectDB();
     const user = await User.findById(decoded.id).select("-password");
+    
+    // Check if user exists and is not banned
+    if (!user || user.isBanned) {
+      return NextResponse.json({ user: null });
+    }
 
     return NextResponse.json({ user });
-  } catch {
+  } catch (error) {
+    console.error("Current user error:", error.message);
     return NextResponse.json({ user: null });
   }
 }

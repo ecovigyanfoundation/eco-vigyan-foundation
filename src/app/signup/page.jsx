@@ -1,7 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
+import toast from "react-hot-toast";
 import {
   Mail,
   Lock,
@@ -17,6 +20,8 @@ import {
    SIGN UP PAGE
 --------------------------------------------------- */
 export default function SignUpPage() {
+  const router = useRouter();
+  const { user, fetchUser } = useAuth();
   const [imagePreview, setImagePreview] = useState(null);
   const [imageFile, setImageFile] = useState(null);
 
@@ -29,6 +34,13 @@ export default function SignUpPage() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      router.push("/");
+    }
+  }, [user, router]);
 
   /* ---------------- IMAGE HANDLER ---------------- */
   const handleImageChange = (e) => {
@@ -50,7 +62,9 @@ export default function SignUpPage() {
 
     try {
       if (!imageFile) {
-        throw new Error("Please upload a profile picture");
+        toast.error("Please upload a profile picture");
+        setLoading(false);
+        return;
       }
 
       const body = new FormData();
@@ -68,16 +82,19 @@ export default function SignUpPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Signup failed");
+        throw new Error(data.error || data.message || "Signup failed");
       }
 
-      // OPTIONAL (temporary): store token
-      localStorage.setItem("token", data.token);
-
-      // Redirect to login
-      window.location.href = "/login";
+      toast.success("Account created successfully! Redirecting to login...");
+      
+      // Redirect to login after a short delay
+      setTimeout(() => {
+        router.push("/login");
+      }, 1500);
     } catch (err) {
-      setError(err.message);
+      const errorMessage = err.message || "Signup failed. Please try again.";
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }

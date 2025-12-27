@@ -1,10 +1,14 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 import { Mail, Lock, ArrowRight, Leaf, Chrome } from "lucide-react";
 
 export default function LoginPage() {
+  const router = useRouter();
+  const { login, user } = useAuth();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -13,38 +17,31 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      router.push("/");
+    }
+  }, [user, router]);
+
   /* ---------------- SUBMIT HANDLER ---------------- */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
+    const result = await login(formData.email, formData.password);
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "Invalid credentials");
-      }
-
-      // TEMP (we will move this to HTTP-only cookies next)
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
-
-      // Redirect after login
-      window.location.href = "/";
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+    if (result.success) {
+      // Redirect after successful login
+      setTimeout(() => {
+        router.push("/");
+      }, 1000);
+    } else {
+      setError(result.error || "Login failed");
     }
+
+    setLoading(false);
   };
 
   return (

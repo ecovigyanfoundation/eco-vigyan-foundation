@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 
 import {
   Phone,
@@ -15,17 +16,45 @@ import {
   Heart,
   ChevronDown,
   LogIn,
+  LogOut,
+  User,
 } from "lucide-react";
 
 export default function Navbar() {
   const pathname = usePathname();
-   const hideNavbarRoutes = ["/explore"];
-     if (hideNavbarRoutes.includes(pathname)) return null;
+  const { user, logout } = useAuth();
+  const hideNavbarRoutes = ["/explore"];
+  if (hideNavbarRoutes.includes(pathname)) return null;
 
   const [isOpen, setIsOpen] = useState(false);
   const [isProgramsOpen, setIsProgramsOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const dropdownRef = useRef(null);
   const leaveTimeoutRef = useRef(null);
+  const userMenuRef = useRef(null);
+
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setUserMenuOpen(false);
+      }
+    };
+
+    if (userMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [userMenuOpen]);
+
+  // Handle logout
+  const handleLogout = () => {
+    setUserMenuOpen(false);
+    logout();
+  };
 
   const handleNavClick = useCallback((event, link) => {
     if (!link.path.startsWith("/#")) return;
@@ -189,15 +218,62 @@ export default function Navbar() {
                 </div>
               </div>
 
-              {/* Login */}
-              <Link
-                href="/login"
-                className="flex items-center gap-2 font-bold text-sm text-slate-600 hover:text-emerald-700 group"
-              >
-                <LogIn className="w-4 h-4" />
-                Login
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-emerald-600 transition-all group-hover:w-full"></span>
-              </Link>
+              {/* User Profile or Login */}
+              {user ? (
+                <div className="relative" ref={userMenuRef}>
+                  <button
+                    onClick={() => setUserMenuOpen(!userMenuOpen)}
+                    className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+                  >
+                    <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-emerald-600 shadow-md">
+                      {user.dp?.url ? (
+                        <img
+                          src={user.dp.url}
+                          alt={user.name || "User"}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-emerald-600 flex items-center justify-center">
+                          <User className="w-5 h-5 text-white" />
+                        </div>
+                      )}
+                    </div>
+                  </button>
+
+                  {/* User Dropdown Menu */}
+                  {userMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-2xl border border-stone-200 overflow-hidden z-50">
+                      <div className="px-4 py-3 border-b border-stone-100">
+                        <p className="text-sm font-bold text-slate-800">{user.name}</p>
+                        <p className="text-xs text-slate-500">{user.email}</p>
+                        {user.role && (
+                          <span className="inline-block mt-1 px-2 py-0.5 text-xs font-semibold bg-emerald-100 text-emerald-700 rounded-full">
+                            {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                          </span>
+                        )}
+                      </div>
+                      <div className="py-1">
+                        <button
+                          onClick={handleLogout}
+                          className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          Logout
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Link
+                  href="/login"
+                  className="flex items-center gap-2 font-bold text-sm text-slate-600 hover:text-emerald-700 group"
+                >
+                  <LogIn className="w-4 h-4" />
+                  Login
+                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-emerald-600 transition-all group-hover:w-full"></span>
+                </Link>
+              )}
 
               {/* Donate */}
               <Link
@@ -265,14 +341,47 @@ export default function Navbar() {
               ))}
             </div>
 
-            {/* Mobile Login and Donate grouped together */}
-            <Link
-              href="/login"
-              className="w-full text-center px-6 py-3 border border-emerald-600 text-emerald-700 font-bold rounded-lg"
-              onClick={() => setIsOpen(false)}
-            >
-              Member Login
-            </Link>
+            {/* Mobile User Profile or Login */}
+            {user ? (
+              <div className="w-full space-y-2">
+                <div className="flex items-center gap-3 px-4 py-3 bg-stone-50 rounded-lg">
+                  <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-emerald-600">
+                    {user.dp?.url ? (
+                      <img
+                        src={user.dp.url}
+                        alt={user.name || "User"}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-emerald-600 flex items-center justify-center">
+                        <User className="w-6 h-6 text-white" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-bold text-slate-800">{user.name}</p>
+                    <p className="text-xs text-slate-500">{user.email}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    handleLogout();
+                    setIsOpen(false);
+                  }}
+                  className="w-full text-center px-6 py-3 border border-red-600 text-red-600 font-bold rounded-lg hover:bg-red-50 transition"
+                >
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <Link
+                href="/login"
+                className="w-full text-center px-6 py-3 border border-emerald-600 text-emerald-700 font-bold rounded-lg"
+                onClick={() => setIsOpen(false)}
+              >
+                Member Login
+              </Link>
+            )}
             <Link
               href="/donate"
               className="w-full text-center px-6 py-3 bg-emerald-600 text-white font-bold rounded-lg"

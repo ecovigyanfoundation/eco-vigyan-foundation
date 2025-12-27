@@ -10,6 +10,13 @@ export async function POST(req) {
     await connectDB();
 
     /* AUTH */
+    if (!process.env.JWT_SECRET) {
+      return NextResponse.json(
+        { message: "Server configuration error" },
+        { status: 500 }
+      );
+    }
+
     const token = cookies().get("token")?.value;
     if (!token) {
       return NextResponse.json(
@@ -18,7 +25,9 @@ export async function POST(req) {
       );
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // Decode URL-encoded token
+    const decodedToken = decodeURIComponent(token);
+    const decoded = jwt.verify(decodedToken, process.env.JWT_SECRET);
 
     const formData = await req.formData();
 

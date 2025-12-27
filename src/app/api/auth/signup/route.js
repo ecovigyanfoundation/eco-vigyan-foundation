@@ -11,16 +11,50 @@ export async function POST(req) {
 
     const formData = await req.formData();
 
-    const name = formData.get("name");
-    const username = formData.get("username");
-    const email = formData.get("email");
+    const name = formData.get("name")?.trim();
+    const username = formData.get("username")?.trim().toLowerCase();
+    const email = formData.get("email")?.trim().toLowerCase();
     const password = formData.get("password");
     const dp = formData.get("dp");
 
     /* ---------------- VALIDATION ---------------- */
     if (!name || !username || !email || !password || !dp) {
       return NextResponse.json(
-        { message: "All fields are required" },
+        { error: "All fields are required" },
+        { status: 400 }
+      );
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json(
+        { error: "Invalid email format" },
+        { status: 400 }
+      );
+    }
+
+    // Validate password strength (minimum 6 characters)
+    if (password.length < 6) {
+      return NextResponse.json(
+        { error: "Password must be at least 6 characters long" },
+        { status: 400 }
+      );
+    }
+
+    // Validate username (alphanumeric and underscore, 3-20 chars)
+    const usernameRegex = /^[a-z0-9_]{3,20}$/;
+    if (!usernameRegex.test(username)) {
+      return NextResponse.json(
+        { error: "Username must be 3-20 characters and contain only lowercase letters, numbers, and underscores" },
+        { status: 400 }
+      );
+    }
+
+    // Validate name (2-50 characters)
+    if (name.length < 2 || name.length > 50) {
+      return NextResponse.json(
+        { error: "Name must be between 2 and 50 characters" },
         { status: 400 }
       );
     }
@@ -32,22 +66,61 @@ export async function POST(req) {
 
     if (existingUser) {
       return NextResponse.json(
-        { message: "User already exists" },
+        { error: "User already exists" },
         { status: 409 }
       );
     }
 
     /* ---------------- UPLOAD DP ---------------- */
+    // Validate Cloudinary configuration
+    if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+      return NextResponse.json(
+        { error: "Cloudinary is not configured. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET environment variables." },
+        { status: 500 }
+      );
+    }
+
+    // Validate image file
+    const maxFileSize = 5 * 1024 * 1024; // 5MB
+    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+    
+    if (dp.size > maxFileSize) {
+      return NextResponse.json(
+        { error: "Image file size must be less than 5MB" },
+        { status: 400 }
+      );
+    }
+
+    if (!allowedTypes.includes(dp.type)) {
+      return NextResponse.json(
+        { error: "Image must be in JPEG, PNG, or WebP format" },
+        { status: 400 }
+      );
+    }
+
     const buffer = Buffer.from(await dp.arrayBuffer());
 
     const uploadResult = await new Promise((resolve, reject) => {
-      cloudinary.uploader.upload_stream(
-        { folder: "users" },
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder: "users",
+          resource_type: "image",
+        },
         (err, result) => {
-          if (err) reject(err);
+          if (err) {
+            console.error("Cloudinary upload error:", err);
+            reject(new Error(`Image upload failed: ${err.message || "Unknown error"}`));
+            return;
+          }
+          if (!result) {
+            reject(new Error("Image upload failed: No result returned"));
+            return;
+          }
           resolve(result);
         }
-      ).end(buffer);
+      );
+
+      uploadStream.end(buffer);
     });
 
     /* ---------------- HASH PASSWORD ---------------- */
@@ -68,40 +141,48 @@ export async function POST(req) {
     });
 
     /* ---------------- JWT ---------------- */
+    if (!process.env.JWT_SECRET) {
+      throw new Error("JWT_SECRET is not configured");
+    }
+
     const token = jwt.sign(
-      { id: user._id, role: user.role },
+      { id: user._id.toString(), role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
-    /* ---------------- RESPONSE + COOKIE ---------------- */
-    const res = NextResponse.json(
+    /* ---------------- RESPONSE WITH COOKIE ---------------- */
+    const maxAge = 7 * 24 * 60 * 60; // 7 days in seconds
+    const isProduction = process.env.NODE_ENV === "production";
+    
+    // URL encode token to handle special characters safely
+    const encodedToken = encodeURIComponent(token);
+    const cookieString = `token=${encodedToken}; HttpOnly; Path=/; Max-Age=${maxAge}; SameSite=Strict${isProduction ? "; Secure" : ""}`;
+    
+    const response = NextResponse.json(
       {
         message: "Signup successful",
         user: {
-          id: user._id,
+          id: user._id.toString(),
           name: user.name,
           username: user.username,
           email: user.email,
           role: user.role,
         },
       },
-      { status: 201 }
+      { 
+        status: 201,
+        headers: {
+          "Set-Cookie": cookieString,
+        },
+      }
     );
 
-    res.cookies.set("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60,
-      path: "/",
-    });
-
-    return res;
+    return response;
   } catch (error) {
     console.error("Signup Error:", error);
     return NextResponse.json(
-      { message: "Something went wrong" },
+      { error: error.message || "Something went wrong" },
       { status: 500 }
     );
   }
