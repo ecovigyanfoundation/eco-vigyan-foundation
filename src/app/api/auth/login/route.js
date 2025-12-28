@@ -3,6 +3,7 @@ import User from "@/models/User";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 
 export async function POST(req) {
   try {
@@ -84,9 +85,40 @@ export async function POST(req) {
     const maxAge = 7 * 24 * 60 * 60; // 7 days in seconds
     const isProduction = process.env.NODE_ENV === "production";
     
-    // URL encode token to handle special characters safely
-    const encodedToken = encodeURIComponent(token);
-    const cookieString = `token=${encodedToken}; HttpOnly; Path=/; Max-Age=${maxAge}; SameSite=Strict${isProduction ? "; Secure" : ""}`;
+    // Use Next.js 15 cookies() function for better mobile compatibility
+    try {
+      const cookieStore = await cookies();
+      cookieStore.set("token", token, {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: "lax", // Changed from Strict to Lax for better mobile compatibility
+        maxAge: maxAge,
+        path: "/",
+      });
+    } catch (cookieError) {
+      console.error("Error setting cookie with cookies() API:", cookieError);
+      // Fallback to manual cookie setting if cookies() fails
+      const encodedToken = encodeURIComponent(token);
+      const cookieString = `token=${encodedToken}; HttpOnly; Path=/; Max-Age=${maxAge}; SameSite=Lax${isProduction ? "; Secure" : ""}`;
+      
+      const response = NextResponse.json({
+        message: "Login successful",
+        user: {
+          id: user._id.toString(),
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          points: user.points,
+          dp: user.dp,
+          username: user.username,
+        },
+      }, {
+        headers: {
+          "Set-Cookie": cookieString,
+        },
+      });
+      return response;
+    }
     
     const response = NextResponse.json({
       message: "Login successful",
@@ -98,10 +130,6 @@ export async function POST(req) {
         points: user.points,
         dp: user.dp,
         username: user.username,
-      },
-    }, {
-      headers: {
-        "Set-Cookie": cookieString,
       },
     });
 
