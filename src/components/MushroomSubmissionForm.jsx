@@ -61,32 +61,36 @@ export default function MushroomSubmissionForm({
 
     // Extract EXIF data - read as ArrayBuffer to preserve all binary data
     try {
-      // Read file as ArrayBuffer first to preserve EXIF data (mobile browsers can strip it from DataURL)
-      // This is critical for mobile - ArrayBuffer preserves all binary data including EXIF
-      const arrayBuffer = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = (err) => {
-          console.error("Error reading ArrayBuffer:", err);
-          reject(err);
-        };
-        reader.readAsArrayBuffer(file);
-      });
+      // Try File object first (sometimes works better than ArrayBuffer for exifr)
+      console.log("Attempting EXIF extraction from File object...");
+      let exifResult = await extractExifData(file);
 
-      console.log("File read as ArrayBuffer, size:", arrayBuffer.byteLength, "bytes");
-
-      // Try extracting EXIF from ArrayBuffer first (most reliable for mobile)
-      let exifResult = await extractExifData(arrayBuffer, file);
-
-      // If that didn't work, try with the File object directly as fallback
+      // If that didn't work, try ArrayBuffer
       if (!exifResult.gps && !exifResult.dateTime) {
-        console.log("ArrayBuffer method didn't find EXIF, trying File object directly...");
-        exifResult = await extractExifData(file);
+        console.log("File object method didn't find EXIF, trying ArrayBuffer...");
+        const arrayBuffer = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = (err) => {
+            console.error("Error reading ArrayBuffer:", err);
+            reject(err);
+          };
+          reader.readAsArrayBuffer(file);
+        });
+
+        console.log("File read as ArrayBuffer, size:", arrayBuffer.byteLength, "bytes");
+        exifResult = await extractExifData(arrayBuffer, file);
       }
 
       // Last resort: try as Blob
       if (!exifResult.gps && !exifResult.dateTime) {
-        console.log("File object method didn't find EXIF, trying Blob...");
+        console.log("ArrayBuffer method didn't find EXIF, trying Blob...");
+        const arrayBuffer = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsArrayBuffer(file);
+        });
         const blob = new Blob([arrayBuffer], { type: file.type });
         exifResult = await extractExifData(blob, file);
       }
