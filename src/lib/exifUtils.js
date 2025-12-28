@@ -12,11 +12,13 @@ export async function extractExifData(file) {
     }
 
     // Read EXIF data - exifr can parse File objects directly
+    // Include all EXIF segments to ensure we capture camera metadata (especially from mobile cameras)
     const exifData = await exifr.parse(file, {
-      gps: true,
-      exif: true,
-      ifd0: true,
-      translateKeys: false,
+      gps: true,        // GPS coordinates
+      exif: true,       // EXIF data
+      ifd0: true,       // Image file directory 0 (basic image info)
+      ifd1: true,       // Image file directory 1 (thumbnail info)
+      translateKeys: false, // Keep original key names
     });
 
     if (!exifData) {

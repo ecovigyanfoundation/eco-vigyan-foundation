@@ -286,8 +286,7 @@ export default function MushroomSubmissionForm({
           {/* INFO MESSAGE */}
           <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4">
             <p className="text-xs font-bold text-emerald-800 text-center">
-              Location will be read from image EXIF if available. Otherwise, you
-              can select on map, search by city, or enter coordinates manually.
+              📸 <strong>Tip:</strong> Taking a photo with your camera (instead of selecting from gallery) will automatically include GPS location and date/time in EXIF data if location services are enabled. Otherwise, you can select location on map, search by city, or enter coordinates manually.
             </p>
           </div>
 
@@ -334,6 +333,7 @@ export default function MushroomSubmissionForm({
                     className="hidden"
                     onChange={handleImageChange}
                     accept="image/*"
+                    capture="environment"
                   />
                 </label>
               </div>
@@ -344,10 +344,10 @@ export default function MushroomSubmissionForm({
                   <Camera className="text-emerald-600" size={28} />
                 </div>
                 <p className="mt-4 text-xs text-stone-600 group-hover:text-emerald-700 font-bold uppercase tracking-wider z-10 text-center px-4">
-                  Tap to Select from Gallery
+                  Tap to Take Photo or Select from Gallery
                 </p>
                 <p className="mt-1 text-[10px] text-stone-400 group-hover:text-emerald-600 font-medium z-10 text-center px-4">
-                  Choose an image with EXIF data for automatic location
+                  Camera photos include EXIF data automatically
                 </p>
                 <div className="mt-3 flex items-center gap-2 px-3 py-1.5 bg-emerald-100 rounded-full z-10">
                   <span className="text-[9px] text-emerald-700 font-bold">📸</span>
@@ -360,6 +360,7 @@ export default function MushroomSubmissionForm({
                   className="hidden"
                   onChange={handleImageChange}
                   accept="image/*"
+                  capture="environment"
                   required
                 />
               </label>
