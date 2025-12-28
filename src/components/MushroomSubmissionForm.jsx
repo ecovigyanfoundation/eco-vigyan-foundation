@@ -337,18 +337,20 @@ export default function MushroomSubmissionForm({
         },
       });
 
-      let data;
+      // Read response text once to avoid cloning issues
+      let responseText = "";
+      let data = {};
+      
       try {
-        const text = await res.text();
-        if (text) {
-          data = JSON.parse(text);
-        } else {
-          data = {};
+        responseText = await res.text();
+        if (responseText) {
+          data = JSON.parse(responseText);
         }
       } catch (parseError) {
         console.error("Failed to parse response:", parseError);
         console.error("Response status:", res.status);
-        console.error("Response text:", await res.clone().text());
+        console.error("Response statusText:", res.statusText);
+        console.error("Response text:", responseText || "(empty)");
         throw new Error(`Server error: ${res.status} ${res.statusText}`);
       }
 
