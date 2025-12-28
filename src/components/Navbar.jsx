@@ -259,6 +259,14 @@ export default function Navbar() {
                             )}
                           </div>
                           <div className="py-1">
+                            <Link
+                              href="/my-submissions"
+                              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition"
+                              onClick={() => setUserMenuOpen(false)}
+                            >
+                              <User className="w-4 h-4" />
+                              My Submissions
+                            </Link>
                             {user.role === "admin" && (
                               <Link
                                 href="/admin/mushrooms"
@@ -379,6 +387,13 @@ export default function Navbar() {
                         <p className="text-xs text-slate-500">{user.email}</p>
                       </div>
                     </div>
+                    <Link
+                      href="/my-submissions"
+                      className="w-full text-center px-6 py-3 border border-emerald-600 text-emerald-700 font-bold rounded-lg hover:bg-emerald-50 transition mb-2"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      My Submissions
+                    </Link>
                     {user.role === "admin" && (
                       <Link
                         href="/admin/mushrooms"

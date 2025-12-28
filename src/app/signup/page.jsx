@@ -77,6 +77,7 @@ export default function SignUpPage() {
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         body,
+        credentials: "include",
       });
 
       let data;

@@ -130,6 +130,24 @@ export default function ExploreHeader({
                           {user.email}
                         </p>
                       </div>
+                      <Link
+                        href="/my-submissions"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="w-full flex items-center gap-3 px-6 py-4 text-sm font-black text-emerald-700 hover:bg-emerald-50 transition-colors border-b border-emerald-50"
+                      >
+                        <User className="w-4 h-4" />
+                        My Submissions
+                      </Link>
+                      {user?.role === "admin" && (
+                        <Link
+                          href="/admin/mushrooms"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="w-full flex items-center gap-3 px-6 py-4 text-sm font-black text-emerald-700 hover:bg-emerald-50 transition-colors border-b border-emerald-50"
+                        >
+                          <User className="w-4 h-4" />
+                          Admin Panel
+                        </Link>
+                      )}
                       <button
                         onClick={() => {
                           setUserMenuOpen(false);
