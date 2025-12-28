@@ -8,6 +8,7 @@ import ExploreHeader from "@/components/ExploreHeader";
 import MushroomGrid from "@/components/MushroomGrid";
 import MushroomSubmissionForm from "@/components/MushroomSubmissionForm";
 import MobileSearchModal from "@/components/MobileSearchModal";
+import Leaderboard from "@/components/Leaderboard";
 
 const Map = dynamic(() => import("@/components/Map"), { ssr: false });
 
@@ -160,6 +161,8 @@ export default function MapPage() {
             onMushroomClick={setSelectedMushroom}
           />
         )}
+
+        {view === "leaderboard" && <Leaderboard />}
       </main>
 
       {/* MODALS */}

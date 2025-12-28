@@ -187,17 +187,42 @@ export async function PATCH(req, { params }) {
     /* ================= HANDLE STATUS ================= */
 
     if (action === "approve") {
+      const wasApproved = mushroom.status === "approved";
       updateData.status = "approved";
       updateData.reviewedBy = admin._id;
       updateData.approvedAt = new Date();
       updateData.rejectionReason = null;
+      
+      // Award points to the submitter if this is the first time being approved
+      // (only if it wasn't already approved)
+      if (!wasApproved && mushroom.submittedBy) {
+        await User.findByIdAndUpdate(mushroom.submittedBy, {
+          $inc: { points: 1 }, // Increment points by 1
+        });
+      }
     } else if (action === "reject") {
+      const wasApproved = mushroom.status === "approved";
       updateData.status = "rejected";
       updateData.reviewedBy = admin._id;
       updateData.rejectionReason = rejectionReason || null;
+      
+      // Remove points if previously approved and now being rejected
+      if (wasApproved && mushroom.submittedBy) {
+        await User.findByIdAndUpdate(mushroom.submittedBy, {
+          $inc: { points: -1 }, // Decrement points by 1
+        });
+      }
     } else if (action === "pending") {
+      const wasApproved = mushroom.status === "approved";
       updateData.status = "pending";
       updateData.rejectionReason = null;
+      
+      // Remove points if previously approved and now set back to pending
+      if (wasApproved && mushroom.submittedBy) {
+        await User.findByIdAndUpdate(mushroom.submittedBy, {
+          $inc: { points: -1 }, // Decrement points by 1
+        });
+      }
     }
 
     /* ================= SAVE ================= */
