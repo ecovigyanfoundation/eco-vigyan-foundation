@@ -52,22 +52,51 @@ export default function MushroomSubmissionForm({
     setImageFile(file);
     setIsExtractingExif(true);
 
-    // Create preview URL
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result);
+    // Create preview URL (separate from EXIF extraction)
+    const previewReader = new FileReader();
+    previewReader.onloadend = () => {
+      setImagePreview(previewReader.result);
     };
-    reader.readAsDataURL(file);
+    previewReader.readAsDataURL(file);
 
-    // Extract EXIF data - wait a bit to ensure file is fully loaded
+    // Extract EXIF data - read as ArrayBuffer to preserve all binary data
     try {
-      // Small delay to ensure file is ready
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      const { gps, dateTime } = await extractExifData(file);
+      // Read file as ArrayBuffer first to preserve EXIF data (mobile browsers can strip it from DataURL)
+      // This is critical for mobile - ArrayBuffer preserves all binary data including EXIF
+      const arrayBuffer = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = (err) => {
+          console.error("Error reading ArrayBuffer:", err);
+          reject(err);
+        };
+        reader.readAsArrayBuffer(file);
+      });
 
+      console.log("File read as ArrayBuffer, size:", arrayBuffer.byteLength, "bytes");
+
+      // Try extracting EXIF from ArrayBuffer first (most reliable for mobile)
+      let exifResult = await extractExifData(arrayBuffer, file);
+
+      // If that didn't work, try with the File object directly as fallback
+      if (!exifResult.gps && !exifResult.dateTime) {
+        console.log("ArrayBuffer method didn't find EXIF, trying File object directly...");
+        exifResult = await extractExifData(file);
+      }
+
+      // Last resort: try as Blob
+      if (!exifResult.gps && !exifResult.dateTime) {
+        console.log("File object method didn't find EXIF, trying Blob...");
+        const blob = new Blob([arrayBuffer], { type: file.type });
+        exifResult = await extractExifData(blob, file);
+      }
+
+      const { gps, dateTime } = exifResult;
       console.log("EXIF extraction result:", { gps, dateTime, fileName: file.name });
 
+      // Check if file might have been processed/stripped by mobile browser
+      const isLikelyStripped = !gps && !dateTime && file.size > 0;
+      
       // If GPS found in EXIF, use it
       if (gps && gps.latitude && gps.longitude) {
         onLocationSelect?.(gps);
@@ -78,13 +107,24 @@ export default function MushroomSubmissionForm({
         // No GPS in EXIF, allow manual selection
         setHasExifGps(false);
         setLocationInputMethod("map");
-        toast.info("No GPS data found in image. Please select location manually.");
+        
+        // Provide helpful message about why EXIF might be missing
+        if (isLikelyStripped) {
+          toast.info("EXIF data not found. Some mobile browsers/galleries strip EXIF data for privacy. Please select location manually.", {
+            duration: 5000,
+          });
+        } else {
+          toast.info("No GPS data found in image. Please select location manually.");
+        }
       }
 
       // Set date/time if found
       if (dateTime) {
         setExifDateTime(dateTime);
         toast.success(`Photo date/time: ${dateTime.toLocaleString()}`);
+      } else if (isLikelyStripped) {
+        // Show warning about missing date/time
+        console.warn("Date/time also missing - image may have been processed by mobile browser/gallery");
       }
     } catch (error) {
       console.error("Error reading EXIF:", error);
@@ -297,9 +337,12 @@ export default function MushroomSubmissionForm({
           className="flex-1 overflow-y-auto px-8 md:px-10 pb-8 md:pb-10 space-y-4"
         >
           {/* INFO MESSAGE */}
-          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4">
+          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 space-y-2">
             <p className="text-xs font-bold text-emerald-800 text-center">
-              📸 <strong>Tip:</strong> Use "Take Photo with Camera" to automatically capture GPS location and date/time. Or upload from gallery and select location manually on map, search by city, or enter coordinates.
+              📸 <strong>Tip:</strong> Use "Take Photo with Camera" to automatically capture GPS location and date/time.
+            </p>
+            <p className="text-[10px] text-emerald-700 text-center">
+              ⚠️ <strong>Note:</strong> When selecting from gallery, some mobile browsers/galleries may strip EXIF data (GPS, date/time) for privacy reasons. If EXIF is missing, you can select location manually.
             </p>
           </div>
 
@@ -386,8 +429,8 @@ export default function MushroomSubmissionForm({
                   <p className="mt-2 text-xs text-stone-700 font-bold uppercase tracking-wider">
                     Upload from Gallery / Files
                   </p>
-                  <p className="text-[10px] text-stone-500 font-medium mt-1">
-                    Select existing image (EXIF optional)
+                  <p className="text-[10px] text-stone-500 font-medium mt-1 text-center px-2">
+                    Note: Some mobile browsers may strip EXIF data from gallery images
                   </p>
                   <input
                     type="file"
