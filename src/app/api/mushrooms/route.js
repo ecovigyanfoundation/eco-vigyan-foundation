@@ -42,33 +42,53 @@ export async function GET(req) {
 
 export async function POST(req) {
   try {
+    // Handle CORS preflight
+    if (req.method === "OPTIONS") {
+      return new NextResponse(null, {
+        status: 200,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, Cookie",
+          "Access-Control-Allow-Credentials": "true",
+        },
+      });
+    }
+
     await connectDB();
 
     /* ================= AUTH ================= */
 
-    // Get token from cookies - await cookies() in Next.js 15+
+    // Get token from cookies - try multiple methods for better mobile compatibility
     let token = null;
-    try {
-      const cookieStore = await cookies();
-      token = cookieStore.get("token")?.value;
-    } catch (err) {
-      console.error("Error reading cookies:", err);
-      // Fallback: try reading from request headers
-      const cookieHeader = req.headers.get("cookie");
-      if (cookieHeader) {
-        const cookieObj = cookieHeader.split(";").reduce((acc, cookie) => {
-          const [key, value] = cookie.trim().split("=");
-          if (key && value) {
-            acc[key] = decodeURIComponent(value);
-          }
-          return acc;
-        }, {});
-        token = cookieObj.token;
+    
+    // Method 1: Try reading from request headers first (most reliable for mobile)
+    const cookieHeader = req.headers.get("cookie");
+    if (cookieHeader) {
+      const cookieObj = cookieHeader.split(";").reduce((acc, cookie) => {
+        const [key, value] = cookie.trim().split("=");
+        if (key && value) {
+          acc[key] = decodeURIComponent(value);
+        }
+        return acc;
+      }, {});
+      token = cookieObj.token;
+    }
+    
+    // Method 2: Fallback to cookies() API if header method didn't work
+    if (!token) {
+      try {
+        const cookieStore = await cookies();
+        token = cookieStore.get("token")?.value;
+      } catch (err) {
+        console.error("Error reading cookies:", err);
+        // Continue - we already tried headers
       }
     }
 
     if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      console.error("No token found in request. Cookie header:", cookieHeader ? "present" : "missing");
+      return NextResponse.json({ error: "Unauthorized - Please log in" }, { status: 401 });
     }
 
     let decoded;
@@ -78,12 +98,13 @@ export async function POST(req) {
       decoded = jwt.verify(decodedToken, process.env.JWT_SECRET);
     } catch (err) {
       console.error("JWT verification error:", err);
-      return NextResponse.json({ error: "Invalid or expired token" }, { status: 401 });
+      return NextResponse.json({ error: "Invalid or expired token - Please log in again" }, { status: 401 });
     }
 
     const user = await User.findById(decoded.id);
     if (!user || user.isBanned) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      console.error("User not found or banned:", { userId: decoded.id, isBanned: user?.isBanned });
+      return NextResponse.json({ error: "Unauthorized - Account issue" }, { status: 401 });
     }
 
     /* ================= FORM DATA ================= */
@@ -219,7 +240,13 @@ export async function POST(req) {
 
     return NextResponse.json(
       { message: "Mushroom submitted for review" },
-      { status: 201 }
+      { 
+        status: 201,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Credentials": "true",
+        },
+      }
     );
   } catch (error) {
     console.error("Mushroom submission error:", error);

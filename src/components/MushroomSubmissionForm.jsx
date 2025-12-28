@@ -332,22 +332,48 @@ export default function MushroomSubmissionForm({
         method: "POST",
         body: fd,
         credentials: "include",
+        headers: {
+          // Don't set Content-Type - let browser set it with boundary for FormData
+        },
       });
 
       let data;
       try {
-        data = await res.json();
+        const text = await res.text();
+        if (text) {
+          data = JSON.parse(text);
+        } else {
+          data = {};
+        }
       } catch (parseError) {
         console.error("Failed to parse response:", parseError);
+        console.error("Response status:", res.status);
+        console.error("Response text:", await res.clone().text());
         throw new Error(`Server error: ${res.status} ${res.statusText}`);
       }
 
       if (!res.ok) {
-        throw new Error(
-          data.error ||
-            data.message ||
-            `Submission failed: ${res.status} ${res.statusText}`
-        );
+        console.error("Submission failed:", {
+          status: res.status,
+          statusText: res.statusText,
+          error: data.error,
+          message: data.message,
+        });
+        
+        // Handle specific error codes
+        if (res.status === 401) {
+          throw new Error("Please log in to submit mushrooms");
+        } else if (res.status === 403) {
+          throw new Error("Access denied. Please check your account status or try logging in again.");
+        } else if (res.status === 400) {
+          throw new Error(data.error || "Invalid submission data. Please check all fields.");
+        } else {
+          throw new Error(
+            data.error ||
+              data.message ||
+              `Submission failed: ${res.status} ${res.statusText}`
+          );
+        }
       }
 
       toast.success(
