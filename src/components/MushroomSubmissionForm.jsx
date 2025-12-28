@@ -89,7 +89,9 @@ export default function MushroomSubmissionForm({
         onLocationSelect?.(coords);
         toast.success(`Location found for ${cityName}`);
       } else {
-        toast.error("City not found. Please try a different name or use map picker.");
+        toast.error(
+          "City not found. Please try a different name or use map picker."
+        );
       }
     } catch (error) {
       console.error("Geocoding error:", error);
@@ -166,6 +168,10 @@ export default function MushroomSubmissionForm({
       const res = await fetch("/api/mushrooms", {
         method: "POST",
         body: fd,
+        credentials: "include",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
       });
 
       let data;
@@ -212,7 +218,10 @@ export default function MushroomSubmissionForm({
       const errorMessage =
         err.message || "Failed to submit mushroom. Please try again.";
 
-      if (errorMessage.includes("Unauthorized") || errorMessage.includes("token")) {
+      if (
+        errorMessage.includes("Unauthorized") ||
+        errorMessage.includes("token")
+      ) {
         toast.error("Please log in to submit mushrooms");
       } else if (errorMessage.includes("image")) {
         toast.error(
@@ -263,8 +272,8 @@ export default function MushroomSubmissionForm({
           {/* INFO MESSAGE */}
           <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4">
             <p className="text-xs font-bold text-emerald-800 text-center">
-              Location will be read from image EXIF if available. Otherwise,
-              you can select on map, search by city, or enter coordinates manually.
+              Location will be read from image EXIF if available. Otherwise, you
+              can select on map, search by city, or enter coordinates manually.
             </p>
           </div>
 
@@ -345,114 +354,114 @@ export default function MushroomSubmissionForm({
               <div className="space-y-3">
                 {/* Method Selector */}
                 {!currentLocation && (
-                <div className="flex gap-2 flex-wrap">
-                  <button
-                    type="button"
-                    onClick={() => setLocationInputMethod("map")}
-                    className={`px-3 py-2 rounded-xl text-[10px] font-bold uppercase transition-all ${
-                      locationInputMethod === "map"
-                        ? "bg-emerald-600 text-white"
-                        : "bg-stone-100 text-stone-600 hover:bg-stone-200"
-                    }`}
-                  >
-                    <MapPin size={12} className="inline mr-1" />
-                    Map
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setLocationInputMethod("city")}
-                    className={`px-3 py-2 rounded-xl text-[10px] font-bold uppercase transition-all ${
-                      locationInputMethod === "city"
-                        ? "bg-emerald-600 text-white"
-                        : "bg-stone-100 text-stone-600 hover:bg-stone-200"
-                    }`}
-                  >
-                    <Search size={12} className="inline mr-1" />
-                    City
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setLocationInputMethod("manual")}
-                    className={`px-3 py-2 rounded-xl text-[10px] font-bold uppercase transition-all ${
-                      locationInputMethod === "manual"
-                        ? "bg-emerald-600 text-white"
-                        : "bg-stone-100 text-stone-600 hover:bg-stone-200"
-                    }`}
-                  >
-                    <Navigation size={12} className="inline mr-1" />
-                    Manual
-                  </button>
-                </div>
-              )}
+                  <div className="flex gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => setLocationInputMethod("map")}
+                      className={`px-3 py-2 rounded-xl text-[10px] font-bold uppercase transition-all ${
+                        locationInputMethod === "map"
+                          ? "bg-emerald-600 text-white"
+                          : "bg-stone-100 text-stone-600 hover:bg-stone-200"
+                      }`}
+                    >
+                      <MapPin size={12} className="inline mr-1" />
+                      Map
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLocationInputMethod("city")}
+                      className={`px-3 py-2 rounded-xl text-[10px] font-bold uppercase transition-all ${
+                        locationInputMethod === "city"
+                          ? "bg-emerald-600 text-white"
+                          : "bg-stone-100 text-stone-600 hover:bg-stone-200"
+                      }`}
+                    >
+                      <Search size={12} className="inline mr-1" />
+                      City
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLocationInputMethod("manual")}
+                      className={`px-3 py-2 rounded-xl text-[10px] font-bold uppercase transition-all ${
+                        locationInputMethod === "manual"
+                          ? "bg-emerald-600 text-white"
+                          : "bg-stone-100 text-stone-600 hover:bg-stone-200"
+                      }`}
+                    >
+                      <Navigation size={12} className="inline mr-1" />
+                      Manual
+                    </button>
+                  </div>
+                )}
 
-              {/* Map Picker */}
-              {locationInputMethod === "map" && (
-                <button
-                  type="button"
-                  onClick={() => setShowLocationPicker(true)}
-                  className="w-full bg-stone-100 border-2 border-stone-200 rounded-2xl px-5 py-4 text-left font-bold transition hover:border-emerald-300 text-stone-600"
-                >
-                  Click to select location on map
-                </button>
-              )}
-
-              {/* City Search */}
-              {locationInputMethod === "city" && (
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={cityName}
-                    onChange={(e) => setCityName(e.target.value)}
-                    placeholder="Enter city name..."
-                    className="flex-1 bg-stone-100 border border-stone-200 rounded-2xl px-4 py-3 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white outline-none transition-all font-medium text-stone-800 placeholder:text-stone-400 text-sm"
-                    onKeyPress={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleCitySearch();
-                      }
-                    }}
-                  />
+                {/* Map Picker */}
+                {locationInputMethod === "map" && (
                   <button
                     type="button"
-                    onClick={handleCitySearch}
-                    disabled={isGeocoding}
-                    className="px-4 py-3 bg-emerald-600 text-white rounded-2xl font-bold text-xs uppercase disabled:opacity-50 disabled:cursor-not-allowed hover:bg-emerald-700 transition-all"
+                    onClick={() => setShowLocationPicker(true)}
+                    className="w-full bg-stone-100 border-2 border-stone-200 rounded-2xl px-5 py-4 text-left font-bold transition hover:border-emerald-300 text-stone-600"
                   >
-                    {isGeocoding ? "..." : "Search"}
+                    Click to select location on map
                   </button>
-                </div>
-              )}
+                )}
 
-              {/* Manual Input */}
-              {locationInputMethod === "manual" && (
-                <div className="space-y-2">
+                {/* City Search */}
+                {locationInputMethod === "city" && (
                   <div className="flex gap-2">
                     <input
-                      type="number"
-                      step="any"
-                      value={manualLat}
-                      onChange={(e) => setManualLat(e.target.value)}
-                      placeholder="Latitude (-90 to 90)"
+                      type="text"
+                      value={cityName}
+                      onChange={(e) => setCityName(e.target.value)}
+                      placeholder="Enter city name..."
                       className="flex-1 bg-stone-100 border border-stone-200 rounded-2xl px-4 py-3 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white outline-none transition-all font-medium text-stone-800 placeholder:text-stone-400 text-sm"
+                      onKeyPress={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleCitySearch();
+                        }
+                      }}
                     />
-                    <input
-                      type="number"
-                      step="any"
-                      value={manualLng}
-                      onChange={(e) => setManualLng(e.target.value)}
-                      placeholder="Longitude (-180 to 180)"
-                      className="flex-1 bg-stone-100 border border-stone-200 rounded-2xl px-4 py-3 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white outline-none transition-all font-medium text-stone-800 placeholder:text-stone-400 text-sm"
-                    />
+                    <button
+                      type="button"
+                      onClick={handleCitySearch}
+                      disabled={isGeocoding}
+                      className="px-4 py-3 bg-emerald-600 text-white rounded-2xl font-bold text-xs uppercase disabled:opacity-50 disabled:cursor-not-allowed hover:bg-emerald-700 transition-all"
+                    >
+                      {isGeocoding ? "..." : "Search"}
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleManualLocation}
-                    className="w-full px-4 py-3 bg-emerald-600 text-white rounded-2xl font-bold text-xs uppercase hover:bg-emerald-700 transition-all"
-                  >
-                    Set Location
-                  </button>
-                </div>
-              )}
+                )}
+
+                {/* Manual Input */}
+                {locationInputMethod === "manual" && (
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        step="any"
+                        value={manualLat}
+                        onChange={(e) => setManualLat(e.target.value)}
+                        placeholder="Latitude (-90 to 90)"
+                        className="flex-1 bg-stone-100 border border-stone-200 rounded-2xl px-4 py-3 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white outline-none transition-all font-medium text-stone-800 placeholder:text-stone-400 text-sm"
+                      />
+                      <input
+                        type="number"
+                        step="any"
+                        value={manualLng}
+                        onChange={(e) => setManualLng(e.target.value)}
+                        placeholder="Longitude (-180 to 180)"
+                        className="flex-1 bg-stone-100 border border-stone-200 rounded-2xl px-4 py-3 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white outline-none transition-all font-medium text-stone-800 placeholder:text-stone-400 text-sm"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleManualLocation}
+                      className="w-full px-4 py-3 bg-emerald-600 text-white rounded-2xl font-bold text-xs uppercase hover:bg-emerald-700 transition-all"
+                    >
+                      Set Location
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -525,8 +534,7 @@ export default function MushroomSubmissionForm({
                       {use
                         .split("-")
                         .map(
-                          (word) =>
-                            word.charAt(0).toUpperCase() + word.slice(1)
+                          (word) => word.charAt(0).toUpperCase() + word.slice(1)
                         )
                         .join(" ")}
                     </button>

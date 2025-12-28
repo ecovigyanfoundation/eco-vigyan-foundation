@@ -6,7 +6,11 @@ import { connectDB } from "@/lib/mongodb";
 import Mushroom from "@/models/Mushroom";
 import User from "@/models/User";
 
+export const runtime = "nodejs";
 
+/* ===========================
+   GET – PUBLIC APPROVED DATA
+=========================== */
 export async function GET(req) {
   try {
     await connectDB();
@@ -15,10 +19,7 @@ export async function GET(req) {
     const category = searchParams.get("category");
 
     const query = { status: "approved" };
-
-    if (category) {
-      query.category = category;
-    }
+    if (category) query.category = category;
 
     const mushrooms = await Mushroom.find(query)
       .select(
@@ -27,10 +28,7 @@ export async function GET(req) {
       .populate("submittedBy", "name username")
       .sort({ approvedAt: -1 });
 
-    return NextResponse.json(
-      { mushrooms },
-      { status: 200 }
-    );
+    return NextResponse.json({ mushrooms }, { status: 200 });
   } catch (error) {
     console.error("Public mushrooms error:", error);
     return NextResponse.json(
@@ -40,27 +38,40 @@ export async function GET(req) {
   }
 }
 
+/* ===========================
+   POST – SUBMIT MUSHROOM
+=========================== */
 export async function POST(req) {
   try {
     await connectDB();
 
     /* ================= AUTH ================= */
 
-    // Get token from cookies - await cookies() in Next.js 15+
     let token = null;
-    try {
-      const cookieStore = await cookies();
-      token = cookieStore.get("token")?.value;
-    } catch (err) {
-      console.error("Error reading cookies:", err);
-      // Fallback: try reading from request headers
+
+    // 1️⃣ Authorization header (BEST for mobile)
+    const authHeader = req.headers.get("authorization");
+    if (authHeader?.startsWith("Bearer ")) {
+      token = authHeader.split(" ")[1];
+    }
+
+    // 2️⃣ Cookies (desktop & some mobile)
+    if (!token) {
+      try {
+        const cookieStore = await cookies();
+        token = cookieStore.get("token")?.value;
+      } catch (err) {
+        console.error("Cookie read error:", err);
+      }
+    }
+
+    // 3️⃣ Raw cookie header fallback
+    if (!token) {
       const cookieHeader = req.headers.get("cookie");
       if (cookieHeader) {
-        const cookieObj = cookieHeader.split(";").reduce((acc, cookie) => {
-          const [key, value] = cookie.trim().split("=");
-          if (key && value) {
-            acc[key] = decodeURIComponent(value);
-          }
+        const cookieObj = cookieHeader.split(";").reduce((acc, c) => {
+          const [k, v] = c.trim().split("=");
+          if (k && v) acc[k] = decodeURIComponent(v);
           return acc;
         }, {});
         token = cookieObj.token;
@@ -68,17 +79,21 @@ export async function POST(req) {
     }
 
     if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Authentication token missing or blocked by browser" },
+        { status: 401 }
+      );
     }
 
     let decoded;
     try {
-      // Handle URL-encoded token
-      const decodedToken = decodeURIComponent(token);
-      decoded = jwt.verify(decodedToken, process.env.JWT_SECRET);
+      decoded = jwt.verify(decodeURIComponent(token), process.env.JWT_SECRET);
     } catch (err) {
-      console.error("JWT verification error:", err);
-      return NextResponse.json({ error: "Invalid or expired token" }, { status: 401 });
+      console.error("JWT error:", err);
+      return NextResponse.json(
+        { error: "Invalid or expired token" },
+        { status: 401 }
+      );
     }
 
     const user = await User.findById(decoded.id);
@@ -94,10 +109,10 @@ export async function POST(req) {
     const latitudeStr = formData.get("latitude");
     const longitudeStr = formData.get("longitude");
     const dateTimeStr = formData.get("dateTime");
+
     const image1 = formData.get("image1");
     const image2 = formData.get("image2");
-    
-    // Optional classification fields
+
     const ecologicalRole = formData.get("ecologicalRole")?.trim() || null;
     const texture = formData.get("texture")?.trim() || null;
     const underside = formData.get("underside")?.trim() || null;
@@ -105,7 +120,8 @@ export async function POST(req) {
     const stemPresence = formData.get("stemPresence")?.trim() || null;
     const commonUses = formData.getAll("commonUses").filter(Boolean);
 
-    // Validate location
+    /* ================= LOCATION ================= */
+
     if (!latitudeStr || !longitudeStr) {
       return NextResponse.json(
         { error: "Location is required" },
@@ -116,16 +132,16 @@ export async function POST(req) {
     const latitude = Number(latitudeStr);
     const longitude = Number(longitudeStr);
 
-    if (isNaN(latitude) || isNaN(longitude)) {
+    if (
+      isNaN(latitude) ||
+      isNaN(longitude) ||
+      latitude < -90 ||
+      latitude > 90 ||
+      longitude < -180 ||
+      longitude > 180
+    ) {
       return NextResponse.json(
         { error: "Invalid location coordinates" },
-        { status: 400 }
-      );
-    }
-
-    if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
-      return NextResponse.json(
-        { error: "Location coordinates out of valid range" },
         { status: 400 }
       );
     }
@@ -133,22 +149,28 @@ export async function POST(req) {
     /* ================= IMAGE VALIDATION ================= */
 
     const images = [];
-    const maxFileSize = 10 * 1024 * 1024;
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    const maxFileSize = 15 * 1024 * 1024; // mobile-safe
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/heic",
+      "image/heif",
+    ];
 
     for (const img of [image1, image2]) {
       if (!img || !(img instanceof File) || img.size === 0) continue;
 
       if (img.size > maxFileSize) {
         return NextResponse.json(
-          { error: "Each image must be under 10MB" },
+          { error: "Each image must be under 15MB" },
           { status: 400 }
         );
       }
 
       if (!allowedTypes.includes(img.type)) {
         return NextResponse.json(
-          { error: "Invalid image format" },
+          { error: `Unsupported image format: ${img.type}` },
           { status: 400 }
         );
       }
@@ -163,7 +185,7 @@ export async function POST(req) {
       );
     }
 
-    /* ================= CLOUDINARY UPLOAD ================= */
+    /* ================= CLOUDINARY ================= */
 
     const uploadedImages = [];
 
@@ -171,13 +193,19 @@ export async function POST(req) {
       const buffer = Buffer.from(await image.arrayBuffer());
 
       const uploadResult = await new Promise((resolve, reject) => {
-        cloudinary.uploader.upload_stream(
-          { folder: "mushrooms" },
-          (err, result) => {
-            if (err) reject(err);
-            else resolve(result);
-          }
-        ).end(buffer);
+        cloudinary.uploader
+          .upload_stream(
+            {
+              folder: "mushrooms",
+              resource_type: "image",
+              format: "jpg", // force HEIC → JPG
+            },
+            (err, result) => {
+              if (err) reject(err);
+              else resolve(result);
+            }
+          )
+          .end(buffer);
       });
 
       uploadedImages.push({
@@ -186,28 +214,23 @@ export async function POST(req) {
       });
     }
 
-    /* ================= CREATE MUSHROOM ================= */
+    /* ================= CREATE DOC ================= */
 
     const mushroomData = {
       images: uploadedImages,
-      location: {
-        latitude,
-        longitude,
-      },
+      location: { latitude, longitude },
       submittedBy: user._id,
       status: "pending",
     };
 
-    // Add optional fields if provided
     if (commonName) mushroomData.commonName = commonName;
     if (ecologicalRole) mushroomData.ecologicalRole = ecologicalRole;
     if (texture) mushroomData.texture = texture;
     if (underside) mushroomData.underside = underside;
     if (fruitingSurface) mushroomData.fruitingSurface = fruitingSurface;
     if (stemPresence) mushroomData.stemPresence = stemPresence;
-    if (commonUses.length > 0) mushroomData.commonUses = commonUses;
-    
-    // Add photo date/time from EXIF if provided
+    if (commonUses.length) mushroomData.commonUses = commonUses;
+
     if (dateTimeStr) {
       const photoDate = new Date(dateTimeStr);
       if (!isNaN(photoDate.getTime())) {
