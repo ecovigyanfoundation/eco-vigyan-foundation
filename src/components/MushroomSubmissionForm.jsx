@@ -88,6 +88,22 @@ export default function MushroomSubmissionForm({
     const file = e.target.files[0];
     if (!file) return;
 
+    // Validate file size before processing (4MB limit to avoid 413 errors)
+    const maxFileSize = 4 * 1024 * 1024; // 4MB (Next.js default limit is ~4.5MB)
+    if (file.size > maxFileSize) {
+      toast.error(`Image is too large (${(file.size / 1024 / 1024).toFixed(2)}MB). Please use an image under 4MB.`);
+      e.target.value = ""; // Clear the input
+      return;
+    }
+
+    // Validate file type
+    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Please select a JPEG, PNG, or WebP image");
+      e.target.value = ""; // Clear the input
+      return;
+    }
+
     // Check if this is from camera (has capture attribute) or detect by file name/type
     const inputElement = e.target;
     const isCamera = inputElement.hasAttribute('capture') || 
@@ -367,6 +383,8 @@ export default function MushroomSubmissionForm({
           throw new Error("Please log in to submit mushrooms");
         } else if (res.status === 403) {
           throw new Error("Access denied. Please check your account status or try logging in again.");
+        } else if (res.status === 413) {
+          throw new Error("Image file is too large. Please use an image under 4MB. Try compressing the image or using a lower resolution.");
         } else if (res.status === 400) {
           throw new Error(data.error || "Invalid submission data. Please check all fields.");
         } else {

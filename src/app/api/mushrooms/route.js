@@ -109,7 +109,19 @@ export async function POST(req) {
 
     /* ================= FORM DATA ================= */
 
-    const formData = await req.formData();
+    let formData;
+    try {
+      formData = await req.formData();
+    } catch (error) {
+      // Handle body size limit errors (413)
+      if (error.message && error.message.includes('body') || error.message && error.message.includes('size')) {
+        return NextResponse.json(
+          { error: "Request body is too large. Please use images under 4MB each." },
+          { status: 413 }
+        );
+      }
+      throw error; // Re-throw if it's a different error
+    }
 
     const commonName = formData.get("commonName")?.trim() || "";
     const latitudeStr = formData.get("latitude");
@@ -154,7 +166,7 @@ export async function POST(req) {
     /* ================= IMAGE VALIDATION ================= */
 
     const images = [];
-    const maxFileSize = 10 * 1024 * 1024;
+    const maxFileSize = 4 * 1024 * 1024; // 4MB (Next.js body limit is ~4.5MB)
     const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
 
     for (const img of [image1, image2]) {
@@ -162,7 +174,7 @@ export async function POST(req) {
 
       if (img.size > maxFileSize) {
         return NextResponse.json(
-          { error: "Each image must be under 10MB" },
+          { error: `Image is too large (${(img.size / 1024 / 1024).toFixed(2)}MB). Please use an image under 4MB.` },
           { status: 400 }
         );
       }
