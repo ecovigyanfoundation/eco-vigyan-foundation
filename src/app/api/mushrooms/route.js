@@ -93,7 +93,7 @@ export async function POST(req) {
     const commonName = formData.get("commonName")?.trim() || "";
     const latitudeStr = formData.get("latitude");
     const longitudeStr = formData.get("longitude");
-    const dateTimeStr = formData.get("dateTime");
+    const photoDateTimeStr = formData.get("photoDateTime");
     const image1 = formData.get("image1");
     const image2 = formData.get("image2");
     
@@ -207,9 +207,9 @@ export async function POST(req) {
     if (stemPresence) mushroomData.stemPresence = stemPresence;
     if (commonUses.length > 0) mushroomData.commonUses = commonUses;
     
-    // Add photo date/time from EXIF if provided
-    if (dateTimeStr) {
-      const photoDate = new Date(dateTimeStr);
+    // Add photo date/time from EXIF or device if provided
+    if (photoDateTimeStr) {
+      const photoDate = new Date(photoDateTimeStr);
       if (!isNaN(photoDate.getTime())) {
         mushroomData.photoDateTime = photoDate;
       }

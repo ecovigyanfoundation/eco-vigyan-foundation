@@ -35,6 +35,8 @@ export default function MushroomSubmissionForm({
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [exifDateTime, setExifDateTime] = useState(null);
   const [isExtractingExif, setIsExtractingExif] = useState(false);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [isFromCamera, setIsFromCamera] = useState(false);
   const [commonName, setCommonName] = useState("");
   const [ecologicalRole, setEcologicalRole] = useState("");
   const [texture, setTexture] = useState("");
@@ -45,12 +47,81 @@ export default function MushroomSubmissionForm({
 
   if (!isOpen) return null;
 
+  // Get device GPS location
+  const getDeviceLocation = () => {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error("Geolocation is not supported by this browser"));
+        return;
+      }
+
+      setIsGettingLocation(true);
+      
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setIsGettingLocation(false);
+          resolve({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy,
+          });
+        },
+        (error) => {
+          setIsGettingLocation(false);
+          reject(error);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0, // Don't use cached position
+        }
+      );
+    });
+  };
+
+  // Get current date/time
+  const getCurrentDateTime = () => {
+    return new Date();
+  };
+
   const handleImageChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
+    // Check if this is from camera (has capture attribute) or detect by file name/type
+    const inputElement = e.target;
+    const isCamera = inputElement.hasAttribute('capture') || 
+                     file.name === '' || 
+                     file.name.startsWith('image') ||
+                     file.lastModified > Date.now() - 5000; // File created in last 5 seconds
+
+    setIsFromCamera(isCamera);
     setImageFile(file);
     setIsExtractingExif(true);
+
+    // If from camera, get device location and date/time immediately
+    if (isCamera) {
+      try {
+        // Get device GPS location
+        try {
+          const deviceLocation = await getDeviceLocation();
+          onLocationSelect?.(deviceLocation);
+          setHasExifGps(true);
+          setLocationInputMethod("map");
+          toast.success(`Location captured: ${deviceLocation.latitude.toFixed(5)}, ${deviceLocation.longitude.toFixed(5)}`);
+        } catch (locationError) {
+          console.warn("Could not get device location:", locationError);
+          toast.info("Could not get GPS location. Please enable location services or select location manually.");
+        }
+
+        // Get current date/time
+        const currentDateTime = getCurrentDateTime();
+        setExifDateTime(currentDateTime);
+        toast.success(`Date/time captured: ${currentDateTime.toLocaleString()}`);
+      } catch (error) {
+        console.error("Error getting device location/time:", error);
+      }
+    }
 
     // Create preview URL (separate from EXIF extraction)
     const previewReader = new FileReader();
@@ -98,37 +169,55 @@ export default function MushroomSubmissionForm({
       const { gps, dateTime } = exifResult;
       console.log("EXIF extraction result:", { gps, dateTime, fileName: file.name });
 
-      // Check if file might have been processed/stripped by mobile browser
-      const isLikelyStripped = !gps && !dateTime && file.size > 0;
+      // For camera photos: EXIF takes priority if found (more accurate), otherwise use device location/time already set
+      // For gallery photos: Try to use EXIF, fallback to manual selection
       
-      // If GPS found in EXIF, use it
-      if (gps && gps.latitude && gps.longitude) {
-        onLocationSelect?.(gps);
-        setHasExifGps(true);
-        setLocationInputMethod("map");
-        toast.success(`Location found in EXIF: ${gps.latitude.toFixed(5)}, ${gps.longitude.toFixed(5)}`);
-      } else {
-        // No GPS in EXIF, allow manual selection
-        setHasExifGps(false);
-        setLocationInputMethod("map");
-        
-        // Provide helpful message about why EXIF might be missing
-        if (isLikelyStripped) {
-          toast.info("EXIF data not found. Some mobile browsers/galleries strip EXIF data for privacy. Please select location manually.", {
-            duration: 5000,
-          });
-        } else {
-          toast.info("No GPS data found in image. Please select location manually.");
+      if (isCamera) {
+        // Camera photo: EXIF is preferred if available (more accurate), but we already have device location/time
+        if (gps && gps.latitude && gps.longitude) {
+          // EXIF GPS found - use it (more accurate than device location)
+          onLocationSelect?.(gps);
+          setHasExifGps(true);
+          toast.success(`Location from EXIF: ${gps.latitude.toFixed(5)}, ${gps.longitude.toFixed(5)}`);
         }
-      }
+        // If no EXIF GPS, device location was already set above
+        
+        if (dateTime) {
+          // EXIF date/time found - use it (more accurate)
+          setExifDateTime(dateTime);
+          toast.success(`Date/time from EXIF: ${dateTime.toLocaleString()}`);
+        }
+        // If no EXIF date/time, device date/time was already set above
+      } else {
+        // Gallery photo: Try to use EXIF, otherwise allow manual selection
+        const isLikelyStripped = !gps && !dateTime && file.size > 0;
+        
+        if (gps && gps.latitude && gps.longitude) {
+          onLocationSelect?.(gps);
+          setHasExifGps(true);
+          setLocationInputMethod("map");
+          toast.success(`Location found in EXIF: ${gps.latitude.toFixed(5)}, ${gps.longitude.toFixed(5)}`);
+        } else {
+          // No GPS in EXIF, allow manual selection
+          setHasExifGps(false);
+          setLocationInputMethod("map");
+          
+          if (isLikelyStripped) {
+            toast.info("EXIF data not found. Some mobile browsers/galleries strip EXIF data for privacy. Please select location manually.", {
+              duration: 5000,
+            });
+          } else {
+            toast.info("No GPS data found in image. Please select location manually.");
+          }
+        }
 
-      // Set date/time if found
-      if (dateTime) {
-        setExifDateTime(dateTime);
-        toast.success(`Photo date/time: ${dateTime.toLocaleString()}`);
-      } else if (isLikelyStripped) {
-        // Show warning about missing date/time
-        console.warn("Date/time also missing - image may have been processed by mobile browser/gallery");
+        // Set date/time if found
+        if (dateTime) {
+          setExifDateTime(dateTime);
+          toast.success(`Photo date/time: ${dateTime.toLocaleString()}`);
+        } else if (isLikelyStripped) {
+          console.warn("Date/time also missing - image may have been processed by mobile browser/gallery");
+        }
       }
     } catch (error) {
       console.error("Error reading EXIF:", error);
@@ -146,6 +235,7 @@ export default function MushroomSubmissionForm({
     setImagePreview(null);
     setExifDateTime(null);
     setHasExifGps(false);
+    setIsFromCamera(false);
     onLocationSelect?.(null);
   };
 
@@ -224,9 +314,9 @@ export default function MushroomSubmissionForm({
       fd.append("longitude", location.longitude);
       fd.append("image1", imageFile);
 
-      // Add date/time from EXIF if available
+      // Add date/time if available (from EXIF or device)
       if (exifDateTime) {
-        fd.append("dateTime", exifDateTime.toISOString());
+        fd.append("photoDateTime", exifDateTime.toISOString());
       }
 
       // Optional fields - only append if filled
@@ -279,6 +369,7 @@ export default function MushroomSubmissionForm({
       setManualLat("");
       setManualLng("");
       setHasExifGps(false);
+      setIsFromCamera(false);
       setLocationInputMethod("map");
       onLocationSelect?.(null);
 
@@ -343,7 +434,7 @@ export default function MushroomSubmissionForm({
           {/* INFO MESSAGE */}
           <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 space-y-2">
             <p className="text-xs font-bold text-emerald-800 text-center">
-              📸 <strong>Tip:</strong> Use "Take Photo with Camera" to automatically capture GPS location and date/time.
+              📸 <strong>Tip:</strong> Use "Take Photo with Camera" to automatically capture GPS location and date/time from your device.
             </p>
             <p className="text-[10px] text-emerald-700 text-center">
               ⚠️ <strong>Note:</strong> When selecting from gallery, some mobile browsers/galleries may strip EXIF data (GPS, date/time) for privacy reasons. If EXIF is missing, you can select location manually.
@@ -412,8 +503,8 @@ export default function MushroomSubmissionForm({
                   <p className="mt-2 text-xs text-emerald-700 font-bold uppercase tracking-wider">
                     Take Photo with Camera
                   </p>
-                  <p className="text-[10px] text-emerald-600 font-medium mt-1">
-                    Includes EXIF data (GPS, date/time)
+                  <p className="text-[10px] text-emerald-600 font-medium mt-1 text-center px-2">
+                    Automatically captures GPS location and date/time from your device
                   </p>
                   <input
                     type="file"
@@ -447,10 +538,20 @@ export default function MushroomSubmissionForm({
               </div>
             )}
 
-            {isExtractingExif && (
-              <div className="mt-2 flex items-center gap-2 text-xs text-emerald-600">
-                <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
-                <span className="font-medium">Extracting EXIF data...</span>
+            {(isExtractingExif || isGettingLocation) && (
+              <div className="mt-2 space-y-2">
+                {isGettingLocation && (
+                  <div className="flex items-center gap-2 text-xs text-emerald-600">
+                    <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+                    <span className="font-medium">Getting GPS location from device...</span>
+                  </div>
+                )}
+                {isExtractingExif && (
+                  <div className="flex items-center gap-2 text-xs text-emerald-600">
+                    <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+                    <span className="font-medium">Extracting EXIF data from image...</span>
+                  </div>
+                )}
               </div>
             )}
             
