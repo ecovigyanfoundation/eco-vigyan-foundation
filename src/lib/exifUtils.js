@@ -8,8 +8,15 @@ import exifr from "exifr";
 export async function extractExifData(file) {
   try {
     if (!file || !(file instanceof File)) {
+      console.log("extractExifData: Invalid file object");
       return { gps: null, dateTime: null };
     }
+
+    console.log("extractExifData: Processing file", {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+    });
 
     // Read EXIF data - exifr can parse File objects directly
     // Include all EXIF segments to ensure we capture camera metadata (especially from mobile cameras)
@@ -19,21 +26,29 @@ export async function extractExifData(file) {
       ifd0: true,       // Image file directory 0 (basic image info)
       ifd1: true,       // Image file directory 1 (thumbnail info)
       translateKeys: false, // Keep original key names
+      silent: false,    // Show warnings
     });
 
-    if (!exifData) {
+    console.log("extractExifData: Raw EXIF data", exifData);
+
+    if (!exifData || Object.keys(exifData).length === 0) {
+      console.log("extractExifData: No EXIF data found");
       return { gps: null, dateTime: null };
     }
 
-    // Extract GPS coordinates
+    // Extract GPS coordinates - try multiple formats
     let gps = null;
-    if (exifData.latitude && exifData.longitude) {
+    
+    // Method 1: Direct latitude/longitude (exifr sometimes provides these)
+    if (exifData.latitude !== undefined && exifData.longitude !== undefined) {
       gps = {
-        latitude: exifData.latitude,
-        longitude: exifData.longitude,
+        latitude: Number(exifData.latitude),
+        longitude: Number(exifData.longitude),
       };
-    } else if (exifData.GPSLatitude && exifData.GPSLongitude) {
-      // Handle different EXIF formats
+      console.log("extractExifData: Found GPS via direct lat/lng", gps);
+    } 
+    // Method 2: GPSLatitude/GPSLongitude (standard EXIF format)
+    else if (exifData.GPSLatitude && exifData.GPSLongitude) {
       const lat = convertDMSToDD(
         exifData.GPSLatitude,
         exifData.GPSLatitudeRef
@@ -42,9 +57,32 @@ export async function extractExifData(file) {
         exifData.GPSLongitude,
         exifData.GPSLongitudeRef
       );
-      if (lat && lng) {
+      if (lat !== null && lng !== null) {
         gps = { latitude: lat, longitude: lng };
+        console.log("extractExifData: Found GPS via DMS conversion", gps);
       }
+    }
+    // Method 3: Check for GPSInfo object
+    else if (exifData.GPSInfo) {
+      const gpsInfo = exifData.GPSInfo;
+      if (gpsInfo.GPSLatitude && gpsInfo.GPSLongitude) {
+        const lat = convertDMSToDD(
+          gpsInfo.GPSLatitude,
+          gpsInfo.GPSLatitudeRef
+        );
+        const lng = convertDMSToDD(
+          gpsInfo.GPSLongitude,
+          gpsInfo.GPSLongitudeRef
+        );
+        if (lat !== null && lng !== null) {
+          gps = { latitude: lat, longitude: lng };
+          console.log("extractExifData: Found GPS via GPSInfo", gps);
+        }
+      }
+    }
+
+    if (!gps) {
+      console.log("extractExifData: No GPS coordinates found in EXIF");
     }
 
     // Extract date/time

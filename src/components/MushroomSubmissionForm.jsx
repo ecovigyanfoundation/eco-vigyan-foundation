@@ -34,6 +34,7 @@ export default function MushroomSubmissionForm({
   const [manualLng, setManualLng] = useState("");
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [exifDateTime, setExifDateTime] = useState(null);
+  const [isExtractingExif, setIsExtractingExif] = useState(false);
   const [commonName, setCommonName] = useState("");
   const [ecologicalRole, setEcologicalRole] = useState("");
   const [texture, setTexture] = useState("");
@@ -49,6 +50,7 @@ export default function MushroomSubmissionForm({
     if (!file) return;
 
     setImageFile(file);
+    setIsExtractingExif(true);
 
     // Create preview URL
     const reader = new FileReader();
@@ -57,30 +59,41 @@ export default function MushroomSubmissionForm({
     };
     reader.readAsDataURL(file);
 
-    // Extract EXIF data
+    // Extract EXIF data - wait a bit to ensure file is fully loaded
     try {
+      // Small delay to ensure file is ready
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       const { gps, dateTime } = await extractExifData(file);
+
+      console.log("EXIF extraction result:", { gps, dateTime, fileName: file.name });
 
       // If GPS found in EXIF, use it
       if (gps && gps.latitude && gps.longitude) {
         onLocationSelect?.(gps);
         setHasExifGps(true);
-        setLocationInputMethod("map"); // Reset to default for next time
-        toast.success("Location found in image EXIF data!");
+        setLocationInputMethod("map");
+        toast.success(`Location found in EXIF: ${gps.latitude.toFixed(5)}, ${gps.longitude.toFixed(5)}`);
       } else {
         // No GPS in EXIF, allow manual selection
         setHasExifGps(false);
         setLocationInputMethod("map");
+        toast.info("No GPS data found in image. Please select location manually.");
       }
 
       // Set date/time if found
       if (dateTime) {
         setExifDateTime(dateTime);
+        toast.success(`Photo date/time: ${dateTime.toLocaleString()}`);
       }
     } catch (error) {
       console.error("Error reading EXIF:", error);
+      console.error("Error details:", error.message, error.stack);
       setHasExifGps(false);
       setLocationInputMethod("map");
+      toast.error("Could not read EXIF data from image");
+    } finally {
+      setIsExtractingExif(false);
     }
   };
 
@@ -286,7 +299,7 @@ export default function MushroomSubmissionForm({
           {/* INFO MESSAGE */}
           <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4">
             <p className="text-xs font-bold text-emerald-800 text-center">
-              📸 <strong>Tip:</strong> Taking a photo with your camera (instead of selecting from gallery) will automatically include GPS location and date/time in EXIF data if location services are enabled. Otherwise, you can select location on map, search by city, or enter coordinates manually.
+              📸 <strong>Tip:</strong> Use "Take Photo with Camera" to automatically capture GPS location and date/time. Or upload from gallery and select location manually on map, search by city, or enter coordinates.
             </p>
           </div>
 
@@ -314,6 +327,11 @@ export default function MushroomSubmissionForm({
                         📅 {exifDateTime.toLocaleString()}
                       </p>
                     )}
+                    {hasExifGps && (
+                      <p className="text-white/80 text-[10px] font-medium">
+                        📍 GPS location found
+                      </p>
+                    )}
                   </div>
                 </div>
                 <button
@@ -333,37 +351,60 @@ export default function MushroomSubmissionForm({
                     className="hidden"
                     onChange={handleImageChange}
                     accept="image/*"
-                    capture="environment"
                   />
                 </label>
               </div>
             ) : (
-              // UPLOAD AREA
-              <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-3xl cursor-pointer hover:bg-emerald-50 hover:border-emerald-300 group transition-all bg-stone-50 relative overflow-hidden">
-                <div className="bg-white p-4 rounded-full shadow-sm group-hover:scale-110 transition-transform z-10">
-                  <Camera className="text-emerald-600" size={28} />
-                </div>
-                <p className="mt-4 text-xs text-stone-600 group-hover:text-emerald-700 font-bold uppercase tracking-wider z-10 text-center px-4">
-                  Tap to Take Photo or Select from Gallery
-                </p>
-                <p className="mt-1 text-[10px] text-stone-400 group-hover:text-emerald-600 font-medium z-10 text-center px-4">
-                  Camera photos include EXIF data automatically
-                </p>
-                <div className="mt-3 flex items-center gap-2 px-3 py-1.5 bg-emerald-100 rounded-full z-10">
-                  <span className="text-[9px] text-emerald-700 font-bold">📸</span>
-                  <span className="text-[9px] text-emerald-700 font-medium">
-                    EXIF data will be extracted automatically
-                  </span>
-                </div>
-                <input
-                  type="file"
-                  className="hidden"
-                  onChange={handleImageChange}
-                  accept="image/*"
-                  capture="environment"
-                  required
-                />
-              </label>
+              // UPLOAD OPTIONS
+              <div className="space-y-3">
+                {/* CAMERA OPTION */}
+                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-emerald-300 rounded-2xl cursor-pointer hover:bg-emerald-50 group transition-all bg-emerald-50/30 relative">
+                  <div className="bg-emerald-600 p-3 rounded-full shadow-sm group-hover:scale-110 transition-transform">
+                    <Camera className="text-white" size={24} />
+                  </div>
+                  <p className="mt-2 text-xs text-emerald-700 font-bold uppercase tracking-wider">
+                    Take Photo with Camera
+                  </p>
+                  <p className="text-[10px] text-emerald-600 font-medium mt-1">
+                    Includes EXIF data (GPS, date/time)
+                  </p>
+                  <input
+                    type="file"
+                    className="hidden"
+                    onChange={handleImageChange}
+                    accept="image/*"
+                    capture="environment"
+                    required
+                  />
+                </label>
+
+                {/* MANUAL UPLOAD OPTION */}
+                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-stone-300 rounded-2xl cursor-pointer hover:bg-stone-50 group transition-all bg-stone-50 relative">
+                  <div className="bg-stone-400 p-3 rounded-full shadow-sm group-hover:scale-110 transition-transform">
+                    <MapPin className="text-white" size={24} />
+                  </div>
+                  <p className="mt-2 text-xs text-stone-700 font-bold uppercase tracking-wider">
+                    Upload from Gallery / Files
+                  </p>
+                  <p className="text-[10px] text-stone-500 font-medium mt-1">
+                    Select existing image (EXIF optional)
+                  </p>
+                  <input
+                    type="file"
+                    className="hidden"
+                    onChange={handleImageChange}
+                    accept="image/*"
+                    required
+                  />
+                </label>
+              </div>
+            )}
+
+            {isExtractingExif && (
+              <div className="mt-2 flex items-center gap-2 text-xs text-emerald-600">
+                <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+                <span className="font-medium">Extracting EXIF data...</span>
+              </div>
             )}
             
             {exifDateTime && !imagePreview && (
