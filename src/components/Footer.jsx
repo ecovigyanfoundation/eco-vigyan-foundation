@@ -32,10 +32,10 @@ export default function Footer() {
           <div className="space-y-4">
             <div>
               {/* Increased from text-xl to text-2xl */}
-              <h3 className="text-2xl font-black text-emerald-400 tracking-tight uppercase">
-                EcoVigyan <span className="text-emerald-500">Foundation</span>
+              <h3 className="text-2xl font-black text-white tracking-tight uppercase">
+                Eco Vigyan <span className="text-emerald-500">Foundation</span>
               </h3>
-              <p className="text-xs font-bold tracking-widest text-white mt-1 uppercase">
+              <p className="text-xs font-bold tracking-widest text-emerald-400 mt-1 uppercase">
                 Est. 2022 • Shimla
               </p>
             </div>

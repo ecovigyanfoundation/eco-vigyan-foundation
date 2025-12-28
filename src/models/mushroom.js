@@ -1,44 +1,128 @@
 import mongoose from "mongoose";
 
-const mushroomSchema = new mongoose.Schema(
+const MushroomSchema = new mongoose.Schema(
   {
-    name: {
+    /* ================= USER SUBMISSION ================= */
+
+    commonName: {
       type: String,
-      required: true,
+      trim: true,
+      maxlength: 120,
     },
-
-    scientificName: String,
-
-    description: String,
 
     images: [
       {
-        public_id: String,
-        url: String,
+        url: { type: String, required: true },
+        publicId: { type: String, required: true },
       },
     ],
 
     location: {
-      latitude: Number,
-      longitude: Number,
+      latitude: { type: Number, required: true },
+      longitude: { type: Number, required: true },
     },
 
-    contributor: {
+    submittedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
 
+    /* ================= ADMIN CLASSIFICATION ================= */
+
+    ecologicalRole: {
+      type: String,
+      enum: ["decomposer", "symbiont", "parasite"],
+    },
+
+    texture: {
+      type: String,
+      enum: [
+        "soft-to-touch",
+        "hard-to-touch",
+        "jelly-like",
+        "leathery",
+      ],
+    },
+
+    underside: {
+      type: String,
+      enum: [
+        "gills",
+        "pores",
+        "teeth",
+        "ball-with-no-distinctive-bottom",
+        "cup-with-no-distinctive-bottom",
+        "star-with-no-distinctive-bottom",
+        "jelly-with-no-distinctive-bottom",
+        "sponge-with-no-distinctive-bottom",
+      ],
+    },
+
+    fruitingSurface: {
+      type: String,
+      enum: ["ground", "leaf", "wood", "dung"],
+    },
+
+    stemPresence: {
+      type: String,
+      enum: ["has-stem", "has-no-stem"],
+    },
+
+    commonUses: {
+      type: [String],
+      enum: [
+        "edible",
+        "inedible",
+        "poisonous",
+        "medicinal",
+        "hallucinogenic",
+        "other-uses",
+        "mysterious",
+      ],
+      default: [],
+    },
+
+    scientificName: {
+      type: String,
+      trim: true,
+    },
+
+    description: {
+      type: String,
+      maxlength: 5000,
+    },
+
+    adminNotes: {
+      type: String,
+      maxlength: 2000,
+    },
+
+    /* ================= MODERATION ================= */
+
     status: {
       type: String,
       enum: ["pending", "approved", "rejected"],
       default: "pending",
+      index: true,
     },
 
-    category: String, // edible, poisonous, medicinal
+    reviewedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+
+    approvedAt: {
+      type: Date,
+    },
+
+    rejectionReason: {
+      type: String,
+      maxlength: 1000,
+    },
   },
   { timestamps: true }
 );
 
 export default mongoose.models.Mushroom ||
-  mongoose.model("Mushroom", mushroomSchema);
+  mongoose.model("Mushroom", MushroomSchema);

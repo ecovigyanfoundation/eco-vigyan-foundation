@@ -10,7 +10,6 @@ export async function POST(req) {
   try {
     await connectDB();
 
-    // Authentication check
     if (!process.env.JWT_SECRET) {
       return NextResponse.json(
         { error: "Server configuration error" },
@@ -18,53 +17,27 @@ export async function POST(req) {
       );
     }
 
-    // Get token from cookies - read from request headers first
-    let token = null;
-    const cookieHeader = req.headers.get("cookie");
-    if (cookieHeader) {
-      const cookieObj = cookieHeader.split(";").reduce((acc, cookie) => {
-        const [key, value] = cookie.trim().split("=");
-        if (key && value) {
-          acc[key] = value; // Don't decode here, decode after getting token
-        }
-        return acc;
-      }, {});
-      token = cookieObj.token;
-    }
-    
-    // Fallback: try using cookies() API if header method fails
-    if (!token) {
-      try {
-        const cookieStore = await cookies();
-        if (cookieStore && typeof cookieStore.get === "function") {
-          token = cookieStore.get("token")?.value;
-        }
-      } catch (error) {
-        console.error("Error reading cookies:", error);
-      }
-    }
+    /* ================= AUTH ================= */
+
+    const token = cookies().get("token")?.value;
 
     if (!token) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Decode URL-encoded token (only once)
-    const decodedToken = decodeURIComponent(token);
-    const decoded = jwt.verify(decodedToken, process.env.JWT_SECRET);
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch {
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    }
 
-    // Get user and check role
     const user = await User.findById(decoded.id);
+
     if (!user || user.isBanned) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check if user is writer or admin
     if (user.role !== "writer" && user.role !== "admin") {
       return NextResponse.json(
         { error: "Only writers and admins can upload articles" },
@@ -72,13 +45,7 @@ export async function POST(req) {
       );
     }
 
-    // Validate Cloudinary configuration
-    if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
-      return NextResponse.json(
-        { error: "Cloudinary is not configured" },
-        { status: 500 }
-      );
-    }
+    /* ================= FORM DATA ================= */
 
     const formData = await req.formData();
     const title = formData.get("title")?.trim();
@@ -86,7 +53,6 @@ export async function POST(req) {
     const image1 = formData.get("image1");
     const image2 = formData.get("image2");
 
-    // Validation
     if (!title || !content) {
       return NextResponse.json(
         { error: "Title and content are required" },
@@ -94,7 +60,6 @@ export async function POST(req) {
       );
     }
 
-    // Validate title
     if (title.length < 5 || title.length > 200) {
       return NextResponse.json(
         { error: "Title must be between 5 and 200 characters" },
@@ -102,7 +67,6 @@ export async function POST(req) {
       );
     }
 
-    // Validate content
     if (content.length < 50 || content.length > 10000) {
       return NextResponse.json(
         { error: "Content must be between 50 and 10000 characters" },
@@ -110,69 +74,47 @@ export async function POST(req) {
       );
     }
 
-    // Validate images (at most 2)
+    /* ================= IMAGES ================= */
+
     const images = [];
-    const maxFileSize = 10 * 1024 * 1024; // 10MB
-    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+    const maxFileSize = 10 * 1024 * 1024;
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
 
-    if (image1 && image1 instanceof File && image1.size > 0) {
-      if (image1.size > maxFileSize) {
+    for (const img of [image1, image2]) {
+      if (!img || !(img instanceof File) || img.size === 0) continue;
+
+      if (img.size > maxFileSize) {
         return NextResponse.json(
-          { error: "Image 1 file size must be less than 10MB" },
+          { error: "Each image must be under 10MB" },
           { status: 400 }
         );
       }
-      if (!allowedTypes.includes(image1.type)) {
+
+      if (!allowedTypes.includes(img.type)) {
         return NextResponse.json(
-          { error: "Image 1 must be in JPEG, PNG, or WebP format" },
+          { error: "Invalid image format" },
           { status: 400 }
         );
       }
-      images.push(image1);
+
+      images.push(img);
     }
 
-    if (image2 && image2 instanceof File && image2.size > 0) {
-      if (image2.size > maxFileSize) {
-        return NextResponse.json(
-          { error: "Image 2 file size must be less than 10MB" },
-          { status: 400 }
-        );
-      }
-      if (!allowedTypes.includes(image2.type)) {
-        return NextResponse.json(
-          { error: "Image 2 must be in JPEG, PNG, or WebP format" },
-          { status: 400 }
-        );
-      }
-      images.push(image2);
-    }
+    /* ================= CLOUDINARY ================= */
 
-    // Upload images to Cloudinary
     const uploadedImages = [];
+
     for (const image of images) {
       const buffer = Buffer.from(await image.arrayBuffer());
 
       const uploadResult = await new Promise((resolve, reject) => {
-        const uploadStream = cloudinary.uploader.upload_stream(
-          {
-            folder: "articles",
-            resource_type: "image",
-          },
+        cloudinary.uploader.upload_stream(
+          { folder: "articles" },
           (err, result) => {
-            if (err) {
-              console.error("Cloudinary upload error:", err);
-              reject(new Error(`Image upload failed: ${err.message || "Unknown error"}`));
-              return;
-            }
-            if (!result) {
-              reject(new Error("Image upload failed: No result returned"));
-              return;
-            }
-            resolve(result);
+            if (err) reject(err);
+            else resolve(result);
           }
-        );
-
-        uploadStream.end(buffer);
+        ).end(buffer);
       });
 
       uploadedImages.push({
@@ -181,7 +123,8 @@ export async function POST(req) {
       });
     }
 
-    // Create article entry
+    /* ================= DB ================= */
+
     const article = await Article.create({
       title,
       content,
@@ -190,7 +133,6 @@ export async function POST(req) {
       status: "active",
     });
 
-    // Populate uploadedBy for response
     await article.populate("uploadedBy", "name username dp");
 
     return NextResponse.json(
@@ -210,10 +152,8 @@ export async function POST(req) {
   } catch (error) {
     console.error("Article upload error:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to upload article" },
+      { error: "Failed to upload article" },
       { status: 500 }
     );
   }
 }
-
-

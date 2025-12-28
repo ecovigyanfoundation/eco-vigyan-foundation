@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import jwt from "jsonwebtoken";
 import cloudinary from "@/lib/cloudinary";
 import { connectDB } from "@/lib/mongodb";
-import Mushroom from "@/models/mushroom";
+import Mushroom from "@/models/Mushroom";
 import { NextResponse } from "next/server";
 
 export async function POST(req) {

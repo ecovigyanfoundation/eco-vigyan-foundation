@@ -151,11 +151,12 @@ export default function Map({ data = [], filters = {}, mode, onMarkerSelect }) {
       popupRef.current?.remove();
 
       // FIRST: move map (no popup yet)
+      // Add more top padding to account for header (header is ~150px tall)
       map.easeTo({
         center: [lng, lat],
         zoom: 9,
         duration: 800,
-        padding: { top: 120, bottom: 120 },
+        padding: { top: 200, bottom: 120, left: 20, right: 20 },
         essential: true,
       });
       
@@ -169,7 +170,7 @@ export default function Map({ data = [], filters = {}, mode, onMarkerSelect }) {
           closeOnClick: true,
           closeOnMove: false, // 🔒 critical
           anchor: "bottom", // 🔒 lock anchor
-          offset: [0, 12], // stable offset
+          offset: [0, -10], // Negative offset to move popup up from marker
           maxWidth: "none",
           className: "mushroom-popup-container",
         })
@@ -180,7 +181,7 @@ export default function Map({ data = [], filters = {}, mode, onMarkerSelect }) {
         popupRef.current = popup;
 
         createRoot(popupNode).render(
-          <div className="w-[300px] sm:w-[350px] bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-100">
+          <div className="w-[300px] sm:w-[350px] bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-100 z-[200]">
             {item.image && (
               <div className="w-full h-40 bg-gray-200">
                 <img

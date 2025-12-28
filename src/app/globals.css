@@ -8,11 +8,22 @@
   border-radius: 12px;
 }
 
+.mapboxgl-popup {
+  z-index: 200 !important; /* Ensure popup is above header (z-[100]) */
+}
+
 .mapboxgl-popup-close-button {
   padding: 5px 10px;
   color: white; /* Makes 'X' visible against images */
   font-size: 20px;
   z-index: 10;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Custom scrollbar for the info text */

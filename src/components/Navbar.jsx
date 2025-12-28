@@ -259,6 +259,16 @@ export default function Navbar() {
                             )}
                           </div>
                           <div className="py-1">
+                            {user.role === "admin" && (
+                              <Link
+                                href="/admin/mushrooms"
+                                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-emerald-700 hover:bg-emerald-50 transition"
+                                onClick={() => setUserMenuOpen(false)}
+                              >
+                                <User className="w-4 h-4" />
+                                Admin Panel
+                              </Link>
+                            )}
                             <button
                               onClick={handleLogout}
                               className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition"
@@ -369,6 +379,15 @@ export default function Navbar() {
                         <p className="text-xs text-slate-500">{user.email}</p>
                       </div>
                     </div>
+                    {user.role === "admin" && (
+                      <Link
+                        href="/admin/mushrooms"
+                        className="w-full text-center px-6 py-3 border border-emerald-600 text-emerald-700 font-bold rounded-lg hover:bg-emerald-50 transition mb-2"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        Admin Panel
+                      </Link>
+                    )}
                     <button
                       onClick={() => {
                         handleLogout();
