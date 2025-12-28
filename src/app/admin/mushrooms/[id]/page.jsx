@@ -5,8 +5,9 @@ import { useParams, useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { 
   CheckCircle, XCircle, Clock, Save, 
-  ChevronLeft, Info, FlaskConical, Map, Sprout 
+  ChevronLeft, Info, FlaskConical, Map, Sprout, Trash2
 } from "lucide-react";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 /* ================= OPTIONS ================= */
 const ECOLOGICAL_ROLES = ["decomposer", "symbiont", "parasite"];
@@ -21,6 +22,7 @@ export default function AdminMushroomReviewPage() {
   const router = useRouter();
   const [mushroom, setMushroom] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const [form, setForm] = useState({
     scientificName: "",
@@ -95,6 +97,35 @@ export default function AdminMushroomReviewPage() {
     }
   };
 
+  const handleDeleteClick = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!mushroom) return;
+
+    try {
+      const res = await fetch(`/api/mushrooms/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to delete mushroom");
+      }
+
+      toast.success("Mushroom deleted successfully");
+      setTimeout(() => router.push("/admin/mushrooms"), 1000);
+    } catch (error) {
+      console.error("Delete error:", error);
+      toast.error(error.message || "Failed to delete mushroom");
+    } finally {
+      setShowDeleteConfirm(false);
+    }
+  };
+
   if (loading) return (
     <div className="flex flex-col items-center justify-center min-h-screen space-y-4">
       <div className="w-12 h-12 border-4 border-green-200 border-t-green-600 rounded-full animate-spin"></div>
@@ -134,6 +165,13 @@ export default function AdminMushroomReviewPage() {
              </button>
              <button onClick={() => submit("approve")} className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700 shadow-md shadow-green-200 transition-all">
                <CheckCircle className="w-4 h-4" /> Approve Species
+             </button>
+             <button 
+               onClick={handleDeleteClick} 
+               className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white text-sm font-bold rounded-lg hover:bg-red-700 shadow-md shadow-red-200 transition-all"
+               title="Delete this submission permanently"
+             >
+               <Trash2 className="w-4 h-4" /> Delete
              </button>
           </div>
         </div>
@@ -258,6 +296,22 @@ export default function AdminMushroomReviewPage() {
           </div>
         </div>
       </main>
+
+      {/* DELETE CONFIRMATION DIALOG */}
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Submission"
+        message={`Are you sure you want to delete "${mushroom?.commonName || "this mushroom"}"? This action cannot be undone.${
+          mushroom?.status === "approved"
+            ? "\n\nNote: This will also remove the point from the submitter."
+            : ""
+        }`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        confirmColor="red"
+      />
     </div>
   );
 }

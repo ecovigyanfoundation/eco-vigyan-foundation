@@ -13,7 +13,10 @@ import {
   Image as ImageIcon,
   ArrowLeft,
   Filter,
+  Trash2,
 } from "lucide-react";
+import toast from "react-hot-toast";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 export default function MySubmissionsPage() {
   const router = useRouter();
@@ -27,6 +30,11 @@ export default function MySubmissionsPage() {
     approved: 0,
     rejected: 0,
     all: 0,
+  });
+  const [deleteConfirm, setDeleteConfirm] = useState({
+    isOpen: false,
+    mushroomId: null,
+    mushroomName: null,
   });
 
   useEffect(() => {
@@ -65,6 +73,42 @@ export default function MySubmissionsPage() {
       setMushrooms([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteClick = (mushroomId, mushroomName) => {
+    setDeleteConfirm({
+      isOpen: true,
+      mushroomId,
+      mushroomName,
+    });
+  };
+
+  const handleDeleteConfirm = async () => {
+    const { mushroomId } = deleteConfirm;
+    if (!mushroomId) return;
+
+    try {
+      const res = await fetch(`/api/mushrooms/${mushroomId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to delete mushroom");
+      }
+
+      toast.success("Mushroom deleted successfully");
+      
+      // Refresh the list
+      await fetchSubmissions();
+    } catch (err) {
+      console.error("Delete error:", err);
+      toast.error(err.message || "Failed to delete mushroom");
+    } finally {
+      setDeleteConfirm({ isOpen: false, mushroomId: null, mushroomName: null });
     }
   };
 
@@ -244,9 +288,23 @@ export default function MySubmissionsPage() {
 
                 {/* CONTENT */}
                 <div className="p-5">
-                  <h3 className="font-black text-lg text-gray-900 mb-3 line-clamp-1">
-                    {mushroom.commonName || "Unnamed Mushroom"}
-                  </h3>
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <h3 className="font-black text-lg text-gray-900 line-clamp-1 flex-1">
+                      {mushroom.commonName || "Unnamed Mushroom"}
+                    </h3>
+                    <button
+                      onClick={() =>
+                        handleDeleteClick(
+                          mushroom._id,
+                          mushroom.commonName || "Unnamed Mushroom"
+                        )
+                      }
+                      className="shrink-0 p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Delete submission"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
 
                   {/* METADATA */}
                   <div className="space-y-2 text-sm mb-4">
@@ -376,6 +434,25 @@ export default function MySubmissionsPage() {
           </div>
         )}
       </div>
+
+      {/* DELETE CONFIRMATION DIALOG */}
+      <ConfirmDialog
+        isOpen={deleteConfirm.isOpen}
+        onClose={() =>
+          setDeleteConfirm({ isOpen: false, mushroomId: null, mushroomName: null })
+        }
+        onConfirm={handleDeleteConfirm}
+        title="Delete Submission"
+        message={`Are you sure you want to delete "${deleteConfirm.mushroomName || "this mushroom"}"? This action cannot be undone.${
+          mushrooms.find((m) => m._id === deleteConfirm.mushroomId)?.status ===
+          "approved"
+            ? "\n\nNote: This will also remove the point you earned for this submission."
+            : ""
+        }`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        confirmColor="red"
+      />
     </div>
   );
 }

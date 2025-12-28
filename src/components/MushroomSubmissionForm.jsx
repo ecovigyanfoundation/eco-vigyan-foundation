@@ -24,6 +24,7 @@ export default function MushroomSubmissionForm({
   onLocationSelect,
 }) {
   const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [locationInputMethod, setLocationInputMethod] = useState("map"); // map, city, manual
@@ -48,6 +49,13 @@ export default function MushroomSubmissionForm({
     if (!file) return;
 
     setImageFile(file);
+
+    // Create preview URL
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result);
+    };
+    reader.readAsDataURL(file);
 
     // Extract EXIF data
     try {
@@ -74,6 +82,14 @@ export default function MushroomSubmissionForm({
       setHasExifGps(false);
       setLocationInputMethod("map");
     }
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    setExifDateTime(null);
+    setHasExifGps(false);
+    onLocationSelect?.(null);
   };
 
   const handleCitySearch = async () => {
@@ -193,6 +209,7 @@ export default function MushroomSubmissionForm({
 
       // Reset form
       setImageFile(null);
+      setImagePreview(null);
       setCommonName("");
       setEcologicalRole("");
       setTexture("");
@@ -279,22 +296,76 @@ export default function MushroomSubmissionForm({
             <label className="block text-xs font-bold text-stone-700 mb-2 uppercase tracking-wider">
               Photo <span className="text-red-500">*</span>
             </label>
-            <label className="flex flex-col items-center justify-center w-full h-36 border-2 border-dashed rounded-3xl cursor-pointer hover:bg-emerald-50 hover:border-emerald-300 group transition-all bg-stone-50">
-              <div className="bg-white p-3 rounded-full shadow-sm group-hover:scale-110 transition-transform">
-                <Camera className="text-emerald-600" size={24} />
+            
+            {imagePreview ? (
+              // IMAGE PREVIEW
+              <div className="relative w-full rounded-3xl overflow-hidden border-2 border-emerald-300 bg-stone-50">
+                <img
+                  src={imagePreview}
+                  alt="Selected mushroom"
+                  className="w-full h-64 object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent">
+                  <div className="absolute bottom-0 left-0 right-0 p-4">
+                    <p className="text-white text-xs font-bold mb-1 truncate">
+                      {imageFile.name}
+                    </p>
+                    {exifDateTime && (
+                      <p className="text-white/80 text-[10px] font-medium">
+                        📅 {exifDateTime.toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleRemoveImage}
+                  className="absolute top-3 right-3 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg"
+                  title="Remove image"
+                >
+                  <X size={16} />
+                </button>
+                <label className="absolute bottom-3 right-3 cursor-pointer">
+                  <span className="px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-700 transition-colors shadow-lg">
+                    Change Photo
+                  </span>
+                  <input
+                    type="file"
+                    className="hidden"
+                    onChange={handleImageChange}
+                    accept="image/*"
+                  />
+                </label>
               </div>
-              <p className="mt-3 text-[10px] text-stone-400 group-hover:text-emerald-700 uppercase font-black tracking-widest">
-                {imageFile ? imageFile.name : "Upload Specimen Photo"}
-              </p>
-              <input
-                type="file"
-                className="hidden"
-                onChange={handleImageChange}
-                accept="image/*"
-                required
-              />
-            </label>
-            {exifDateTime && (
+            ) : (
+              // UPLOAD AREA
+              <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-3xl cursor-pointer hover:bg-emerald-50 hover:border-emerald-300 group transition-all bg-stone-50 relative overflow-hidden">
+                <div className="bg-white p-4 rounded-full shadow-sm group-hover:scale-110 transition-transform z-10">
+                  <Camera className="text-emerald-600" size={28} />
+                </div>
+                <p className="mt-4 text-xs text-stone-600 group-hover:text-emerald-700 font-bold uppercase tracking-wider z-10 text-center px-4">
+                  Tap to Select from Gallery
+                </p>
+                <p className="mt-1 text-[10px] text-stone-400 group-hover:text-emerald-600 font-medium z-10 text-center px-4">
+                  Choose an image with EXIF data for automatic location
+                </p>
+                <div className="mt-3 flex items-center gap-2 px-3 py-1.5 bg-emerald-100 rounded-full z-10">
+                  <span className="text-[9px] text-emerald-700 font-bold">📸</span>
+                  <span className="text-[9px] text-emerald-700 font-medium">
+                    EXIF data will be extracted automatically
+                  </span>
+                </div>
+                <input
+                  type="file"
+                  className="hidden"
+                  onChange={handleImageChange}
+                  accept="image/*"
+                  required
+                />
+              </label>
+            )}
+            
+            {exifDateTime && !imagePreview && (
               <p className="mt-2 text-xs text-emerald-600 font-medium">
                 📅 Photo taken: {exifDateTime.toLocaleString()}
               </p>
