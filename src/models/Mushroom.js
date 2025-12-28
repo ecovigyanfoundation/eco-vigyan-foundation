@@ -22,6 +22,10 @@ const MushroomSchema = new mongoose.Schema(
       longitude: { type: Number, required: true },
     },
 
+    photoDateTime: {
+      type: Date,
+    },
+
     submittedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
