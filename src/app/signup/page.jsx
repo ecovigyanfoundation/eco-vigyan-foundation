@@ -79,7 +79,18 @@ export default function SignUpPage() {
         body,
       });
 
-      const data = await res.json();
+      let data;
+      try {
+        const text = await res.text();
+        if (text) {
+          data = JSON.parse(text);
+        } else {
+          data = {};
+        }
+      } catch (parseError) {
+        console.error("Failed to parse response:", parseError);
+        throw new Error(`Server error: ${res.status} ${res.statusText}`);
+      }
 
       if (!res.ok) {
         throw new Error(data.error || data.message || "Signup failed");

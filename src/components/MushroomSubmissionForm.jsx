@@ -169,9 +169,6 @@ export default function MushroomSubmissionForm({
         method: "POST",
         body: fd,
         credentials: "include",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
       });
 
       let data;
