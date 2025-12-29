@@ -8,6 +8,8 @@ import User from "@/models/User";
 
 // Configure route to handle larger body sizes (10MB)
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 
 export async function GET(req) {
@@ -119,7 +121,7 @@ export async function POST(req) {
       // Handle body size limit errors (413)
       if (error.message && error.message.includes('body') || error.message && error.message.includes('size')) {
         return NextResponse.json(
-          { error: "Request body is too large. Please use images under 10MB each." },
+          { error: "Request body is too large. The server has a limit of ~4.5MB. Please compress your image or use an image under 4MB." },
           { status: 413 }
         );
       }
@@ -130,8 +132,10 @@ export async function POST(req) {
     const latitudeStr = formData.get("latitude");
     const longitudeStr = formData.get("longitude");
     const photoDateTimeStr = formData.get("photoDateTime");
-    const image1 = formData.get("image1");
-    const image2 = formData.get("image2");
+    const image1 = formData.get("image1"); // File upload (legacy)
+    const image2 = formData.get("image2"); // File upload (legacy)
+    const imageUrl = formData.get("imageUrl"); // Direct Cloudinary URL
+    const imagePublicId = formData.get("imagePublicId"); // Cloudinary public ID
     
     // Optional classification fields
     const ecologicalRole = formData.get("ecologicalRole")?.trim() || null;
@@ -166,60 +170,76 @@ export async function POST(req) {
       );
     }
 
-    /* ================= IMAGE VALIDATION ================= */
+    /* ================= IMAGE HANDLING ================= */
 
-    const images = [];
-    const maxFileSize = 10 * 1024 * 1024; // 10MB
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    const uploadedImages = [];
 
-    for (const img of [image1, image2]) {
-      if (!img || !(img instanceof File) || img.size === 0) continue;
+    // Check if image is already uploaded to Cloudinary (direct upload)
+    if (imageUrl) {
+      // Image already uploaded directly to Cloudinary
+      uploadedImages.push({
+        url: imageUrl,
+        publicId: imagePublicId || null,
+      });
+    } else {
+      // Legacy: Upload file to Cloudinary (for backward compatibility)
+      const images = [];
+      const maxFileSize = 4 * 1024 * 1024; // 4MB (to avoid 413 errors from hosting platform limits)
+      const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
 
-      if (img.size > maxFileSize) {
+      for (const img of [image1, image2]) {
+        if (!img || !(img instanceof File) || img.size === 0) continue;
+
+        if (img.size > maxFileSize) {
+          return NextResponse.json(
+            { error: `Image is too large (${(img.size / 1024 / 1024).toFixed(2)}MB). Please use an image under 4MB. Try compressing the image.` },
+            { status: 400 }
+          );
+        }
+
+        if (!allowedTypes.includes(img.type)) {
+          return NextResponse.json(
+            { error: "Invalid image format" },
+            { status: 400 }
+          );
+        }
+
+        images.push(img);
+      }
+
+      if (images.length === 0) {
         return NextResponse.json(
-          { error: `Image is too large (${(img.size / 1024 / 1024).toFixed(2)}MB). Please use an image under 10MB.` },
+          { error: "At least one image is required" },
           { status: 400 }
         );
       }
 
-      if (!allowedTypes.includes(img.type)) {
-        return NextResponse.json(
-          { error: "Invalid image format" },
-          { status: 400 }
-        );
-      }
+      // Upload files to Cloudinary
+      for (const image of images) {
+        const buffer = Buffer.from(await image.arrayBuffer());
 
-      images.push(img);
+        const uploadResult = await new Promise((resolve, reject) => {
+          cloudinary.uploader.upload_stream(
+            { folder: "mushrooms" },
+            (err, result) => {
+              if (err) reject(err);
+              else resolve(result);
+            }
+          ).end(buffer);
+        });
+
+        uploadedImages.push({
+          url: uploadResult.secure_url,
+          publicId: uploadResult.public_id,
+        });
+      }
     }
 
-    if (images.length === 0) {
+    if (uploadedImages.length === 0) {
       return NextResponse.json(
         { error: "At least one image is required" },
         { status: 400 }
       );
-    }
-
-    /* ================= CLOUDINARY UPLOAD ================= */
-
-    const uploadedImages = [];
-
-    for (const image of images) {
-      const buffer = Buffer.from(await image.arrayBuffer());
-
-      const uploadResult = await new Promise((resolve, reject) => {
-        cloudinary.uploader.upload_stream(
-          { folder: "mushrooms" },
-          (err, result) => {
-            if (err) reject(err);
-            else resolve(result);
-          }
-        ).end(buffer);
-      });
-
-      uploadedImages.push({
-        url: uploadResult.secure_url,
-        publicId: uploadResult.public_id,
-      });
     }
 
     /* ================= CREATE MUSHROOM ================= */

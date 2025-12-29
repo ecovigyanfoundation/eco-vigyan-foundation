@@ -44,6 +44,9 @@ export default function MushroomSubmissionForm({
   const [fruitingSurface, setFruitingSurface] = useState("");
   const [stemPresence, setStemPresence] = useState("");
   const [commonUses, setCommonUses] = useState([]);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState(null);
+  const [uploadedImagePublicId, setUploadedImagePublicId] = useState(null);
+  const [isUploadingToCloudinary, setIsUploadingToCloudinary] = useState(false);
 
   if (!isOpen) return null;
 
@@ -100,7 +103,7 @@ export default function MushroomSubmissionForm({
     const file = e.target.files[0];
     if (!file) return;
 
-    // Validate file size before processing (10MB limit)
+    // Validate file size before processing (10MB limit for direct Cloudinary upload)
     const maxFileSize = 10 * 1024 * 1024; // 10MB
     if (file.size > maxFileSize) {
       toast.error(`Image is too large (${(file.size / 1024 / 1024).toFixed(2)}MB). Please use an image under 10MB.`);
@@ -125,6 +128,9 @@ export default function MushroomSubmissionForm({
 
     setIsFromCamera(isCamera);
     setImageFile(file);
+    // Reset uploaded state when new image is selected
+    setUploadedImageUrl(null);
+    setUploadedImagePublicId(null);
     setIsExtractingExif(true);
 
     // If from camera, get device location and date/time immediately
@@ -408,6 +414,61 @@ export default function MushroomSubmissionForm({
     return selectedLocation;
   };
 
+  // Upload image directly to Cloudinary
+  const uploadToCloudinary = async (file) => {
+    try {
+      setIsUploadingToCloudinary(true);
+
+      // Get upload signature from server
+      const sigRes = await fetch("/api/cloudinary/signature", {
+        method: "POST",
+        credentials: "include",
+      });
+
+      if (!sigRes.ok) {
+        const errorData = await sigRes.json().catch(() => ({}));
+        if (sigRes.status === 401 || sigRes.status === 403) {
+          throw new Error(errorData.error || "Please log in to upload images");
+        }
+        throw new Error(errorData.error || "Failed to get upload signature");
+      }
+
+      const { signature, timestamp, folder, cloudName, apiKey } = await sigRes.json();
+
+      // Upload directly to Cloudinary
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("api_key", apiKey);
+      formData.append("timestamp", timestamp);
+      formData.append("signature", signature);
+      formData.append("folder", folder);
+
+      const uploadRes = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      if (!uploadRes.ok) {
+        const errorData = await uploadRes.json();
+        throw new Error(errorData.error?.message || "Upload failed");
+      }
+
+      const uploadData = await uploadRes.json();
+      return {
+        url: uploadData.secure_url,
+        publicId: uploadData.public_id,
+      };
+    } catch (error) {
+      console.error("Cloudinary upload error:", error);
+      throw error;
+    } finally {
+      setIsUploadingToCloudinary(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -417,7 +478,7 @@ export default function MushroomSubmissionForm({
       return;
     }
 
-    if (!imageFile) {
+    if (!imageFile && !uploadedImageUrl) {
       toast.error("Please upload at least one image");
       return;
     }
@@ -425,10 +486,33 @@ export default function MushroomSubmissionForm({
     setIsSubmitting(true);
 
     try {
+      // Upload to Cloudinary if not already uploaded
+      let imageUrl = uploadedImageUrl;
+      let imagePublicId = uploadedImagePublicId;
+
+      if (imageFile && !uploadedImageUrl) {
+        toast.loading("Uploading image to Cloudinary...", { id: "upload" });
+        try {
+          const uploadResult = await uploadToCloudinary(imageFile);
+          imageUrl = uploadResult.url;
+          imagePublicId = uploadResult.publicId;
+          setUploadedImageUrl(imageUrl);
+          setUploadedImagePublicId(imagePublicId);
+          toast.success("Image uploaded successfully!", { id: "upload" });
+        } catch (uploadError) {
+          toast.error(uploadError.message || "Failed to upload image. Please try again.", { id: "upload" });
+          throw uploadError; // Re-throw to stop submission
+        }
+      }
+
+      // Send data to API with Cloudinary URL instead of file
       const fd = new FormData();
       fd.append("latitude", location.latitude);
       fd.append("longitude", location.longitude);
-      fd.append("image1", imageFile);
+      fd.append("imageUrl", imageUrl);
+      if (imagePublicId) {
+        fd.append("imagePublicId", imagePublicId);
+      }
 
       // Add date/time if available (from EXIF or device)
       if (exifDateTime) {
@@ -484,7 +568,7 @@ export default function MushroomSubmissionForm({
         } else if (res.status === 403) {
           throw new Error("Access denied. Please check your account status or try logging in again.");
         } else if (res.status === 413) {
-          throw new Error("Image file is too large. Please use an image under 10MB. Try compressing the image or using a lower resolution.");
+          throw new Error("Image file is too large. The server has a limit of ~4.5MB. Please compress your image or use an image under 4MB.");
         } else if (res.status === 400) {
           throw new Error(data.error || "Invalid submission data. Please check all fields.");
         } else {
@@ -503,6 +587,8 @@ export default function MushroomSubmissionForm({
       // Reset form
       setImageFile(null);
       setImagePreview(null);
+      setUploadedImageUrl(null);
+      setUploadedImagePublicId(null);
       setCommonName("");
       setEcologicalRole("");
       setTexture("");
@@ -723,7 +809,7 @@ export default function MushroomSubmissionForm({
               </div>
             )}
 
-            {(isExtractingExif || isGettingLocation) && (
+            {(isExtractingExif || isGettingLocation || isUploadingToCloudinary) && (
               <div className="mt-2 space-y-2">
                 {isGettingLocation && (
                   <div className="flex items-center gap-2 text-xs text-emerald-600">
@@ -735,6 +821,12 @@ export default function MushroomSubmissionForm({
                   <div className="flex items-center gap-2 text-xs text-emerald-600">
                     <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
                     <span className="font-medium">Extracting EXIF data from image...</span>
+                  </div>
+                )}
+                {isUploadingToCloudinary && (
+                  <div className="flex items-center gap-2 text-xs text-emerald-600">
+                    <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+                    <span className="font-medium">Uploading image to Cloudinary...</span>
                   </div>
                 )}
               </div>
@@ -996,7 +1088,9 @@ export default function MushroomSubmissionForm({
             disabled={isSubmitting}
             className="w-full bg-emerald-600 hover:bg-emerald-700 py-5 rounded-2xl text-white font-black text-sm uppercase tracking-[0.2em] transition-all active:scale-95 shadow-xl shadow-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isSubmitting ? "Processing..." : "Submit Observation"}
+            {isSubmitting 
+              ? (isUploadingToCloudinary ? "Uploading image..." : "Processing...") 
+              : "Submit Observation"}
           </button>
         </div>
       </div>
