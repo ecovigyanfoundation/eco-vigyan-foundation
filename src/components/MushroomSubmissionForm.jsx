@@ -642,25 +642,64 @@ export default function MushroomSubmissionForm({
               // UPLOAD OPTIONS
               <div className="space-y-3">
                 {/* CAMERA OPTION */}
-                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-emerald-300 rounded-2xl cursor-pointer hover:bg-emerald-50 group transition-all bg-emerald-50/30 relative">
-                  <div className="bg-emerald-600 p-3 rounded-full shadow-sm group-hover:scale-110 transition-transform">
-                    <Camera className="text-white" size={24} />
-                  </div>
-                  <p className="mt-2 text-xs text-emerald-700 font-bold uppercase tracking-wider">
-                    Take Photo with Camera
-                  </p>
-                  <p className="text-[10px] text-emerald-600 font-medium mt-1 text-center px-2">
-                    Automatically captures GPS location and date/time from your device
-                  </p>
+                <div className="relative">
+                  <label 
+                    htmlFor="camera-input"
+                    className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-emerald-300 rounded-2xl cursor-pointer hover:bg-emerald-50 group transition-all bg-emerald-50/30 relative"
+                  >
+                    <div className="bg-emerald-600 p-3 rounded-full shadow-sm group-hover:scale-110 transition-transform">
+                      <Camera className="text-white" size={24} />
+                    </div>
+                    <p className="mt-2 text-xs text-emerald-700 font-bold uppercase tracking-wider">
+                      Take Photo with Camera
+                    </p>
+                    <p className="text-[10px] text-emerald-600 font-medium mt-1 text-center px-2">
+                      Automatically captures GPS location and date/time from your device
+                    </p>
+                    {isGettingLocation && (
+                      <p className="text-[10px] text-emerald-600 font-medium mt-1 text-center px-2">
+                        📍 Requesting location permission...
+                      </p>
+                    )}
+                  </label>
                   <input
+                    id="camera-input"
                     type="file"
                     className="hidden"
-                    onChange={handleImageChange}
+                    onChange={async (e) => {
+                      // Request location permission when file is selected (user gesture)
+                      // This will trigger Chrome's native permission prompt
+                      if (navigator.geolocation) {
+                        try {
+                          setIsGettingLocation(true);
+                          // Request location - this triggers browser's native prompt
+                          const location = await getDeviceLocation();
+                          // Store location for later use
+                          onLocationSelect?.(location);
+                          setHasExifGps(false); // From device, not EXIF
+                          setLocationInputMethod("map");
+                          toast.success("Location permission granted!");
+                        } catch (error) {
+                          // Permission denied or other error
+                          const errorCode = error?.code;
+                          if (errorCode === 1) {
+                            toast.error("Location permission denied. You can select location manually.", {
+                              duration: 6000,
+                            });
+                          }
+                          // Continue with image processing even if location failed
+                        } finally {
+                          setIsGettingLocation(false);
+                        }
+                      }
+                      // Process the image
+                      handleImageChange(e);
+                    }}
                     accept="image/*"
                     capture="environment"
                     required
                   />
-                </label>
+                </div>
 
                 {/* MANUAL UPLOAD OPTION */}
                 <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-stone-300 rounded-2xl cursor-pointer hover:bg-stone-50 group transition-all bg-stone-50 relative">
