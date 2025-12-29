@@ -47,19 +47,17 @@ export default function MushroomSubmissionForm({
 
   if (!isOpen) return null;
 
-  // Get device GPS location
+  // Get device GPS location - this will trigger browser permission prompt
   const getDeviceLocation = () => {
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
         reject(new Error("Geolocation is not supported by this browser"));
         return;
       }
-
-      setIsGettingLocation(true);
       
+      // Request location with high accuracy - this will show browser permission prompt
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setIsGettingLocation(false);
           resolve({
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
@@ -67,13 +65,27 @@ export default function MushroomSubmissionForm({
           });
         },
         (error) => {
-          setIsGettingLocation(false);
-          reject(error);
+          // Preserve the error object with code for better error handling
+          // error.code: 1 = PERMISSION_DENIED, 2 = POSITION_UNAVAILABLE, 3 = TIMEOUT
+          // Pass the error directly to preserve all properties including code
+          console.log("Geolocation error details:", {
+            code: error.code,
+            message: error.message,
+            name: error.name,
+            fullError: error
+          });
+          
+          // Ensure the error object has the code property
+          if (error && typeof error.code === 'undefined') {
+            console.warn("Warning: Geolocation error missing code property:", error);
+          }
+          
+          reject(error); // Pass the original error object directly
         },
         {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0, // Don't use cached position
+          enableHighAccuracy: true, // Request high accuracy GPS
+          timeout: 20000, // Increased timeout for mobile devices (20 seconds)
+          maximumAge: 60000, // Allow cached position up to 1 minute old (helps if GPS is slow)
         }
       );
     });
@@ -88,10 +100,10 @@ export default function MushroomSubmissionForm({
     const file = e.target.files[0];
     if (!file) return;
 
-    // Validate file size before processing (4MB limit to avoid 413 errors)
-    const maxFileSize = 4 * 1024 * 1024; // 4MB (Next.js default limit is ~4.5MB)
+    // Validate file size before processing (10MB limit)
+    const maxFileSize = 10 * 1024 * 1024; // 10MB
     if (file.size > maxFileSize) {
-      toast.error(`Image is too large (${(file.size / 1024 / 1024).toFixed(2)}MB). Please use an image under 4MB.`);
+      toast.error(`Image is too large (${(file.size / 1024 / 1024).toFixed(2)}MB). Please use an image under 10MB.`);
       e.target.value = ""; // Clear the input
       return;
     }
@@ -117,9 +129,14 @@ export default function MushroomSubmissionForm({
 
     // If from camera, get device location and date/time immediately
     if (isCamera) {
-      try {
-        // Get device GPS location
+      // Get current date/time first (doesn't require permission)
+      const currentDateTime = getCurrentDateTime();
+      setExifDateTime(currentDateTime);
+      
+      // Request device GPS location (this will trigger browser permission prompt)
+      if (navigator.geolocation) {
         try {
+          setIsGettingLocation(true);
           const deviceLocation = await getDeviceLocation();
           onLocationSelect?.(deviceLocation);
           setHasExifGps(true);
@@ -127,16 +144,46 @@ export default function MushroomSubmissionForm({
           toast.success(`Location captured: ${deviceLocation.latitude.toFixed(5)}, ${deviceLocation.longitude.toFixed(5)}`);
         } catch (locationError) {
           console.warn("Could not get device location:", locationError);
-          toast.info("Could not get GPS location. Please enable location services or select location manually.");
+          console.warn("Location error details:", {
+            code: locationError.code,
+            message: locationError.message,
+            name: locationError.name,
+            fullError: locationError
+          });
+          
+          // Check if it's actually a permission error (code 1 = PERMISSION_DENIED)
+          // Be very strict - only show permission denied if code is explicitly 1
+          const errorCode = locationError?.code;
+          const isPermissionError = errorCode === 1;
+          
+          if (isPermissionError) {
+            toast.error("Location permission denied. Please enable location access in your browser settings to automatically capture location.", {
+              duration: 6000,
+            });
+          } else {
+            // For other errors (timeout, position unavailable, etc.), show a generic message
+            // Don't show permission denied for timeouts or other errors
+            const errorMsg = errorCode === 2 
+              ? "Location unavailable. You can select location manually."
+              : errorCode === 3
+              ? "Location request timed out. You can select location manually."
+              : "Could not get GPS location. You can select location manually.";
+            
+            toast(errorMsg, {
+              icon: "ℹ️",
+              duration: 5000,
+            });
+          }
+        } finally {
+          setIsGettingLocation(false);
         }
-
-        // Get current date/time
-        const currentDateTime = getCurrentDateTime();
-        setExifDateTime(currentDateTime);
-        toast.success(`Date/time captured: ${currentDateTime.toLocaleString()}`);
-      } catch (error) {
-        console.error("Error getting device location/time:", error);
+      } else {
+        toast("Geolocation not supported. Please select location manually.", {
+          icon: "ℹ️",
+        });
       }
+      
+      toast.success(`Date/time captured: ${currentDateTime.toLocaleString()}`);
     }
 
     // Create preview URL (separate from EXIF extraction)
@@ -205,25 +252,78 @@ export default function MushroomSubmissionForm({
         }
         // If no EXIF date/time, device date/time was already set above
       } else {
-        // Gallery photo: Try to use EXIF, otherwise allow manual selection
+        // Gallery photo: Try to use EXIF, if no GPS found, get device location
         const isLikelyStripped = !gps && !dateTime && file.size > 0;
         
         if (gps && gps.latitude && gps.longitude) {
+          // EXIF GPS found - use it
           onLocationSelect?.(gps);
           setHasExifGps(true);
           setLocationInputMethod("map");
           toast.success(`Location found in EXIF: ${gps.latitude.toFixed(5)}, ${gps.longitude.toFixed(5)}`);
         } else {
-          // No GPS in EXIF, allow manual selection
-          setHasExifGps(false);
-          setLocationInputMethod("map");
-          
-          if (isLikelyStripped) {
-            toast.info("EXIF data not found. Some mobile browsers/galleries strip EXIF data for privacy. Please select location manually.", {
-              duration: 5000,
-            });
+          // No GPS in EXIF - try to get device location
+          if (navigator.geolocation) {
+            try {
+              setIsGettingLocation(true);
+              const deviceLocation = await getDeviceLocation();
+              onLocationSelect?.(deviceLocation);
+              setHasExifGps(false); // Not from EXIF, but from device
+              setLocationInputMethod("map");
+              toast.success(`Location captured from device: ${deviceLocation.latitude.toFixed(5)}, ${deviceLocation.longitude.toFixed(5)}`);
+            } catch (locationError) {
+              console.warn("Could not get device location:", locationError);
+              console.warn("Location error details:", {
+                code: locationError?.code,
+                message: locationError?.message,
+                name: locationError?.name
+              });
+              
+              // No GPS in EXIF and device location failed - allow manual selection
+              setHasExifGps(false);
+              setLocationInputMethod("map");
+              
+              // Be very strict - only show permission denied if code is explicitly 1
+              const errorCode = locationError?.code;
+              const isPermissionError = errorCode === 1;
+              
+              if (isPermissionError) {
+                toast.error("Location permission denied. Please enable location access or select location manually.", {
+                  duration: 6000,
+                });
+              } else {
+                // For other errors, show appropriate message
+                const errorMsg = errorCode === 2
+                  ? "Location unavailable. Please select location manually."
+                  : errorCode === 3
+                  ? "Location request timed out. Please select location manually."
+                  : isLikelyStripped
+                  ? "EXIF data not found and could not get device location. Some mobile browsers/galleries strip EXIF data. Please select location manually."
+                  : "No GPS data found in image and could not get device location. Please select location manually.";
+                
+                toast(errorMsg, {
+                  icon: "ℹ️",
+                  duration: 5000,
+                });
+              }
+            } finally {
+              setIsGettingLocation(false);
+            }
           } else {
-            toast.info("No GPS data found in image. Please select location manually.");
+            // Geolocation not supported - allow manual selection
+            setHasExifGps(false);
+            setLocationInputMethod("map");
+            
+            if (isLikelyStripped) {
+              toast("EXIF data not found. Some mobile browsers/galleries strip EXIF data for privacy. Please select location manually.", {
+                icon: "ℹ️",
+                duration: 5000,
+              });
+            } else {
+              toast("No GPS data found in image. Please select location manually.", {
+                icon: "ℹ️",
+              });
+            }
           }
         }
 
@@ -384,7 +484,7 @@ export default function MushroomSubmissionForm({
         } else if (res.status === 403) {
           throw new Error("Access denied. Please check your account status or try logging in again.");
         } else if (res.status === 413) {
-          throw new Error("Image file is too large. Please use an image under 4MB. Try compressing the image or using a lower resolution.");
+          throw new Error("Image file is too large. Please use an image under 10MB. Try compressing the image or using a lower resolution.");
         } else if (res.status === 400) {
           throw new Error(data.error || "Invalid submission data. Please check all fields.");
         } else {

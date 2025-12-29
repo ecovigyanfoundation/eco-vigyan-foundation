@@ -6,6 +6,9 @@ import { connectDB } from "@/lib/mongodb";
 import Mushroom from "@/models/Mushroom";
 import User from "@/models/User";
 
+// Configure route to handle larger body sizes (10MB)
+export const runtime = 'nodejs';
+
 
 export async function GET(req) {
   try {
@@ -116,7 +119,7 @@ export async function POST(req) {
       // Handle body size limit errors (413)
       if (error.message && error.message.includes('body') || error.message && error.message.includes('size')) {
         return NextResponse.json(
-          { error: "Request body is too large. Please use images under 4MB each." },
+          { error: "Request body is too large. Please use images under 10MB each." },
           { status: 413 }
         );
       }
@@ -166,7 +169,7 @@ export async function POST(req) {
     /* ================= IMAGE VALIDATION ================= */
 
     const images = [];
-    const maxFileSize = 4 * 1024 * 1024; // 4MB (Next.js body limit is ~4.5MB)
+    const maxFileSize = 10 * 1024 * 1024; // 10MB
     const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
 
     for (const img of [image1, image2]) {
@@ -174,7 +177,7 @@ export async function POST(req) {
 
       if (img.size > maxFileSize) {
         return NextResponse.json(
-          { error: `Image is too large (${(img.size / 1024 / 1024).toFixed(2)}MB). Please use an image under 4MB.` },
+          { error: `Image is too large (${(img.size / 1024 / 1024).toFixed(2)}MB). Please use an image under 10MB.` },
           { status: 400 }
         );
       }
