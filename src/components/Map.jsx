@@ -558,11 +558,30 @@ map.on("mouseleave", "mushroom-points", () => {
 
     // Create and update resize handles
     const updateResizeHandles = () => {
-      // Remove existing handles
+      const handles = getHandlePositions();
+      
+      // Store handles as Map with type as key for easier lookup
+      const handleMap = new Map();
+      handles.forEach(h => handleMap.set(h.type, h));
+      
+      // If handles already exist, update their positions instead of recreating
+      if (resizeHandlesRef.current.length === handles.length && resizeHandlesRef.current.length > 0) {
+        // Update all markers - match by stored type (like iNaturalist does)
+        // Update synchronously during shape movement for smooth real-time updates
+        resizeHandlesRef.current.forEach((marker) => {
+          const handleType = marker._handleType;
+          if (handleType && handleMap.has(handleType)) {
+            const handleData = handleMap.get(handleType);
+            // Use setLngLat to update marker position - this should work on both PC and mobile
+            marker.setLngLat(handleData.position);
+          }
+        });
+        return;
+      }
+
+      // Remove existing handles if count doesn't match or we need to recreate
       resizeHandlesRef.current.forEach(handle => handle.remove());
       resizeHandlesRef.current = [];
-
-      const handles = getHandlePositions();
       
       handles.forEach((handleData) => {
         const el = document.createElement('div');
@@ -573,9 +592,13 @@ map.on("mouseleave", "mushroom-points", () => {
           .setLngLat(handleData.position)
           .addTo(map);
 
+        // Store type on marker element for easier identification
+        marker._handleType = handleData.type;
+
         marker.getElement().addEventListener('dragstart', () => {
           drawingStateRef.current.activeHandle = handleData.type;
-          drawingStateRef.current.dragStart = { lat: handleData.position[1], lng: handleData.position[0] };
+          const pos = marker.getLngLat();
+          drawingStateRef.current.dragStart = { lat: pos.lat, lng: pos.lng };
           drawingStateRef.current.initialCenter = { ...drawingStateRef.current.currentCenter };
           drawingStateRef.current.initialSize = drawingMode === "rectangle" 
             ? { width: drawingStateRef.current.currentSize.width, height: drawingStateRef.current.currentSize.height }
@@ -760,13 +783,15 @@ map.on("mouseleave", "mushroom-points", () => {
       if (!currentPoint) return;
 
       if (drawingStateRef.current.isMoving) {
-        // Move the shape
+        // Move the shape (like iNaturalist - handles move with shape in real-time)
         const initialCenter = drawingStateRef.current.initialCenter;
         const latDiff = currentPoint.lat - drawingStateRef.current.dragStart.lat;
         const lngDiff = currentPoint.lng - drawingStateRef.current.dragStart.lng;
         drawingStateRef.current.currentCenter.lat = initialCenter.lat + latDiff;
         drawingStateRef.current.currentCenter.lng = initialCenter.lng + lngDiff;
         createInitialShape();
+        // Immediately update handles to move with the shape (synchronized like iNaturalist)
+        updateResizeHandles();
         if (e.originalEvent && e.originalEvent.preventDefault) {
           e.originalEvent.preventDefault();
         }
@@ -783,9 +808,7 @@ map.on("mouseleave", "mushroom-points", () => {
           drawingStateRef.current.currentSize.width = Math.max(10, latDist * 2); // Min 10km, double for full width
           drawingStateRef.current.currentSize.height = Math.max(10, lngDist * 2); // Min 10km, double for full height
           createInitialShape();
-          if (!drawingStateRef.current.activeHandle) {
-            updateResizeHandles();
-          }
+          // Don't update handles here - they're being dragged and will update themselves
         } else {
           // Circle: radius is distance from initial center to current position
           const R = 6371; // Earth radius in km
@@ -800,9 +823,7 @@ map.on("mouseleave", "mushroom-points", () => {
           const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
           drawingStateRef.current.currentSize.radius = Math.max(5, R * c); // Min 5km
           createInitialShape();
-          if (!drawingStateRef.current.activeHandle) {
-            updateResizeHandles();
-          }
+          // Don't update handles here - they're being dragged and will update themselves
         }
         if (e.originalEvent && e.originalEvent.preventDefault) {
           e.originalEvent.preventDefault();
@@ -828,11 +849,16 @@ map.on("mouseleave", "mushroom-points", () => {
 
     const handleInteractionEnd = (e) => {
       if (drawingStateRef.current.isMoving || drawingStateRef.current.isResizing) {
+        const wasMoving = drawingStateRef.current.isMoving;
         drawingStateRef.current.isMoving = false;
         drawingStateRef.current.isResizing = false;
         drawingStateRef.current.dragStart = null;
         map.getCanvas().style.cursor = "default";
         map.dragPan.enable();
+        // Ensure handles are in correct position after moving (final sync)
+        if (wasMoving) {
+          updateResizeHandles();
+        }
         if (e.originalEvent && e.originalEvent.preventDefault) {
           e.originalEvent.preventDefault();
         }
