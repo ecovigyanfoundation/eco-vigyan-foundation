@@ -83,46 +83,19 @@ export function AuthProvider({ children }) {
 
   const logout = async () => {
     try {
-      // Clear all storage and state FIRST (immediate UI update)
+      // Clear localStorage
       localStorage.removeItem("user");
-      sessionStorage.removeItem("user"); // Also clear sessionStorage if used
       setUser(null);
 
-      // Call logout API to clear cookie (with credentials for mobile)
-      try {
-        const res = await fetch("/api/auth/logout", {
-          method: "POST",
-          credentials: "include", // Important for mobile cookie handling
-        });
-        
-        if (!res.ok) {
-          console.error("Logout API returned error:", res.status);
-        }
-      } catch (apiError) {
-        console.error("Logout API error:", apiError);
-        // Continue even if API fails - local state is already cleared
-      }
-
-      // Force refetch user to ensure server state is cleared
-      // This ensures mobile browsers get the updated state
-      await fetchUser();
+      // Call logout API to clear cookie
+      await fetch("/api/auth/logout", { method: "POST" });
 
       toast.success("Logged out successfully");
-      
-      // Redirect to home page
-      router.push("/");
     } catch (error) {
       console.error("Logout error:", error);
-      // Ensure everything is cleared even if something fails
+      // Still clear local state even if API call fails
       localStorage.removeItem("user");
-      sessionStorage.removeItem("user"); // Also clear sessionStorage if used
       setUser(null);
-      // Force refetch to clear any server state
-      try {
-        await fetchUser();
-      } catch (fetchError) {
-        console.error("Error refetching user after logout:", fetchError);
-      }
       router.push("/");
     }
   };

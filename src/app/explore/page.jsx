@@ -3,16 +3,18 @@
 import { useEffect, useState } from "react";
 import CategoryFilter from "@/components/CategoryFilter";
 import dynamic from "next/dynamic";
-import { Filter } from "lucide-react";
+import { Filter, Plus } from "lucide-react";
 import ExploreHeader from "@/components/ExploreHeader";
 import MushroomGrid from "@/components/MushroomGrid";
 import MushroomSubmissionForm from "@/components/MushroomSubmissionForm";
 import MobileSearchModal from "@/components/MobileSearchModal";
 import Leaderboard from "@/components/Leaderboard";
+import { useAuth } from "@/context/AuthContext";
 
 const Map = dynamic(() => import("@/components/Map"), { ssr: false });
 
 export default function MapPage() {
+  const { user } = useAuth();
   const [data, setData] = useState([]);
   const [mode, setMode] = useState("category");
   const [filters, setFilters] = useState({});
@@ -178,6 +180,17 @@ export default function MapPage() {
         selectedLocation={selectedLocation}
         onLocationSelect={setSelectedLocation}
       />
+
+      {/* MOBILE FLOATING ADD BUTTON */}
+      {user && (
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="md:hidden fixed bottom-6 right-6 z-50 bg-emerald-600 hover:bg-emerald-700 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-2xl shadow-emerald-900/50 transition-all active:scale-95"
+          aria-label="Add Observation"
+        >
+          <Plus size={24} strokeWidth={3} />
+        </button>
+      )}
     </div>
   );
 }

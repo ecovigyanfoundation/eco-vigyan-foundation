@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import { createRoot } from "react-dom/client";
 import "mapbox-gl/dist/mapbox-gl.css";
+import { generateCircleBoundary, generateRectangleBoundary } from "@/lib/geocoding";
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
@@ -11,7 +12,16 @@ if (MAPBOX_TOKEN) {
   mapboxgl.accessToken = MAPBOX_TOKEN;
 }
 
-export default function Map({ data = [], filters = {}, mode, onMarkerSelect }) {
+export default function Map({ 
+  data = [], 
+  filters = {}, 
+  mode, 
+  onMarkerSelect, 
+  selectedZone,
+  drawingMode,
+  onDrawingComplete,
+  onDrawingCancel,
+}) {
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
   const popupRef = useRef(null);
@@ -22,10 +32,9 @@ export default function Map({ data = [], filters = {}, mode, onMarkerSelect }) {
   const isTokenMissing = useMemo(() => !MAPBOX_TOKEN, []);
 
   /* ---------------- FILTER ---------------- */
+  // Data is now pre-filtered at the page level, so we show all items passed here
   const isItemActive = (item) => {
-    if (!filters || Object.keys(filters).length === 0) return true;
-    const key = mode === "category" ? item.category : item.use;
-    return filters[key] !== false;
+    return true; // All items in data array are already filtered
   };
 
   /* ---------------- MAP INIT ---------------- */
@@ -139,8 +148,99 @@ export default function Map({ data = [], filters = {}, mode, onMarkerSelect }) {
       });
     }
 
+    /* ---------------- ZONE BOUNDARY ---------------- */
+    // Handle zone boundary - separate from data/filters updates
+    if (selectedZone && selectedZone.boundary && selectedZone.boundary.length > 0) {
+      const zoneGeoJSON = {
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            geometry: {
+              type: "Polygon",
+              coordinates: [selectedZone.boundary],
+            },
+          },
+        ],
+      };
+
+      if (map.getSource("zone")) {
+        // Update existing zone source data
+        map.getSource("zone").setData(zoneGeoJSON);
+      } else {
+        // Add zone source and layers if they don't exist
+        map.addSource("zone", {
+          type: "geojson",
+          data: zoneGeoJSON,
+        });
+
+        // Add fill layer
+        if (!map.getLayer("zone-fill")) {
+          map.addLayer({
+            id: "zone-fill",
+            type: "fill",
+            source: "zone",
+            paint: {
+              "fill-color": "#10b981",
+              "fill-opacity": 0.1,
+            },
+          });
+        }
+
+        // Add boundary line
+        if (!map.getLayer("zone-boundary")) {
+          map.addLayer({
+            id: "zone-boundary",
+            type: "line",
+            source: "zone",
+            paint: {
+              "line-color": "#10b981",
+              "line-width": 3,
+              "line-opacity": 0.8,
+            },
+          });
+        }
+      }
+
+      // Only auto-zoom for city boundaries, not manually drawn zones
+      if (selectedZone.type === "city") {
+        const coordinates = selectedZone.boundary;
+        const bounds = coordinates.reduce(
+          (bounds, coord) => {
+            return [
+              [Math.min(bounds[0][0], coord[0]), Math.min(bounds[0][1], coord[1])],
+              [Math.max(bounds[1][0], coord[0]), Math.max(bounds[1][1], coord[1])],
+            ];
+          },
+          [
+            [coordinates[0][0], coordinates[0][1]],
+            [coordinates[0][0], coordinates[0][1]],
+          ]
+        );
+
+        map.fitBounds(bounds, {
+          padding: { top: 100, bottom: 100, left: 100, right: 100 },
+          duration: 1000,
+        });
+      }
+    } else {
+      // Remove zone if not selected
+      if (map.getLayer("zone-boundary")) {
+        map.removeLayer("zone-boundary");
+      }
+      if (map.getLayer("zone-fill")) {
+        map.removeLayer("zone-fill");
+      }
+      if (map.getSource("zone")) {
+        map.removeSource("zone");
+      }
+    }
+
     /* ---------------- CLICK POPUP (CENTERED) ---------------- */
     const handleClick = (e) => {
+      // Don't show popup if in drawing mode
+      if (drawingMode) return;
+      
       const f = e.features?.[0];
       if (!f) return;
 

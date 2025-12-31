@@ -44,23 +44,22 @@ export default function MushroomSubmissionForm({
   const [fruitingSurface, setFruitingSurface] = useState("");
   const [stemPresence, setStemPresence] = useState("");
   const [commonUses, setCommonUses] = useState([]);
-  const [uploadedImageUrl, setUploadedImageUrl] = useState(null);
-  const [uploadedImagePublicId, setUploadedImagePublicId] = useState(null);
-  const [isUploadingToCloudinary, setIsUploadingToCloudinary] = useState(false);
 
   if (!isOpen) return null;
 
-  // Get device GPS location - this will trigger browser permission prompt
+  // Get device GPS location
   const getDeviceLocation = () => {
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
         reject(new Error("Geolocation is not supported by this browser"));
         return;
       }
+
+      setIsGettingLocation(true);
       
-      // Request location with high accuracy - this will show browser permission prompt
       navigator.geolocation.getCurrentPosition(
         (position) => {
+          setIsGettingLocation(false);
           resolve({
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
@@ -68,27 +67,13 @@ export default function MushroomSubmissionForm({
           });
         },
         (error) => {
-          // Preserve the error object with code for better error handling
-          // error.code: 1 = PERMISSION_DENIED, 2 = POSITION_UNAVAILABLE, 3 = TIMEOUT
-          // Pass the error directly to preserve all properties including code
-          console.log("Geolocation error details:", {
-            code: error.code,
-            message: error.message,
-            name: error.name,
-            fullError: error
-          });
-          
-          // Ensure the error object has the code property
-          if (error && typeof error.code === 'undefined') {
-            console.warn("Warning: Geolocation error missing code property:", error);
-          }
-          
-          reject(error); // Pass the original error object directly
+          setIsGettingLocation(false);
+          reject(error);
         },
         {
-          enableHighAccuracy: true, // Request high accuracy GPS
-          timeout: 20000, // Increased timeout for mobile devices (20 seconds)
-          maximumAge: 60000, // Allow cached position up to 1 minute old (helps if GPS is slow)
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0, // Don't use cached position
         }
       );
     });
@@ -103,22 +88,6 @@ export default function MushroomSubmissionForm({
     const file = e.target.files[0];
     if (!file) return;
 
-    // Validate file size before processing (10MB limit for direct Cloudinary upload)
-    const maxFileSize = 10 * 1024 * 1024; // 10MB
-    if (file.size > maxFileSize) {
-      toast.error(`Image is too large (${(file.size / 1024 / 1024).toFixed(2)}MB). Please use an image under 10MB.`);
-      e.target.value = ""; // Clear the input
-      return;
-    }
-
-    // Validate file type
-    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
-    if (!allowedTypes.includes(file.type)) {
-      toast.error("Please select a JPEG, PNG, or WebP image");
-      e.target.value = ""; // Clear the input
-      return;
-    }
-
     // Check if this is from camera (has capture attribute) or detect by file name/type
     const inputElement = e.target;
     const isCamera = inputElement.hasAttribute('capture') || 
@@ -128,21 +97,13 @@ export default function MushroomSubmissionForm({
 
     setIsFromCamera(isCamera);
     setImageFile(file);
-    // Reset uploaded state when new image is selected
-    setUploadedImageUrl(null);
-    setUploadedImagePublicId(null);
     setIsExtractingExif(true);
 
     // If from camera, get device location and date/time immediately
     if (isCamera) {
-      // Get current date/time first (doesn't require permission)
-      const currentDateTime = getCurrentDateTime();
-      setExifDateTime(currentDateTime);
-      
-      // Request device GPS location (this will trigger browser permission prompt)
-      if (navigator.geolocation) {
+      try {
+        // Get device GPS location
         try {
-          setIsGettingLocation(true);
           const deviceLocation = await getDeviceLocation();
           onLocationSelect?.(deviceLocation);
           setHasExifGps(true);
@@ -150,46 +111,16 @@ export default function MushroomSubmissionForm({
           toast.success(`Location captured: ${deviceLocation.latitude.toFixed(5)}, ${deviceLocation.longitude.toFixed(5)}`);
         } catch (locationError) {
           console.warn("Could not get device location:", locationError);
-          console.warn("Location error details:", {
-            code: locationError.code,
-            message: locationError.message,
-            name: locationError.name,
-            fullError: locationError
-          });
-          
-          // Check if it's actually a permission error (code 1 = PERMISSION_DENIED)
-          // Be very strict - only show permission denied if code is explicitly 1
-          const errorCode = locationError?.code;
-          const isPermissionError = errorCode === 1;
-          
-          if (isPermissionError) {
-            toast.error("Location permission denied. Please enable location access in your browser settings to automatically capture location.", {
-              duration: 6000,
-            });
-          } else {
-            // For other errors (timeout, position unavailable, etc.), show a generic message
-            // Don't show permission denied for timeouts or other errors
-            const errorMsg = errorCode === 2 
-              ? "Location unavailable. You can select location manually."
-              : errorCode === 3
-              ? "Location request timed out. You can select location manually."
-              : "Could not get GPS location. You can select location manually.";
-            
-            toast(errorMsg, {
-              icon: "ℹ️",
-              duration: 5000,
-            });
-          }
-        } finally {
-          setIsGettingLocation(false);
+          toast.info("Could not get GPS location. Please enable location services or select location manually.");
         }
-      } else {
-        toast("Geolocation not supported. Please select location manually.", {
-          icon: "ℹ️",
-        });
+
+        // Get current date/time
+        const currentDateTime = getCurrentDateTime();
+        setExifDateTime(currentDateTime);
+        toast.success(`Date/time captured: ${currentDateTime.toLocaleString()}`);
+      } catch (error) {
+        console.error("Error getting device location/time:", error);
       }
-      
-      toast.success(`Date/time captured: ${currentDateTime.toLocaleString()}`);
     }
 
     // Create preview URL (separate from EXIF extraction)
@@ -258,78 +189,25 @@ export default function MushroomSubmissionForm({
         }
         // If no EXIF date/time, device date/time was already set above
       } else {
-        // Gallery photo: Try to use EXIF, if no GPS found, get device location
+        // Gallery photo: Try to use EXIF, otherwise allow manual selection
         const isLikelyStripped = !gps && !dateTime && file.size > 0;
         
         if (gps && gps.latitude && gps.longitude) {
-          // EXIF GPS found - use it
           onLocationSelect?.(gps);
           setHasExifGps(true);
           setLocationInputMethod("map");
           toast.success(`Location found in EXIF: ${gps.latitude.toFixed(5)}, ${gps.longitude.toFixed(5)}`);
         } else {
-          // No GPS in EXIF - try to get device location
-          if (navigator.geolocation) {
-            try {
-              setIsGettingLocation(true);
-              const deviceLocation = await getDeviceLocation();
-              onLocationSelect?.(deviceLocation);
-              setHasExifGps(false); // Not from EXIF, but from device
-              setLocationInputMethod("map");
-              toast.success(`Location captured from device: ${deviceLocation.latitude.toFixed(5)}, ${deviceLocation.longitude.toFixed(5)}`);
-            } catch (locationError) {
-              console.warn("Could not get device location:", locationError);
-              console.warn("Location error details:", {
-                code: locationError?.code,
-                message: locationError?.message,
-                name: locationError?.name
-              });
-              
-              // No GPS in EXIF and device location failed - allow manual selection
-              setHasExifGps(false);
-              setLocationInputMethod("map");
-              
-              // Be very strict - only show permission denied if code is explicitly 1
-              const errorCode = locationError?.code;
-              const isPermissionError = errorCode === 1;
-              
-              if (isPermissionError) {
-                toast.error("Location permission denied. Please enable location access or select location manually.", {
-                  duration: 6000,
-                });
-              } else {
-                // For other errors, show appropriate message
-                const errorMsg = errorCode === 2
-                  ? "Location unavailable. Please select location manually."
-                  : errorCode === 3
-                  ? "Location request timed out. Please select location manually."
-                  : isLikelyStripped
-                  ? "EXIF data not found and could not get device location. Some mobile browsers/galleries strip EXIF data. Please select location manually."
-                  : "No GPS data found in image and could not get device location. Please select location manually.";
-                
-                toast(errorMsg, {
-                  icon: "ℹ️",
-                  duration: 5000,
-                });
-              }
-            } finally {
-              setIsGettingLocation(false);
-            }
+          // No GPS in EXIF, allow manual selection
+          setHasExifGps(false);
+          setLocationInputMethod("map");
+          
+          if (isLikelyStripped) {
+            toast.info("EXIF data not found. Some mobile browsers/galleries strip EXIF data for privacy. Please select location manually.", {
+              duration: 5000,
+            });
           } else {
-            // Geolocation not supported - allow manual selection
-            setHasExifGps(false);
-            setLocationInputMethod("map");
-            
-            if (isLikelyStripped) {
-              toast("EXIF data not found. Some mobile browsers/galleries strip EXIF data for privacy. Please select location manually.", {
-                icon: "ℹ️",
-                duration: 5000,
-              });
-            } else {
-              toast("No GPS data found in image. Please select location manually.", {
-                icon: "ℹ️",
-              });
-            }
+            toast.info("No GPS data found in image. Please select location manually.");
           }
         }
 
@@ -414,61 +292,6 @@ export default function MushroomSubmissionForm({
     return selectedLocation;
   };
 
-  // Upload image directly to Cloudinary
-  const uploadToCloudinary = async (file) => {
-    try {
-      setIsUploadingToCloudinary(true);
-
-      // Get upload signature from server
-      const sigRes = await fetch("/api/cloudinary/signature", {
-        method: "POST",
-        credentials: "include",
-      });
-
-      if (!sigRes.ok) {
-        const errorData = await sigRes.json().catch(() => ({}));
-        if (sigRes.status === 401 || sigRes.status === 403) {
-          throw new Error(errorData.error || "Please log in to upload images");
-        }
-        throw new Error(errorData.error || "Failed to get upload signature");
-      }
-
-      const { signature, timestamp, folder, cloudName, apiKey } = await sigRes.json();
-
-      // Upload directly to Cloudinary
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("api_key", apiKey);
-      formData.append("timestamp", timestamp);
-      formData.append("signature", signature);
-      formData.append("folder", folder);
-
-      const uploadRes = await fetch(
-        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
-
-      if (!uploadRes.ok) {
-        const errorData = await uploadRes.json();
-        throw new Error(errorData.error?.message || "Upload failed");
-      }
-
-      const uploadData = await uploadRes.json();
-      return {
-        url: uploadData.secure_url,
-        publicId: uploadData.public_id,
-      };
-    } catch (error) {
-      console.error("Cloudinary upload error:", error);
-      throw error;
-    } finally {
-      setIsUploadingToCloudinary(false);
-    }
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -478,7 +301,7 @@ export default function MushroomSubmissionForm({
       return;
     }
 
-    if (!imageFile && !uploadedImageUrl) {
+    if (!imageFile) {
       toast.error("Please upload at least one image");
       return;
     }
@@ -486,33 +309,10 @@ export default function MushroomSubmissionForm({
     setIsSubmitting(true);
 
     try {
-      // Upload to Cloudinary if not already uploaded
-      let imageUrl = uploadedImageUrl;
-      let imagePublicId = uploadedImagePublicId;
-
-      if (imageFile && !uploadedImageUrl) {
-        toast.loading("Uploading image to Cloudinary...", { id: "upload" });
-        try {
-          const uploadResult = await uploadToCloudinary(imageFile);
-          imageUrl = uploadResult.url;
-          imagePublicId = uploadResult.publicId;
-          setUploadedImageUrl(imageUrl);
-          setUploadedImagePublicId(imagePublicId);
-          toast.success("Image uploaded successfully!", { id: "upload" });
-        } catch (uploadError) {
-          toast.error(uploadError.message || "Failed to upload image. Please try again.", { id: "upload" });
-          throw uploadError; // Re-throw to stop submission
-        }
-      }
-
-      // Send data to API with Cloudinary URL instead of file
       const fd = new FormData();
       fd.append("latitude", location.latitude);
       fd.append("longitude", location.longitude);
-      fd.append("imageUrl", imageUrl);
-      if (imagePublicId) {
-        fd.append("imagePublicId", imagePublicId);
-      }
+      fd.append("image1", imageFile);
 
       // Add date/time if available (from EXIF or device)
       if (exifDateTime) {
@@ -532,52 +332,22 @@ export default function MushroomSubmissionForm({
         method: "POST",
         body: fd,
         credentials: "include",
-        headers: {
-          // Don't set Content-Type - let browser set it with boundary for FormData
-        },
       });
 
-      // Read response text once to avoid cloning issues
-      let responseText = "";
-      let data = {};
-      
+      let data;
       try {
-        responseText = await res.text();
-        if (responseText) {
-          data = JSON.parse(responseText);
-        }
+        data = await res.json();
       } catch (parseError) {
         console.error("Failed to parse response:", parseError);
-        console.error("Response status:", res.status);
-        console.error("Response statusText:", res.statusText);
-        console.error("Response text:", responseText || "(empty)");
         throw new Error(`Server error: ${res.status} ${res.statusText}`);
       }
 
       if (!res.ok) {
-        console.error("Submission failed:", {
-          status: res.status,
-          statusText: res.statusText,
-          error: data.error,
-          message: data.message,
-        });
-        
-        // Handle specific error codes
-        if (res.status === 401) {
-          throw new Error("Please log in to submit mushrooms");
-        } else if (res.status === 403) {
-          throw new Error("Access denied. Please check your account status or try logging in again.");
-        } else if (res.status === 413) {
-          throw new Error("Image file is too large. The server has a limit of ~4.5MB. Please compress your image or use an image under 4MB.");
-        } else if (res.status === 400) {
-          throw new Error(data.error || "Invalid submission data. Please check all fields.");
-        } else {
-          throw new Error(
-            data.error ||
-              data.message ||
-              `Submission failed: ${res.status} ${res.statusText}`
-          );
-        }
+        throw new Error(
+          data.error ||
+            data.message ||
+            `Submission failed: ${res.status} ${res.statusText}`
+        );
       }
 
       toast.success(
@@ -587,8 +357,6 @@ export default function MushroomSubmissionForm({
       // Reset form
       setImageFile(null);
       setImagePreview(null);
-      setUploadedImageUrl(null);
-      setUploadedImagePublicId(null);
       setCommonName("");
       setEcologicalRole("");
       setTexture("");
@@ -728,64 +496,25 @@ export default function MushroomSubmissionForm({
               // UPLOAD OPTIONS
               <div className="space-y-3">
                 {/* CAMERA OPTION */}
-                <div className="relative">
-                  <label 
-                    htmlFor="camera-input"
-                    className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-emerald-300 rounded-2xl cursor-pointer hover:bg-emerald-50 group transition-all bg-emerald-50/30 relative"
-                  >
-                    <div className="bg-emerald-600 p-3 rounded-full shadow-sm group-hover:scale-110 transition-transform">
-                      <Camera className="text-white" size={24} />
-                    </div>
-                    <p className="mt-2 text-xs text-emerald-700 font-bold uppercase tracking-wider">
-                      Take Photo with Camera
-                    </p>
-                    <p className="text-[10px] text-emerald-600 font-medium mt-1 text-center px-2">
-                      Automatically captures GPS location and date/time from your device
-                    </p>
-                    {isGettingLocation && (
-                      <p className="text-[10px] text-emerald-600 font-medium mt-1 text-center px-2">
-                        📍 Requesting location permission...
-                      </p>
-                    )}
-                  </label>
+                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-emerald-300 rounded-2xl cursor-pointer hover:bg-emerald-50 group transition-all bg-emerald-50/30 relative">
+                  <div className="bg-emerald-600 p-3 rounded-full shadow-sm group-hover:scale-110 transition-transform">
+                    <Camera className="text-white" size={24} />
+                  </div>
+                  <p className="mt-2 text-xs text-emerald-700 font-bold uppercase tracking-wider">
+                    Take Photo with Camera
+                  </p>
+                  <p className="text-[10px] text-emerald-600 font-medium mt-1 text-center px-2">
+                    Automatically captures GPS location and date/time from your device
+                  </p>
                   <input
-                    id="camera-input"
                     type="file"
                     className="hidden"
-                    onChange={async (e) => {
-                      // Request location permission when file is selected (user gesture)
-                      // This will trigger Chrome's native permission prompt
-                      if (navigator.geolocation) {
-                        try {
-                          setIsGettingLocation(true);
-                          // Request location - this triggers browser's native prompt
-                          const location = await getDeviceLocation();
-                          // Store location for later use
-                          onLocationSelect?.(location);
-                          setHasExifGps(false); // From device, not EXIF
-                          setLocationInputMethod("map");
-                          toast.success("Location permission granted!");
-                        } catch (error) {
-                          // Permission denied or other error
-                          const errorCode = error?.code;
-                          if (errorCode === 1) {
-                            toast.error("Location permission denied. You can select location manually.", {
-                              duration: 6000,
-                            });
-                          }
-                          // Continue with image processing even if location failed
-                        } finally {
-                          setIsGettingLocation(false);
-                        }
-                      }
-                      // Process the image
-                      handleImageChange(e);
-                    }}
+                    onChange={handleImageChange}
                     accept="image/*"
                     capture="environment"
                     required
                   />
-                </div>
+                </label>
 
                 {/* MANUAL UPLOAD OPTION */}
                 <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-stone-300 rounded-2xl cursor-pointer hover:bg-stone-50 group transition-all bg-stone-50 relative">
@@ -809,7 +538,7 @@ export default function MushroomSubmissionForm({
               </div>
             )}
 
-            {(isExtractingExif || isGettingLocation || isUploadingToCloudinary) && (
+            {(isExtractingExif || isGettingLocation) && (
               <div className="mt-2 space-y-2">
                 {isGettingLocation && (
                   <div className="flex items-center gap-2 text-xs text-emerald-600">
@@ -821,12 +550,6 @@ export default function MushroomSubmissionForm({
                   <div className="flex items-center gap-2 text-xs text-emerald-600">
                     <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
                     <span className="font-medium">Extracting EXIF data from image...</span>
-                  </div>
-                )}
-                {isUploadingToCloudinary && (
-                  <div className="flex items-center gap-2 text-xs text-emerald-600">
-                    <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
-                    <span className="font-medium">Uploading image to Cloudinary...</span>
                   </div>
                 )}
               </div>
@@ -1088,9 +811,7 @@ export default function MushroomSubmissionForm({
             disabled={isSubmitting}
             className="w-full bg-emerald-600 hover:bg-emerald-700 py-5 rounded-2xl text-white font-black text-sm uppercase tracking-[0.2em] transition-all active:scale-95 shadow-xl shadow-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isSubmitting 
-              ? (isUploadingToCloudinary ? "Uploading image..." : "Processing...") 
-              : "Submit Observation"}
+            {isSubmitting ? "Processing..." : "Submit Observation"}
           </button>
         </div>
       </div>

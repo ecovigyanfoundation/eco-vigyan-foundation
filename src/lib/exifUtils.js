@@ -39,14 +39,7 @@ export async function extractExifData(fileOrBuffer, originalFile = null) {
     });
 
     // If no data found, try with translated keys (sometimes exifr works better with this)
-    if (!exifData) {
-      console.log("extractExifData: Trying with translated keys...");
-      exifData = await exifr.parse(fileOrBuffer, {
-        gps: true,
-        exif: true,
-        translateKeys: true, // Try with translated keys
-      });
-    } else if (Object.keys(exifData).length === 0) {
+    if (!exifData || Object.keys(exifData).length === 0) {
       console.log("extractExifData: Trying with translated keys...");
       exifData = await exifr.parse(fileOrBuffer, {
         gps: true,
@@ -56,16 +49,7 @@ export async function extractExifData(fileOrBuffer, originalFile = null) {
     }
 
     // If still no data, try with just GPS and all segments
-    if (!exifData) {
-      console.log("extractExifData: Trying with GPS only and all segments...");
-      exifData = await exifr.parse(fileOrBuffer, {
-        gps: true,
-        exif: true,
-        ifd0: true,
-        ifd1: true,
-        translateKeys: true,
-      });
-    } else if (Object.keys(exifData).length === 0) {
+    if (!exifData || Object.keys(exifData).length === 0) {
       console.log("extractExifData: Trying with GPS only and all segments...");
       exifData = await exifr.parse(fileOrBuffer, {
         gps: true,
@@ -77,19 +61,6 @@ export async function extractExifData(fileOrBuffer, originalFile = null) {
     }
 
     console.log("extractExifData: Raw EXIF data", exifData);
-    
-    // Check if exifData is null or undefined before accessing it
-    if (!exifData) {
-      console.log("extractExifData: No EXIF data found in file");
-      return { gps: null, dateTime: null };
-    }
-    
-    // Check if exifData is an empty object
-    if (Object.keys(exifData).length === 0) {
-      console.log("extractExifData: EXIF data is empty object");
-      return { gps: null, dateTime: null };
-    }
-    
     console.log("extractExifData: EXIF keys found", Object.keys(exifData));
     
     // Log all GPS-related fields for debugging
@@ -107,7 +78,7 @@ export async function extractExifData(fileOrBuffer, originalFile = null) {
       });
     }
 
-    if (Object.keys(exifData).length === 0) {
+    if (!exifData || Object.keys(exifData).length === 0) {
       console.log("extractExifData: No EXIF data found in file");
       
       // Check if file might have been processed/stripped
