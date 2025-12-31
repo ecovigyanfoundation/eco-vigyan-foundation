@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import CategoryFilter from "@/components/CategoryFilter";
 import dynamic from "next/dynamic";
-import { Filter, Plus, Menu, X, Home, Info, Users, FileText, Image, Calendar, FileCheck, Mail, User, Settings, Navigation, Heart, Layers, MapPin } from "lucide-react";
+import { Plus, Menu, X, Home, Info, Users, FileText, Image, Calendar, FileCheck, Mail, User, Settings, Navigation, Heart, Layers, MapPin } from "lucide-react";
 import Link from "next/link";
 import ExploreHeader from "@/components/ExploreHeader";
 import MushroomGrid from "@/components/MushroomGrid";
@@ -11,6 +10,7 @@ import MushroomSubmissionForm from "@/components/MushroomSubmissionForm";
 import MobileSearchModal from "@/components/MobileSearchModal";
 import Leaderboard from "@/components/Leaderboard";
 import ZoneModal from "@/components/ZoneModal";
+import MapFilter from "@/components/MapFilter";
 import { useAuth } from "@/context/AuthContext";
 import { isPointInPolygon } from "@/lib/geocoding";
 
@@ -35,7 +35,6 @@ export default function MapPage() {
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [showSidebar, setShowSidebar] = useState(false);
   const [showZoneModal, setShowZoneModal] = useState(false);
@@ -422,16 +421,14 @@ export default function MapPage() {
               onDrawingCancel={handleDrawingCancel}
             />
 
+            {/* Map Controls - Top Left */}
             <div className="absolute top-6 left-6 z-20 flex flex-col gap-3">
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className="p-4 rounded-2xl bg-gray-800 border border-gray-700 shadow-2xl hover:bg-gray-700"
-              >
-                <Filter
-                  size={20}
-                  className={showFilters ? "text-green-500" : "text-white"}
-                />
-              </button>
+              {/* Filter Button */}
+              <MapFilter
+                onFilterToggle={handleHeaderFilterToggle}
+                onResetFilters={handleResetFilters}
+                selectedFilters={headerFilters}
+              />
               
               {/* Zone filter indicator and clear button */}
               {selectedZone && (
@@ -452,37 +449,6 @@ export default function MapPage() {
                 </div>
               )}
             </div>
-            {showFilters && (
-              <div className="absolute top-20 left-6 z-20 w-64 bg-gray-800/95 backdrop-blur-md p-5 rounded-[2rem] border border-gray-700 shadow-2xl animate-in fade-in slide-in-from-top-2">
-                <div className="flex bg-gray-900 p-1 rounded-xl border border-gray-700 mb-4">
-                  <button
-                    onClick={() => switchMode("category")}
-                    className={`flex-1 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${
-                      mode === "category"
-                        ? "bg-green-600 text-white"
-                        : "text-gray-500"
-                    }`}
-                  >
-                    Category
-                  </button>
-                  <button
-                    onClick={() => switchMode("use")}
-                    className={`flex-1 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${
-                      mode === "use"
-                        ? "bg-green-600 text-white"
-                        : "text-gray-500"
-                    }`}
-                  >
-                    Use
-                  </button>
-                </div>
-                <CategoryFilter
-                  categories={Object.keys(filters)}
-                  filters={filters}
-                  toggle={toggleFilter}
-                />
-              </div>
-            )}
           </>
         )}
 

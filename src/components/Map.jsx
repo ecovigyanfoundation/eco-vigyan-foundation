@@ -377,6 +377,7 @@ map.on("mouseleave", "mushroom-points", () => {
       });
     }
 
+    // Add drawing layers - these should be on top of other layers to be visible
     if (!map.getLayer("drawing-fill")) {
       map.addLayer({
         id: "drawing-fill",
@@ -411,6 +412,7 @@ map.on("mouseleave", "mushroom-points", () => {
       map.off("mousedown", handleMouseDown);
       map.off("mousemove", handleMouseMove);
       map.off("mouseup", handleMouseUp);
+      map.off("dblclick", handleDoubleClick);
     };
 
     let isDrawing = false;
@@ -524,6 +526,8 @@ map.on("mouseleave", "mushroom-points", () => {
     };
 
     const updateDrawingShape = (boundary) => {
+      if (!map.getSource("drawing")) return;
+      
       const geojson = {
         type: "FeatureCollection",
         features: [
@@ -536,7 +540,12 @@ map.on("mouseleave", "mushroom-points", () => {
           },
         ],
       };
-      map.getSource("drawing").setData(geojson);
+      
+      try {
+        map.getSource("drawing").setData(geojson);
+      } catch (error) {
+        console.error("Error updating drawing shape:", error);
+      }
     };
 
     // Update cleanup to include circle handlers
