@@ -16,8 +16,17 @@ const Map = dynamic(() => import("@/components/Map"), { ssr: false });
 export default function MapPage() {
   const { user } = useAuth();
   const [data, setData] = useState([]);
+  const [allData, setAllData] = useState([]); // Store all data for filtering
   const [mode, setMode] = useState("category");
   const [filters, setFilters] = useState({});
+  const [headerFilters, setHeaderFilters] = useState({
+    ecologicalRole: [],
+    texture: [],
+    underside: [],
+    fruitingSurface: [],
+    stemPresence: [],
+    commonUses: [],
+  });
   const [selectedMushroom, setSelectedMushroom] = useState(null);
   const [view, setView] = useState("map");
   const [showMobileSearch, setShowMobileSearch] = useState(false);
@@ -48,6 +57,7 @@ export default function MapPage() {
           category: m.ecologicalRole || m.category || "Unknown",
           use: m.commonUses?.[0] || m.use || "",
         }));
+        setAllData(transformedMushrooms);
         setData(transformedMushrooms);
         initializeFilters(transformedMushrooms, "category");
       })
@@ -74,6 +84,83 @@ export default function MapPage() {
   const toggleFilter = (key) =>
     setFilters((prev) => ({ ...prev, [key]: !prev[key] }));
 
+  // Handle filter selection from header
+  const handleHeaderFilterToggle = (filterType, filterValue) => {
+    setHeaderFilters((prev) => {
+      const currentValues = prev[filterType] || [];
+      const isSelected = currentValues.includes(filterValue);
+      const newValues = isSelected
+        ? currentValues.filter((v) => v !== filterValue)
+        : [...currentValues, filterValue];
+      return { ...prev, [filterType]: newValues };
+    });
+  };
+
+  // Reset all header filters
+  const handleResetFilters = () => {
+    setHeaderFilters({
+      ecologicalRole: [],
+      texture: [],
+      underside: [],
+      fruitingSurface: [],
+      stemPresence: [],
+      commonUses: [],
+    });
+  };
+
+  // Filter data based on header filters
+  useEffect(() => {
+    let filtered = [...allData];
+
+    // Apply header filters
+    if (headerFilters.ecologicalRole.length > 0) {
+      filtered = filtered.filter((item) =>
+        headerFilters.ecologicalRole.includes(item.ecologicalRole)
+      );
+    }
+    if (headerFilters.texture.length > 0) {
+      filtered = filtered.filter((item) =>
+        headerFilters.texture.includes(item.texture)
+      );
+    }
+    if (headerFilters.underside.length > 0) {
+      filtered = filtered.filter((item) =>
+        headerFilters.underside.includes(item.underside)
+      );
+    }
+    if (headerFilters.fruitingSurface.length > 0) {
+      filtered = filtered.filter((item) =>
+        headerFilters.fruitingSurface.includes(item.fruitingSurface)
+      );
+    }
+    if (headerFilters.stemPresence.length > 0) {
+      filtered = filtered.filter((item) =>
+        headerFilters.stemPresence.includes(item.stemPresence)
+      );
+    }
+    if (headerFilters.commonUses.length > 0) {
+      filtered = filtered.filter((item) => {
+        const itemUses = item.commonUses || [];
+        return headerFilters.commonUses.some((use) => itemUses.includes(use));
+      });
+    }
+
+    // Apply legacy filters (for backward compatibility with existing filter UI)
+    if (Object.keys(filters).length > 0 && mode === "category") {
+      filtered = filtered.filter((item) => {
+        const key = item.ecologicalRole || item.category;
+        return filters[key] !== false;
+      });
+    } else if (Object.keys(filters).length > 0 && mode === "use") {
+      filtered = filtered.filter((item) => {
+        const key = item.commonUses?.[0] || item.use;
+        return filters[key] !== false;
+      });
+    }
+
+    setData(filtered);
+  }, [headerFilters, filters, mode, allData]);
+
   const handleSubmissionSuccess = async () => {
     // Refresh data after successful submission
     const refreshed = await fetch("/api/mushrooms");
@@ -94,6 +181,7 @@ export default function MapPage() {
       category: m.ecologicalRole || m.category || "Unknown",
       use: m.commonUses?.[0] || m.use || "",
     }));
+    setAllData(transformedMushrooms);
     setData(transformedMushrooms);
     initializeFilters(transformedMushrooms, "category");
   };
@@ -106,6 +194,9 @@ export default function MapPage() {
         setView={setView}
         onAddClick={() => setShowAddModal(true)}
         onMobileSearchClick={() => setShowMobileSearch(true)}
+        onFilterToggle={handleHeaderFilterToggle}
+        onResetFilters={handleResetFilters}
+        selectedFilters={headerFilters}
       />
 
       {/* MAIN CONTENT */}

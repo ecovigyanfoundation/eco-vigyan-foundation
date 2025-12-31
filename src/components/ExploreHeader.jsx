@@ -15,19 +15,37 @@ import {
   User,
   Menu,
   X,
+  Filter,
+  ChevronDown,
+  RotateCcw,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import {
+  ECOLOGICAL_ROLES,
+  TEXTURES,
+  UNDERSIDES,
+  FRUITING_SURFACES,
+  STEM_PRESENCE,
+  COMMON_USES,
+} from "@/components/mushroomConstants";
+import { getMushroomImage, getDisplayName } from "@/components/mushroomImageMap";
 
 export default function ExploreHeader({
   view,
   setView,
   onAddClick,
   onMobileSearchClick,
+  onFilterToggle,
+  onResetFilters,
+  selectedFilters = {},
 }) {
   const { user, logout } = useAuth();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState("all");
   const userMenuRef = useRef(null);
+  const filterMenuRef = useRef(null);
 
   // Close user menu when clicking outside
   useEffect(() => {
@@ -35,11 +53,69 @@ export default function ExploreHeader({
       if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
         setUserMenuOpen(false);
       }
+      if (filterMenuRef.current && !filterMenuRef.current.contains(event.target)) {
+        setFilterMenuOpen(false);
+      }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Combine all filter options
+  const allFilterOptions = [
+    ...ECOLOGICAL_ROLES,
+    ...TEXTURES,
+    ...UNDERSIDES,
+    ...FRUITING_SURFACES,
+    ...STEM_PRESENCE,
+    ...COMMON_USES,
+  ];
+
+  const filterCategories = [
+    { id: "all", label: "All Filters", options: allFilterOptions },
+    { id: "ecological", label: "Ecological Roles", options: ECOLOGICAL_ROLES },
+    { id: "texture", label: "Textures", options: TEXTURES },
+    { id: "underside", label: "Undersides", options: UNDERSIDES },
+    { id: "surface", label: "Fruiting Surfaces", options: FRUITING_SURFACES },
+    { id: "stem", label: "Stem Presence", options: STEM_PRESENCE },
+    { id: "use", label: "Common Uses", options: COMMON_USES },
+  ];
+
+  const currentOptions = filterCategories.find((cat) => cat.id === selectedCategory)?.options || allFilterOptions;
+
+  // Count active filters
+  const activeFilterCount = Object.values(selectedFilters || {}).reduce(
+    (total, filters) => total + (filters?.length || 0),
+    0
+  );
+
+  // Determine filter type for a given value
+  const getFilterType = (value) => {
+    if (ECOLOGICAL_ROLES.includes(value)) return "ecologicalRole";
+    if (TEXTURES.includes(value)) return "texture";
+    if (UNDERSIDES.includes(value)) return "underside";
+    if (FRUITING_SURFACES.includes(value)) return "fruitingSurface";
+    if (STEM_PRESENCE.includes(value)) return "stemPresence";
+    if (COMMON_USES.includes(value)) return "commonUses";
+    return null;
+  };
+
+  // Check if a filter is selected
+  const isFilterSelected = (value) => {
+    const filterType = getFilterType(value);
+    if (!filterType) return false;
+    const selected = selectedFilters[filterType] || [];
+    return selected.includes(value);
+  };
+
+  // Handle filter click
+  const handleFilterClick = (value) => {
+    const filterType = getFilterType(value);
+    if (filterType && onFilterToggle) {
+      onFilterToggle(filterType, value);
+    }
+  };
 
   return (
     <header className="z-[100] bg-white/90 backdrop-blur-md border-b border-emerald-100 shadow-sm shrink-0 sticky top-0">
@@ -71,19 +147,141 @@ export default function ExploreHeader({
             </div>
           </a>
 
-          {/* CENTER: GREEN-TINTED SEARCH BAR */}
-          <div className="hidden md:flex flex-1 max-w-lg lg:max-w-xl items-center bg-emerald-50/60 rounded-2xl border border-emerald-100/50 overflow-hidden px-5 gap-3 focus-within:bg-white focus-within:border-emerald-500 focus-within:ring-4 focus-within:ring-emerald-500/10 transition-all duration-300">
-            <Search size={20} className="text-emerald-400 shrink-0" />
-            <input
-              placeholder="Search Species..."
-              className="bg-transparent flex-1 py-4 text-sm outline-none text-emerald-900 placeholder:text-emerald-300 font-medium min-w-0"
-            />
-            <div className="w-px h-6 bg-emerald-200 mx-1 shrink-0" />
-            <MapPin size={20} className="text-emerald-400 shrink-0" />
-            <input
-              placeholder="Location..."
-              className="bg-transparent flex-1 py-4 text-sm outline-none text-emerald-900 placeholder:text-emerald-300 font-medium min-w-0"
-            />
+          {/* CENTER: SEARCH BAR AND FILTER */}
+          <div className="hidden md:flex flex-1 max-w-lg lg:max-w-xl items-center gap-3">
+            {/* SEARCH BAR */}
+            <div className="flex-1 flex items-center bg-emerald-50/60 rounded-2xl border border-emerald-100/50 overflow-hidden px-5 gap-3 focus-within:bg-white focus-within:border-emerald-500 focus-within:ring-4 focus-within:ring-emerald-500/10 transition-all duration-300">
+              <Search size={20} className="text-emerald-400 shrink-0" />
+              <input
+                placeholder="Search Species..."
+                className="bg-transparent flex-1 py-4 text-sm outline-none text-emerald-900 placeholder:text-emerald-300 font-medium min-w-0"
+              />
+              <div className="w-px h-6 bg-emerald-200 mx-1 shrink-0" />
+              <MapPin size={20} className="text-emerald-400 shrink-0" />
+              <input
+                placeholder="Location..."
+                className="bg-transparent flex-1 py-4 text-sm outline-none text-emerald-900 placeholder:text-emerald-300 font-medium min-w-0"
+              />
+            </div>
+
+            {/* FILTER BUTTON */}
+            <div className="relative shrink-0" ref={filterMenuRef}>
+              <button
+                onClick={() => setFilterMenuOpen(!filterMenuOpen)}
+                className="relative flex items-center gap-2 px-4 py-4 bg-emerald-50/60 hover:bg-emerald-100/80 rounded-2xl border border-emerald-100/50 text-emerald-700 transition-all duration-300 hover:border-emerald-300 hover:shadow-md"
+              >
+                <Filter size={20} className="text-emerald-600" />
+                <ChevronDown
+                  size={16}
+                  className={`text-emerald-600 transition-transform ${
+                    filterMenuOpen ? "rotate-180" : ""
+                  }`}
+                />
+                {activeFilterCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-500 text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
+
+              {/* FILTER DROPDOWN */}
+              {filterMenuOpen && (
+                <div className="absolute right-0 mt-2 w-80 max-h-[600px] bg-white rounded-2xl shadow-2xl border border-emerald-100 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200 md:block hidden">
+                  <div className="p-4 border-b border-emerald-50 bg-emerald-50/30">
+                    <h3 className="text-sm font-black text-emerald-950 uppercase tracking-wider">
+                      Filter Options
+                    </h3>
+                  </div>
+
+                  {/* CATEGORY SELECTOR AND RESET */}
+                  <div className="p-3 border-b border-emerald-50 bg-emerald-50/20 space-y-2">
+                    <select
+                      value={selectedCategory}
+                      onChange={(e) => setSelectedCategory(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-emerald-200 rounded-lg text-sm font-medium text-emerald-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    >
+                      {filterCategories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.label}
+                        </option>
+                      ))}
+                    </select>
+                    {onResetFilters && (
+                      <button
+                        onClick={() => {
+                          onResetFilters();
+                        }}
+                        disabled={activeFilterCount === 0}
+                        className={`w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium rounded-lg transition-all ${
+                          activeFilterCount > 0
+                            ? "bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm"
+                            : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                        }`}
+                        title={activeFilterCount > 0 ? "Reset all filters" : "No filters to reset"}
+                      >
+                        <RotateCcw size={14} />
+                        <span>Reset All Filters</span>
+                        {activeFilterCount > 0 && (
+                          <span className="ml-1 px-1.5 py-0.5 bg-white/20 rounded text-[10px] font-bold">
+                            {activeFilterCount}
+                          </span>
+                        )}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* FILTER OPTIONS GRID */}
+                  <div className="p-4 max-h-[450px] overflow-y-auto">
+                    <div className="grid grid-cols-2 gap-3">
+                      {currentOptions.map((option) => {
+                        const imagePath = getMushroomImage(option);
+                        const displayName = getDisplayName(option);
+                        const isSelected = isFilterSelected(option);
+                        return (
+                          <button
+                            key={option}
+                            className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-all group ${
+                              isSelected
+                                ? "border-emerald-500 bg-emerald-50 shadow-md"
+                                : "border-emerald-100 hover:border-emerald-300 hover:bg-emerald-50/50"
+                            }`}
+                            onClick={() => handleFilterClick(option)}
+                          >
+                            {imagePath && (
+                              <div className="w-12 h-12 flex items-center justify-center relative">
+                                <img
+                                  src={imagePath}
+                                  alt={displayName}
+                                  className={`w-full h-full object-contain transition-transform ${
+                                    isSelected
+                                      ? "scale-110"
+                                      : "group-hover:scale-110"
+                                  }`}
+                                />
+                                {isSelected && (
+                                  <div className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center border-2 border-white">
+                                    <span className="text-white text-[10px] font-black">✓</span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                            <span
+                              className={`text-xs font-medium text-center leading-tight ${
+                                isSelected
+                                  ? "text-emerald-700 font-bold"
+                                  : "text-emerald-900"
+                              }`}
+                            >
+                              {displayName}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* RIGHT: NAVIGATION & ACTIONS */}
@@ -196,6 +394,19 @@ export default function ExploreHeader({
               <Search size={22} />
             </button>
 
+            {/* MOBILE FILTER ICON */}
+            <button
+              onClick={() => setFilterMenuOpen(!filterMenuOpen)}
+              className="relative md:hidden p-3 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100 active:bg-emerald-100 transition-colors shrink-0"
+            >
+              <Filter size={22} />
+              {activeFilterCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-500 text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white">
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
+
             {/* MOBILE MENU BUTTON */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -206,6 +417,119 @@ export default function ExploreHeader({
           </div>
         </div>
       </div>
+
+      {/* MOBILE FILTER MODAL */}
+      {filterMenuOpen && (
+        <div
+          className="md:hidden fixed inset-0 bg-black/50 z-[200] flex items-end"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setFilterMenuOpen(false);
+            }
+          }}
+        >
+          <div className="w-full bg-white rounded-t-3xl max-h-[80vh] overflow-hidden flex flex-col">
+            <div className="p-4 border-b border-emerald-100 bg-emerald-50/30 flex items-center justify-between">
+              <h3 className="text-lg font-black text-emerald-950 uppercase tracking-wider">
+                Filter Options
+              </h3>
+              <button
+                onClick={() => setFilterMenuOpen(false)}
+                className="p-2 rounded-lg hover:bg-emerald-100 transition-colors"
+              >
+                <X size={20} className="text-emerald-700" />
+              </button>
+            </div>
+
+            {/* CATEGORY SELECTOR AND RESET */}
+            <div className="p-4 border-b border-emerald-50 bg-emerald-50/20 space-y-3">
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="w-full px-4 py-3 bg-white border border-emerald-200 rounded-xl text-sm font-medium text-emerald-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              >
+                {filterCategories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.label}
+                  </option>
+                ))}
+              </select>
+              {onResetFilters && (
+                <button
+                  onClick={() => {
+                    onResetFilters();
+                  }}
+                  disabled={activeFilterCount === 0}
+                  className={`w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium rounded-xl transition-all ${
+                    activeFilterCount > 0
+                      ? "bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm active:scale-95"
+                      : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  }`}
+                  title={activeFilterCount > 0 ? "Reset all filters" : "No filters to reset"}
+                >
+                  <RotateCcw size={16} />
+                  <span>Reset All Filters</span>
+                  {activeFilterCount > 0 && (
+                    <span className="ml-1 px-2 py-0.5 bg-white/20 rounded text-xs font-bold">
+                      {activeFilterCount}
+                    </span>
+                  )}
+                </button>
+              )}
+            </div>
+
+            {/* FILTER OPTIONS GRID */}
+            <div className="flex-1 p-4 overflow-y-auto">
+              <div className="grid grid-cols-2 gap-3">
+                {currentOptions.map((option) => {
+                  const imagePath = getMushroomImage(option);
+                  const displayName = getDisplayName(option);
+                  const isSelected = isFilterSelected(option);
+                  return (
+                    <button
+                      key={option}
+                      className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-all group active:scale-95 ${
+                        isSelected
+                          ? "border-emerald-500 bg-emerald-50 shadow-md"
+                          : "border-emerald-100 hover:border-emerald-300 hover:bg-emerald-50/50"
+                      }`}
+                      onClick={() => handleFilterClick(option)}
+                    >
+                      {imagePath && (
+                        <div className="w-14 h-14 flex items-center justify-center relative">
+                          <img
+                            src={imagePath}
+                            alt={displayName}
+                            className={`w-full h-full object-contain transition-transform ${
+                              isSelected
+                                ? "scale-110"
+                                : "group-active:scale-110"
+                            }`}
+                          />
+                          {isSelected && (
+                            <div className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center border-2 border-white">
+                              <span className="text-white text-[10px] font-black">✓</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      <span
+                        className={`text-xs font-medium text-center leading-tight ${
+                          isSelected
+                            ? "text-emerald-700 font-bold"
+                            : "text-emerald-900"
+                        }`}
+                      >
+                        {displayName}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MOBILE MENU */}
       {mobileMenuOpen && (
