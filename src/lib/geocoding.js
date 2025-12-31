@@ -51,98 +51,154 @@ export async function getCityBoundary(cityName) {
       return null;
     }
 
-    // First, search for the place to get OSM ID
-    const searchResponse = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-        cityName.trim()
-      )}&limit=1&addressdetails=1`,
-      {
+    // Search with polygon_geojson to get boundary data directly
+    // Request more results to increase chance of finding a boundary
+    const searchUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+      cityName.trim()
+    )}&limit=10&addressdetails=1&polygon_geojson=1&extratags=1`;
+
+    let searchData = [];
+    let searchResponse = null;
+
+    try {
+      searchResponse = await fetch(searchUrl, {
         headers: {
           "User-Agent": "EcoVigyan/1.0",
         },
-      }
-    );
+      });
 
-    if (!searchResponse.ok) {
-      throw new Error("Geocoding service unavailable");
+      if (searchResponse.ok) {
+        searchData = await searchResponse.json();
+      }
+    } catch (err) {
+      console.warn("Search query failed:", err);
     }
 
-    const searchData = await searchResponse.json();
+    if (!searchResponse || !searchResponse.ok) {
+      throw new Error("Geocoding service unavailable");
+    }
 
     if (!searchData || searchData.length === 0) {
       return null;
     }
 
-    const place = searchData[0];
-    const lat = parseFloat(place.lat);
-    const lng = parseFloat(place.lon);
-    const osmId = place.osm_id;
-    const osmType = place.osm_type; // node, way, or relation
-
-    // Try to get detailed boundary using lookup API with polygon_geojson
+    // Find the best match with geojson data
+    // Prefer administrative boundaries (class=boundary, type=administrative) or places (class=place)
+    let place = null;
     let boundary = null;
-    
-    if (osmId && osmType) {
-      try {
-        const lookupResponse = await fetch(
-          `https://nominatim.openstreetmap.org/lookup?format=json&osm_ids=${osmType[0].toUpperCase()}${osmId}&polygon_geojson=1`,
-          {
-            headers: {
-              "User-Agent": "EcoVigyan/1.0",
-            },
-          }
-        );
 
-        if (lookupResponse.ok) {
-          const lookupData = await lookupResponse.json();
-          if (lookupData && lookupData.length > 0) {
-            const detailedPlace = lookupData[0];
-            if (detailedPlace.geojson) {
-              if (detailedPlace.geojson.type === "Polygon") {
-                boundary = detailedPlace.geojson.coordinates[0].map((coord) => [coord[0], coord[1]]);
-              } else if (detailedPlace.geojson.type === "MultiPolygon") {
-                // Use the largest polygon from MultiPolygon
-                let largestPolygon = detailedPlace.geojson.coordinates[0][0];
-                let maxArea = 0;
-                detailedPlace.geojson.coordinates.forEach((polygon) => {
-                  const area = polygon[0].length;
-                  if (area > maxArea) {
-                    maxArea = area;
-                    largestPolygon = polygon[0];
-                  }
-                });
-                boundary = largestPolygon.map((coord) => [coord[0], coord[1]]);
+    // Sort results: prefer boundaries and places with geojson, then relations, then ways
+    const sortedResults = searchData.sort((a, b) => {
+      const aHasGeojson = a.geojson ? 1 : 0;
+      const bHasGeojson = b.geojson ? 1 : 0;
+      if (aHasGeojson !== bHasGeojson) return bHasGeojson - aHasGeojson;
+      
+      const aIsBoundary = (a.class === "boundary" || a.class === "place") ? 1 : 0;
+      const bIsBoundary = (b.class === "boundary" || b.class === "place") ? 1 : 0;
+      if (aIsBoundary !== bIsBoundary) return bIsBoundary - aIsBoundary;
+      
+      const aIsRelation = a.osm_type === "relation" ? 1 : 0;
+      const bIsRelation = b.osm_type === "relation" ? 1 : 0;
+      if (aIsRelation !== bIsRelation) return bIsRelation - aIsRelation;
+      
+      return 0;
+    });
+
+    // Find the first result with geojson data
+    for (const result of sortedResults) {
+      if (result.geojson) {
+        place = result;
+        const geojson = result.geojson;
+        
+        if (geojson.type === "Polygon") {
+          boundary = geojson.coordinates[0].map((coord) => [coord[0], coord[1]]);
+          break;
+        } else if (geojson.type === "MultiPolygon") {
+          // Use the largest polygon from MultiPolygon
+          let largestPolygon = geojson.coordinates[0][0];
+          let maxArea = 0;
+          geojson.coordinates.forEach((polygon) => {
+            // Calculate approximate area by number of points
+            const area = polygon[0].length;
+            if (area > maxArea) {
+              maxArea = area;
+              largestPolygon = polygon[0];
+            }
+          });
+          boundary = largestPolygon.map((coord) => [coord[0], coord[1]]);
+          break;
+        }
+      }
+    }
+    
+    // If still no boundary but we have a result, use the first result
+    if (!place && searchData.length > 0) {
+      place = searchData[0];
+    }
+
+    // If no direct geojson, try lookup API with the first result
+    if (!boundary && searchData.length > 0) {
+      place = searchData[0];
+      const osmId = place.osm_id;
+      const osmType = place.osm_type; // node, way, or relation
+
+      if (osmId && osmType && osmType !== "node") {
+        // Only try lookup for ways and relations (nodes don't have boundaries)
+        try {
+          const lookupResponse = await fetch(
+            `https://nominatim.openstreetmap.org/lookup?format=json&osm_ids=${osmType[0].toUpperCase()}${osmId}&polygon_geojson=1`,
+            {
+              headers: {
+                "User-Agent": "EcoVigyan/1.0",
+              },
+            }
+          );
+
+          if (lookupResponse.ok) {
+            const lookupData = await lookupResponse.json();
+            if (lookupData && lookupData.length > 0) {
+              const detailedPlace = lookupData[0];
+              if (detailedPlace.geojson) {
+                if (detailedPlace.geojson.type === "Polygon") {
+                  boundary = detailedPlace.geojson.coordinates[0].map((coord) => [coord[0], coord[1]]);
+                } else if (detailedPlace.geojson.type === "MultiPolygon") {
+                  // Use the largest polygon from MultiPolygon
+                  let largestPolygon = detailedPlace.geojson.coordinates[0][0];
+                  let maxArea = 0;
+                  detailedPlace.geojson.coordinates.forEach((polygon) => {
+                    const area = polygon[0].length;
+                    if (area > maxArea) {
+                      maxArea = area;
+                      largestPolygon = polygon[0];
+                    }
+                  });
+                  boundary = largestPolygon.map((coord) => [coord[0], coord[1]]);
+                }
               }
             }
           }
+        } catch (lookupError) {
+          console.warn("Lookup API failed:", lookupError);
         }
-      } catch (lookupError) {
-        console.warn("Lookup API failed, using fallback:", lookupError);
       }
     }
 
-    // Fallback: use bounding box if polygon not available
-    if (!boundary && place.boundingbox) {
-      const [minLat, maxLat, minLng, maxLng] = place.boundingbox.map(parseFloat);
-      boundary = [
-        [minLng, minLat],
-        [maxLng, minLat],
-        [maxLng, maxLat],
-        [minLng, maxLat],
-        [minLng, minLat], // Close the polygon
-      ];
+    // If we still don't have a boundary, don't use the bounding box fallback
+    // Return null or an error message instead
+    if (!boundary) {
+      console.warn("Could not find polygon boundary for city:", cityName);
+      return null;
     }
 
-    if (boundary) {
-      return {
-        center: { lat, lng },
-        boundary,
-        name: place.display_name,
-        type: "city",
-      };
-    }
+    const lat = parseFloat(place.lat);
+    const lng = parseFloat(place.lon);
 
-    return null;
+    return {
+      center: { lat, lng },
+      boundary,
+      name: place.display_name,
+      type: "city",
+    };
   } catch (error) {
     console.error("City boundary error:", error);
     return null;

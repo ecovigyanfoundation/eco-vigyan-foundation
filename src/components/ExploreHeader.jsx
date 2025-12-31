@@ -38,6 +38,7 @@ export default function ExploreHeader({
   onFilterToggle,
   onResetFilters,
   selectedFilters = {},
+  onZonesClick,
 }) {
   const { user, logout } = useAuth();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -46,21 +47,41 @@ export default function ExploreHeader({
   const [selectedCategory, setSelectedCategory] = useState("all");
   const userMenuRef = useRef(null);
   const filterMenuRef = useRef(null);
+  const filterDropdownRef = useRef(null);
+  const filterButtonClickedRef = useRef(false);
 
   // Close user menu when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event) => {
+    const handleUserMenuClickOutside = (event) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
         setUserMenuOpen(false);
       }
-      if (filterMenuRef.current && !filterMenuRef.current.contains(event.target)) {
-        setFilterMenuOpen(false);
+    };
+
+    const handleFilterMenuClickOutside = (event) => {
+      // Skip if button was just clicked (button's onClick handles the toggle)
+      if (filterButtonClickedRef.current) {
+        filterButtonClickedRef.current = false;
+        return;
+      }
+      
+      if (filterMenuOpen && filterDropdownRef.current) {
+        const isClickInsideDropdown = filterDropdownRef.current.contains(event.target);
+        if (!isClickInsideDropdown) {
+          setFilterMenuOpen(false);
+        }
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+    document.addEventListener("mousedown", handleUserMenuClickOutside);
+    // Use 'click' for filter menu - button click will set the ref to skip closing
+    document.addEventListener("click", handleFilterMenuClickOutside, true);
+    
+    return () => {
+      document.removeEventListener("mousedown", handleUserMenuClickOutside);
+      document.removeEventListener("click", handleFilterMenuClickOutside, true);
+    };
+  }, [filterMenuOpen]);
 
   // Combine all filter options
   const allFilterOptions = [
@@ -110,7 +131,10 @@ export default function ExploreHeader({
   };
 
   // Handle filter click
-  const handleFilterClick = (value) => {
+  const handleFilterClick = (value, event) => {
+    if (event) {
+      event.stopPropagation();
+    }
     const filterType = getFilterType(value);
     if (filterType && onFilterToggle) {
       onFilterToggle(filterType, value);
@@ -121,7 +145,7 @@ export default function ExploreHeader({
     <header className="z-[100] bg-white/90 backdrop-blur-md border-b border-emerald-100 shadow-sm shrink-0 sticky top-0 overflow-visible">
       {/* TOP ROW: BRANDING, SEARCH, ACTIONS */}
       <div className="border-b border-emerald-50/50 overflow-visible">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-10 py-4 sm:py-4 md:py-4 flex items-center justify-between gap-2 sm:gap-3 md:gap-4 lg:gap-5 overflow-visible relative">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-10 py-4 sm:py-4 md:py-1 flex items-center justify-between gap-2 sm:gap-3 md:gap-4 lg:gap-5 overflow-visible relative">
           {/* LEFT: BRANDING */}
           <a
             href="/"
@@ -167,7 +191,11 @@ export default function ExploreHeader({
             {/* FILTER BUTTON */}
             <div className="relative shrink-0" ref={filterMenuRef}>
               <button
-                onClick={() => setFilterMenuOpen(!filterMenuOpen)}
+                type="button"
+                onClick={(e) => {
+                  filterButtonClickedRef.current = true;
+                  setFilterMenuOpen(prev => !prev);
+                }}
                 className="relative flex items-center gap-1 px-2.5 py-2.5 bg-emerald-50/60 hover:bg-emerald-100/80 rounded-2xl border border-emerald-100/50 text-emerald-700 transition-all duration-300 hover:border-emerald-300 hover:shadow-md shrink-0"
               >
                 <Filter size={16} className="text-emerald-600 shrink-0" />
@@ -186,7 +214,10 @@ export default function ExploreHeader({
 
               {/* FILTER DROPDOWN */}
               {filterMenuOpen && (
-                <div className="absolute right-0 mt-2 w-80 max-w-[min(320px,calc(100vw-1rem))] max-h-[600px] bg-white rounded-2xl shadow-2xl border border-emerald-100 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200 md:block hidden">
+                <div 
+                  ref={filterDropdownRef}
+                  className="absolute right-0 mt-2 w-80 max-w-[min(320px,calc(100vw-1rem))] max-h-[600px] bg-white rounded-2xl shadow-2xl border border-emerald-100 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200 md:block hidden"
+                >
                   <div className="p-4 border-b border-emerald-50 bg-emerald-50/30">
                     <h3 className="text-sm font-black text-emerald-950 uppercase tracking-wider">
                       Filter Options
@@ -197,7 +228,11 @@ export default function ExploreHeader({
                   <div className="p-3 border-b border-emerald-50 bg-emerald-50/20 space-y-2">
                     <select
                       value={selectedCategory}
-                      onChange={(e) => setSelectedCategory(e.target.value)}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        setSelectedCategory(e.target.value);
+                      }}
+                      onClick={(e) => e.stopPropagation()}
                       className="w-full px-3 py-2 bg-white border border-emerald-200 rounded-lg text-sm font-medium text-emerald-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                     >
                       {filterCategories.map((cat) => (
@@ -208,7 +243,8 @@ export default function ExploreHeader({
                     </select>
                     {onResetFilters && (
                       <button
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           onResetFilters();
                         }}
                         disabled={activeFilterCount === 0}
@@ -240,12 +276,16 @@ export default function ExploreHeader({
                         return (
                           <button
                             key={option}
+                            type="button"
                             className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-all group ${
                               isSelected
                                 ? "border-emerald-500 bg-emerald-50 shadow-md"
                                 : "border-emerald-100 hover:border-emerald-300 hover:bg-emerald-50/50"
                             }`}
-                            onClick={() => handleFilterClick(option)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleFilterClick(option, e);
+                            }}
                           >
                             {imagePath && (
                               <div className="w-12 h-12 flex items-center justify-center relative">
@@ -390,7 +430,11 @@ export default function ExploreHeader({
             {/* MOBILE FILTER ICON */}
             <div className="relative md:hidden shrink-0" ref={filterMenuRef}>
               <button
-                onClick={() => setFilterMenuOpen(!filterMenuOpen)}
+                type="button"
+                onClick={(e) => {
+                  filterButtonClickedRef.current = true;
+                  setFilterMenuOpen(prev => !prev);
+                }}
                 className="relative p-3 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100 active:bg-emerald-100 transition-colors"
               >
                 <Filter size={22} />
@@ -403,7 +447,11 @@ export default function ExploreHeader({
 
               {/* MOBILE FILTER DROPDOWN */}
               {filterMenuOpen && (
-                <div className="absolute right-0 mt-2 w-72 max-w-[calc(100vw-3rem)] bg-white rounded-2xl shadow-2xl border border-emerald-100 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200 max-h-[70vh] flex flex-col">
+                <div 
+                  className="absolute right-0 mt-2 w-72 max-w-[calc(100vw-3rem)] bg-white rounded-2xl shadow-2xl border border-emerald-100 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200 max-h-[70vh] flex flex-col"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <div className="px-3 py-2.5 border-b border-emerald-50 bg-emerald-50/30 flex items-center justify-between">
                     <h3 className="text-xs font-black text-emerald-950 uppercase tracking-wider">
                       Filters
@@ -411,9 +459,12 @@ export default function ExploreHeader({
                     <div className="flex items-center gap-1.5">
                       {activeFilterCount > 0 && onResetFilters && (
                         <button
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
                             onResetFilters();
                           }}
+                          onMouseDown={(e) => e.stopPropagation()}
                           className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-emerald-700 hover:text-emerald-900 hover:bg-emerald-100 rounded-md transition-colors"
                           title="Reset all filters"
                         >
@@ -422,7 +473,12 @@ export default function ExploreHeader({
                         </button>
                       )}
                       <button
-                        onClick={() => setFilterMenuOpen(false)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setFilterMenuOpen(false);
+                        }}
+                        onMouseDown={(e) => e.stopPropagation()}
                         className="p-1 rounded-md hover:bg-emerald-100 transition-colors"
                       >
                         <X size={14} className="text-emerald-700" />
@@ -435,6 +491,8 @@ export default function ExploreHeader({
                     <select
                       value={selectedCategory}
                       onChange={(e) => setSelectedCategory(e.target.value)}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onClick={(e) => e.stopPropagation()}
                       className="w-full px-2.5 py-1.5 bg-white border border-emerald-200 rounded-lg text-[11px] font-medium text-emerald-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
                     >
                       {filterCategories.map((cat) => (
@@ -460,7 +518,8 @@ export default function ExploreHeader({
                                 ? "border-emerald-500 bg-emerald-50 shadow-sm"
                                 : "border-emerald-100 active:border-emerald-300 active:bg-emerald-50/50"
                             }`}
-                            onClick={() => handleFilterClick(option)}
+                            onClick={(e) => handleFilterClick(option, e)}
+                            onMouseDown={(e) => e.stopPropagation()}
                           >
                             {imagePath && (
                               <div className="w-8 h-8 flex items-center justify-center relative flex-shrink-0">
@@ -637,7 +696,10 @@ export default function ExploreHeader({
             <button className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 md:px-6 py-1.5 sm:py-2 md:py-2.5 rounded-lg sm:rounded-xl bg-white border border-emerald-100 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-emerald-700 hover:bg-emerald-500 hover:text-white transition-all shadow-sm shadow-emerald-100/50 whitespace-nowrap">
               <Navigation size={12} className="sm:w-3.5 sm:h-3.5 md:w-[14px] md:h-[14px]" /> <span className="hidden md:inline">Trails</span>
             </button>
-            <button className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 md:px-6 py-1.5 sm:py-2 md:py-2.5 rounded-lg sm:rounded-xl bg-white border border-emerald-100 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-emerald-700 hover:bg-emerald-500 hover:text-white transition-all shadow-sm shadow-emerald-100/50 whitespace-nowrap">
+            <button 
+              onClick={onZonesClick}
+              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 md:px-6 py-1.5 sm:py-2 md:py-2.5 rounded-lg sm:rounded-xl bg-white border border-emerald-100 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-emerald-700 hover:bg-emerald-500 hover:text-white transition-all shadow-sm shadow-emerald-100/50 whitespace-nowrap"
+            >
               <Layers size={12} className="sm:w-3.5 sm:h-3.5 md:w-[14px] md:h-[14px]" /> <span className="hidden md:inline">Zones</span>
             </button>
           </div>

@@ -3,14 +3,16 @@
 import { useEffect, useState } from "react";
 import CategoryFilter from "@/components/CategoryFilter";
 import dynamic from "next/dynamic";
-import { Filter, Plus, Menu, X, Home, Info, Users, FileText, Image, Calendar, FileCheck, Mail, User, Settings, Navigation, Heart } from "lucide-react";
+import { Filter, Plus, Menu, X, Home, Info, Users, FileText, Image, Calendar, FileCheck, Mail, User, Settings, Navigation, Heart, Layers, MapPin } from "lucide-react";
 import Link from "next/link";
 import ExploreHeader from "@/components/ExploreHeader";
 import MushroomGrid from "@/components/MushroomGrid";
 import MushroomSubmissionForm from "@/components/MushroomSubmissionForm";
 import MobileSearchModal from "@/components/MobileSearchModal";
 import Leaderboard from "@/components/Leaderboard";
+import ZoneModal from "@/components/ZoneModal";
 import { useAuth } from "@/context/AuthContext";
+import { isPointInPolygon } from "@/lib/geocoding";
 
 const Map = dynamic(() => import("@/components/Map"), { ssr: false });
 
@@ -36,6 +38,9 @@ export default function MapPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [showSidebar, setShowSidebar] = useState(false);
+  const [showZoneModal, setShowZoneModal] = useState(false);
+  const [selectedZone, setSelectedZone] = useState(null);
+  const [drawingMode, setDrawingMode] = useState(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -110,9 +115,17 @@ export default function MapPage() {
     });
   };
 
-  // Filter data based on header filters
+  // Filter data based on header filters and zone
   useEffect(() => {
     let filtered = [...allData];
+
+    // Apply zone filter first
+    if (selectedZone && selectedZone.boundary) {
+      filtered = filtered.filter((item) => {
+        if (!item.latitude || !item.longitude) return false;
+        return isPointInPolygon(item.latitude, item.longitude, selectedZone.boundary);
+      });
+    }
 
     // Apply header filters
     if (headerFilters.ecologicalRole.length > 0) {
@@ -161,7 +174,36 @@ export default function MapPage() {
     }
 
     setData(filtered);
-  }, [headerFilters, filters, mode, allData]);
+  }, [headerFilters, filters, mode, allData, selectedZone]);
+
+  // Handle zone selection
+  const handleZoneSelect = (zone) => {
+    setSelectedZone(zone);
+    setDrawingMode(null);
+  };
+
+  // Handle drawing mode selection
+  const handleDrawingModeSelect = (mode) => {
+    setDrawingMode(mode);
+    setSelectedZone(null); // Clear existing zone when starting new drawing
+  };
+
+  // Handle drawing completion
+  const handleDrawingComplete = (drawnZone) => {
+    setSelectedZone(drawnZone);
+    setDrawingMode(null);
+  };
+
+  // Handle drawing cancellation
+  const handleDrawingCancel = () => {
+    setDrawingMode(null);
+  };
+
+  // Clear selected zone
+  const handleClearZone = () => {
+    setSelectedZone(null);
+    setDrawingMode(null);
+  };
 
   const handleSubmissionSuccess = async () => {
     // Refresh data after successful submission
@@ -199,6 +241,7 @@ export default function MapPage() {
         onFilterToggle={handleHeaderFilterToggle}
         onResetFilters={handleResetFilters}
         selectedFilters={headerFilters}
+        onZonesClick={() => setShowZoneModal(true)}
       />
 
       {/* DESKTOP SIDEBAR MENU */}
@@ -369,17 +412,46 @@ export default function MapPage() {
       <main className="flex-1 relative overflow-hidden">
         {view === "map" && isMounted && (
           <>
-            <Map data={data} filters={filters} mode={mode} />
+            <Map 
+              data={data} 
+              filters={filters} 
+              mode={mode}
+              selectedZone={selectedZone}
+              drawingMode={drawingMode}
+              onDrawingComplete={handleDrawingComplete}
+              onDrawingCancel={handleDrawingCancel}
+            />
 
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="absolute top-6 left-6 z-20 p-4 rounded-2xl bg-gray-800 border border-gray-700 shadow-2xl hover:bg-gray-700"
-            >
-              <Filter
-                size={20}
-                className={showFilters ? "text-green-500" : "text-white"}
-              />
-            </button>
+            <div className="absolute top-6 left-6 z-20 flex flex-col gap-3">
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="p-4 rounded-2xl bg-gray-800 border border-gray-700 shadow-2xl hover:bg-gray-700"
+              >
+                <Filter
+                  size={20}
+                  className={showFilters ? "text-green-500" : "text-white"}
+                />
+              </button>
+              
+              {/* Zone filter indicator and clear button */}
+              {selectedZone && (
+                <div className="p-3 rounded-2xl bg-emerald-600/90 backdrop-blur-md border border-emerald-500 shadow-2xl flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <MapPin size={16} className="text-white" />
+                    <span className="text-white text-xs font-bold">
+                      {selectedZone.name || "Zone Selected"}
+                    </span>
+                  </div>
+                  <button
+                    onClick={handleClearZone}
+                    className="p-1.5 rounded-lg bg-emerald-700/50 hover:bg-emerald-700 transition-colors"
+                    title="Clear zone filter"
+                  >
+                    <X size={14} className="text-white" />
+                  </button>
+                </div>
+              )}
+            </div>
             {showFilters && (
               <div className="absolute top-20 left-6 z-20 w-64 bg-gray-800/95 backdrop-blur-md p-5 rounded-[2rem] border border-gray-700 shadow-2xl animate-in fade-in slide-in-from-top-2">
                 <div className="flex bg-gray-900 p-1 rounded-xl border border-gray-700 mb-4">
@@ -436,6 +508,13 @@ export default function MapPage() {
         onSuccess={handleSubmissionSuccess}
         selectedLocation={selectedLocation}
         onLocationSelect={setSelectedLocation}
+      />
+
+      <ZoneModal
+        isOpen={showZoneModal}
+        onClose={() => setShowZoneModal(false)}
+        onZoneSelect={handleZoneSelect}
+        onDrawingModeSelect={handleDrawingModeSelect}
       />
 
       {/* MOBILE FLOATING ADD BUTTON */}
