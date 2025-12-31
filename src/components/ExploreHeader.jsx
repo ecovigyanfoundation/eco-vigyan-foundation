@@ -118,10 +118,10 @@ export default function ExploreHeader({
   };
 
   return (
-    <header className="z-[100] bg-white/90 backdrop-blur-md border-b border-emerald-100 shadow-sm shrink-0 sticky top-0">
+    <header className="z-[100] bg-white/90 backdrop-blur-md border-b border-emerald-100 shadow-sm shrink-0 sticky top-0 overflow-visible">
       {/* TOP ROW: BRANDING, SEARCH, ACTIONS */}
-      <div className="border-b border-emerald-50/50">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-10 py-4 sm:py-4 md:py-4 flex items-center justify-between gap-3 sm:gap-4 md:gap-6 lg:gap-8">
+      <div className="border-b border-emerald-50/50 overflow-visible">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-10 py-4 sm:py-4 md:py-4 flex items-center justify-between gap-2 sm:gap-3 md:gap-4 lg:gap-5 overflow-visible relative">
           {/* LEFT: BRANDING */}
           <a
             href="/"
@@ -148,19 +148,19 @@ export default function ExploreHeader({
           </a>
 
           {/* CENTER: SEARCH BAR AND FILTER */}
-          <div className="hidden md:flex flex-1 max-w-lg lg:max-w-xl items-center gap-3">
+          <div className="hidden md:flex flex-1 items-center gap-2 min-w-0 max-w-full">
             {/* SEARCH BAR */}
-            <div className="flex-1 flex items-center bg-emerald-50/60 rounded-2xl border border-emerald-100/50 overflow-hidden px-5 gap-3 focus-within:bg-white focus-within:border-emerald-500 focus-within:ring-4 focus-within:ring-emerald-500/10 transition-all duration-300">
-              <Search size={20} className="text-emerald-400 shrink-0" />
+            <div className="flex-1 flex items-center bg-emerald-50/60 rounded-2xl border border-emerald-100/50 overflow-hidden px-3 gap-2 focus-within:bg-white focus-within:border-emerald-500 focus-within:ring-4 focus-within:ring-emerald-500/10 transition-all duration-300 min-w-0">
+              <Search size={16} className="text-emerald-400 shrink-0" />
               <input
                 placeholder="Search Species..."
-                className="bg-transparent flex-1 py-4 text-sm outline-none text-emerald-900 placeholder:text-emerald-300 font-medium min-w-0"
+                className="bg-transparent flex-1 py-2.5 text-xs outline-none text-emerald-900 placeholder:text-emerald-300 font-medium min-w-0"
               />
-              <div className="w-px h-6 bg-emerald-200 mx-1 shrink-0" />
-              <MapPin size={20} className="text-emerald-400 shrink-0" />
+              <div className="w-px h-4 bg-emerald-200 mx-0.5 shrink-0" />
+              <MapPin size={16} className="text-emerald-400 shrink-0" />
               <input
                 placeholder="Location..."
-                className="bg-transparent flex-1 py-4 text-sm outline-none text-emerald-900 placeholder:text-emerald-300 font-medium min-w-0"
+                className="bg-transparent flex-1 py-2.5 text-xs outline-none text-emerald-900 placeholder:text-emerald-300 font-medium min-w-0"
               />
             </div>
 
@@ -168,12 +168,12 @@ export default function ExploreHeader({
             <div className="relative shrink-0" ref={filterMenuRef}>
               <button
                 onClick={() => setFilterMenuOpen(!filterMenuOpen)}
-                className="relative flex items-center gap-2 px-4 py-4 bg-emerald-50/60 hover:bg-emerald-100/80 rounded-2xl border border-emerald-100/50 text-emerald-700 transition-all duration-300 hover:border-emerald-300 hover:shadow-md"
+                className="relative flex items-center gap-1 px-2.5 py-2.5 bg-emerald-50/60 hover:bg-emerald-100/80 rounded-2xl border border-emerald-100/50 text-emerald-700 transition-all duration-300 hover:border-emerald-300 hover:shadow-md shrink-0"
               >
-                <Filter size={20} className="text-emerald-600" />
+                <Filter size={16} className="text-emerald-600 shrink-0" />
                 <ChevronDown
-                  size={16}
-                  className={`text-emerald-600 transition-transform ${
+                  size={12}
+                  className={`text-emerald-600 transition-transform shrink-0 ${
                     filterMenuOpen ? "rotate-180" : ""
                   }`}
                 />
@@ -186,7 +186,7 @@ export default function ExploreHeader({
 
               {/* FILTER DROPDOWN */}
               {filterMenuOpen && (
-                <div className="absolute right-0 mt-2 w-80 max-h-[600px] bg-white rounded-2xl shadow-2xl border border-emerald-100 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200 md:block hidden">
+                <div className="absolute right-0 mt-2 w-80 max-w-[min(320px,calc(100vw-1rem))] max-h-[600px] bg-white rounded-2xl shadow-2xl border border-emerald-100 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200 md:block hidden">
                   <div className="p-4 border-b border-emerald-50 bg-emerald-50/30">
                     <h3 className="text-sm font-black text-emerald-950 uppercase tracking-wider">
                       Filter Options
@@ -286,13 +286,6 @@ export default function ExploreHeader({
 
           {/* RIGHT: NAVIGATION & ACTIONS */}
           <div className="flex items-center gap-2 sm:gap-3 md:gap-4 lg:gap-6 xl:gap-8 shrink-0">
-            <Link
-              href="/"
-              className="hidden lg:block text-[12px] font-black uppercase tracking-[0.2em] text-emerald-900 hover:text-emerald-500 transition-colors shrink-0"
-            >
-              Home
-            </Link>
-
             {!user ? (
               <Link
                 href="/login"
@@ -537,13 +530,6 @@ export default function ExploreHeader({
           <div className="max-w-7xl mx-auto px-4 py-6 space-y-4">
             {/* Navigation Links */}
             <div className="flex flex-col space-y-2">
-              <Link
-                href="/"
-                className="text-lg font-medium text-slate-700 w-full text-center py-2 hover:text-emerald-700 transition"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Home
-              </Link>
               <Link
                 href="/#about"
                 className="text-lg font-medium text-slate-700 w-full text-center py-2 hover:text-emerald-700 transition"

@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import CategoryFilter from "@/components/CategoryFilter";
 import dynamic from "next/dynamic";
-import { Filter, Plus } from "lucide-react";
+import { Filter, Plus, Menu, X, Home, Info, Users, FileText, Image, Calendar, FileCheck, Mail, User, Settings, Navigation, Heart } from "lucide-react";
+import Link from "next/link";
 import ExploreHeader from "@/components/ExploreHeader";
 import MushroomGrid from "@/components/MushroomGrid";
 import MushroomSubmissionForm from "@/components/MushroomSubmissionForm";
@@ -34,6 +35,7 @@ export default function MapPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState(null);
+  const [showSidebar, setShowSidebar] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -187,7 +189,7 @@ export default function MapPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-dvh w-screen bg-gray-950 overflow-x-hidden text-white">
+    <div className="flex flex-col min-h-dvh w-full bg-gray-950 overflow-x-hidden text-white">
       {/* HEADER */}
       <ExploreHeader
         view={view}
@@ -198,6 +200,170 @@ export default function MapPage() {
         onResetFilters={handleResetFilters}
         selectedFilters={headerFilters}
       />
+
+      {/* DESKTOP SIDEBAR MENU */}
+      <div className="hidden md:block fixed left-0 top-0 h-full z-[110]">
+        {/* BACKDROP OVERLAY */}
+        {showSidebar && (
+          <div
+            className="fixed inset-0 bg-black/50 z-[110]"
+            onClick={() => setShowSidebar(false)}
+          />
+        )}
+
+        {/* TOGGLE BUTTON */}
+        <button
+          onClick={() => setShowSidebar(!showSidebar)}
+          className="absolute left-4 top-24 z-[120] p-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-r-2xl shadow-2xl transition-all duration-300 hover:shadow-emerald-500/50"
+          aria-label="Toggle menu"
+        >
+          {showSidebar ? <X size={20} /> : <Menu size={20} />}
+        </button>
+
+        {/* SIDEBAR */}
+        <div
+          className={`fixed left-0 top-0 h-full bg-gray-900/95 backdrop-blur-md border-r border-gray-700 shadow-2xl transition-all duration-300 ease-in-out z-[120] ${
+            showSidebar ? "translate-x-0" : "-translate-x-full"
+          } w-64`}
+        >
+          <div className="flex flex-col h-full">
+            {/* HEADER */}
+            <div className="p-6 border-b border-gray-700">
+              <h2 className="text-lg font-black text-white uppercase tracking-wider">
+                Navigation
+              </h2>
+            </div>
+
+            {/* MENU LINKS */}
+            <nav className="flex-1 overflow-y-auto p-4 space-y-1">
+              {/* MAIN PAGES */}
+              <div className="mb-6">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 px-3">
+                  Main Pages
+                </p>
+                <Link
+                  href="/"
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-300 hover:bg-emerald-600 hover:text-white transition-all group"
+                  onClick={() => setShowSidebar(false)}
+                >
+                  <Home size={18} className="group-hover:scale-110 transition-transform" />
+                  <span>Home</span>
+                </Link>
+                <Link
+                  href="/#about"
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-300 hover:bg-emerald-600 hover:text-white transition-all group"
+                  onClick={() => setShowSidebar(false)}
+                >
+                  <Info size={18} className="group-hover:scale-110 transition-transform" />
+                  <span>About</span>
+                </Link>
+                <Link
+                  href="/explore"
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium bg-emerald-600 text-white transition-all group"
+                  onClick={() => setShowSidebar(false)}
+                >
+                  <Navigation size={18} className="group-hover:scale-110 transition-transform" />
+                  <span>Explore</span>
+                </Link>
+                <Link
+                  href="/join-us"
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-300 hover:bg-emerald-600 hover:text-white transition-all group"
+                  onClick={() => setShowSidebar(false)}
+                >
+                  <Users size={18} className="group-hover:scale-110 transition-transform" />
+                  <span>Join Us</span>
+                </Link>
+              </div>
+
+              {/* PROGRAMS */}
+              <div className="mb-6">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 px-3">
+                  Programs
+                </p>
+                <Link
+                  href="/articles"
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-300 hover:bg-emerald-600 hover:text-white transition-all group"
+                  onClick={() => setShowSidebar(false)}
+                >
+                  <FileText size={18} className="group-hover:scale-110 transition-transform" />
+                  <span>Articles</span>
+                </Link>
+                <Link
+                  href="/gallery"
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-300 hover:bg-emerald-600 hover:text-white transition-all group"
+                  onClick={() => setShowSidebar(false)}
+                >
+                  <Image size={18} className="group-hover:scale-110 transition-transform" />
+                  <span>Eco-Art Gallery</span>
+                </Link>
+                <Link
+                  href="/programs"
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-300 hover:bg-emerald-600 hover:text-white transition-all group"
+                  onClick={() => setShowSidebar(false)}
+                >
+                  <Calendar size={18} className="group-hover:scale-110 transition-transform" />
+                  <span>Programs</span>
+                </Link>
+                <Link
+                  href="/reports"
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-300 hover:bg-emerald-600 hover:text-white transition-all group"
+                  onClick={() => setShowSidebar(false)}
+                >
+                  <FileCheck size={18} className="group-hover:scale-110 transition-transform" />
+                  <span>Reports</span>
+                </Link>
+                <Link
+                  href="/contact"
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-300 hover:bg-emerald-600 hover:text-white transition-all group"
+                  onClick={() => setShowSidebar(false)}
+                >
+                  <Mail size={18} className="group-hover:scale-110 transition-transform" />
+                  <span>Contact Us</span>
+                </Link>
+              </div>
+
+              {/* USER PAGES */}
+              {user && (
+                <div className="mb-6">
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 px-3">
+                    My Account
+                  </p>
+                  <Link
+                    href="/my-submissions"
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-300 hover:bg-emerald-600 hover:text-white transition-all group"
+                    onClick={() => setShowSidebar(false)}
+                  >
+                    <User size={18} className="group-hover:scale-110 transition-transform" />
+                    <span>My Submissions</span>
+                  </Link>
+                  {user.role === "admin" && (
+                    <Link
+                      href="/admin/mushrooms"
+                      className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-300 hover:bg-emerald-600 hover:text-white transition-all group"
+                      onClick={() => setShowSidebar(false)}
+                    >
+                      <Settings size={18} className="group-hover:scale-110 transition-transform" />
+                      <span>Admin Panel</span>
+                    </Link>
+                  )}
+                </div>
+              )}
+            </nav>
+
+            {/* FOOTER */}
+            <div className="p-4 border-t border-gray-700">
+              <Link
+                href="/donate"
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-emerald-600 to-green-700 text-white font-bold rounded-xl hover:opacity-90 transition-all shadow-lg"
+                onClick={() => setShowSidebar(false)}
+              >
+                <Heart size={16} />
+                <span>Donate Now</span>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* MAIN CONTENT */}
       <main className="flex-1 relative overflow-hidden">
