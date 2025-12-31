@@ -369,7 +369,7 @@ export default function ExploreHeader({
                 {user?.role === "admin" && (
                   <Link
                     href="/admin/mushrooms"
-                    className="bg-gray-800 hover:bg-gray-700 text-white px-4 sm:px-5 md:px-6 py-3 sm:py-3.5 md:py-4 rounded-xl sm:rounded-2xl font-black text-[10px] sm:text-[10px] md:text-[11px] flex items-center gap-2 sm:gap-2 md:gap-3 shadow-xl transition-all active:scale-95 uppercase tracking-widest shrink-0"
+                    className="hidden md:flex bg-gray-800 hover:bg-gray-700 text-white px-4 sm:px-5 md:px-6 py-3 sm:py-3.5 md:py-4 rounded-xl sm:rounded-2xl font-black text-[10px] sm:text-[10px] md:text-[11px] items-center gap-2 sm:gap-2 md:gap-3 shadow-xl transition-all active:scale-95 uppercase tracking-widest shrink-0"
                   >
                     <User size={18} strokeWidth={3} className="sm:w-4 sm:h-4 md:w-[18px] md:h-[18px]" />
                     <span className="hidden sm:inline xl:hidden">Admin</span>
@@ -388,17 +388,115 @@ export default function ExploreHeader({
             </button>
 
             {/* MOBILE FILTER ICON */}
-            <button
-              onClick={() => setFilterMenuOpen(!filterMenuOpen)}
-              className="relative md:hidden p-3 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100 active:bg-emerald-100 transition-colors shrink-0"
-            >
-              <Filter size={22} />
-              {activeFilterCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-500 text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white">
-                  {activeFilterCount}
-                </span>
+            <div className="relative md:hidden shrink-0" ref={filterMenuRef}>
+              <button
+                onClick={() => setFilterMenuOpen(!filterMenuOpen)}
+                className="relative p-3 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100 active:bg-emerald-100 transition-colors"
+              >
+                <Filter size={22} />
+                {activeFilterCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-500 text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
+
+              {/* MOBILE FILTER DROPDOWN */}
+              {filterMenuOpen && (
+                <div className="absolute right-0 mt-2 w-72 max-w-[calc(100vw-3rem)] bg-white rounded-2xl shadow-2xl border border-emerald-100 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200 max-h-[70vh] flex flex-col">
+                  <div className="px-3 py-2.5 border-b border-emerald-50 bg-emerald-50/30 flex items-center justify-between">
+                    <h3 className="text-xs font-black text-emerald-950 uppercase tracking-wider">
+                      Filters
+                    </h3>
+                    <div className="flex items-center gap-1.5">
+                      {activeFilterCount > 0 && onResetFilters && (
+                        <button
+                          onClick={() => {
+                            onResetFilters();
+                          }}
+                          className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-emerald-700 hover:text-emerald-900 hover:bg-emerald-100 rounded-md transition-colors"
+                          title="Reset all filters"
+                        >
+                          <RotateCcw size={11} />
+                          <span>Reset</span>
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setFilterMenuOpen(false)}
+                        className="p-1 rounded-md hover:bg-emerald-100 transition-colors"
+                      >
+                        <X size={14} className="text-emerald-700" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* CATEGORY SELECTOR */}
+                  <div className="px-3 pt-2.5 pb-2 border-b border-emerald-50 bg-emerald-50/20">
+                    <select
+                      value={selectedCategory}
+                      onChange={(e) => setSelectedCategory(e.target.value)}
+                      className="w-full px-2.5 py-1.5 bg-white border border-emerald-200 rounded-lg text-[11px] font-medium text-emerald-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
+                    >
+                      {filterCategories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* FILTER OPTIONS GRID */}
+                  <div className="flex-1 p-2.5 overflow-y-auto">
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {currentOptions.map((option) => {
+                        const imagePath = getMushroomImage(option);
+                        const displayName = getDisplayName(option);
+                        const isSelected = isFilterSelected(option);
+                        return (
+                          <button
+                            key={option}
+                            className={`flex flex-col items-center justify-center gap-1 p-1.5 rounded-lg border transition-all group active:scale-95 min-h-[75px] ${
+                              isSelected
+                                ? "border-emerald-500 bg-emerald-50 shadow-sm"
+                                : "border-emerald-100 active:border-emerald-300 active:bg-emerald-50/50"
+                            }`}
+                            onClick={() => handleFilterClick(option)}
+                          >
+                            {imagePath && (
+                              <div className="w-8 h-8 flex items-center justify-center relative flex-shrink-0">
+                                <img
+                                  src={imagePath}
+                                  alt={displayName}
+                                  className={`w-full h-full object-contain transition-transform ${
+                                    isSelected
+                                      ? "scale-110"
+                                      : "group-active:scale-110"
+                                  }`}
+                                />
+                                {isSelected && (
+                                  <div className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 rounded-full flex items-center justify-center border border-white">
+                                    <span className="text-white text-[8px] font-black">✓</span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                            <span
+                              className={`text-[9px] font-medium text-center leading-tight px-0.5 line-clamp-2 ${
+                                isSelected
+                                  ? "text-emerald-700 font-bold"
+                                  : "text-emerald-900"
+                              }`}
+                            >
+                              {displayName}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
               )}
-            </button>
+            </div>
 
             {/* MOBILE MENU BUTTON */}
             <button
@@ -411,118 +509,6 @@ export default function ExploreHeader({
         </div>
       </div>
 
-      {/* MOBILE FILTER MODAL */}
-      {filterMenuOpen && (
-        <div
-          className="md:hidden fixed inset-0 bg-black/50 z-[200] flex items-end"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setFilterMenuOpen(false);
-            }
-          }}
-        >
-          <div className="w-full bg-white rounded-t-3xl max-h-[80vh] overflow-hidden flex flex-col">
-            <div className="p-4 border-b border-emerald-100 bg-emerald-50/30 flex items-center justify-between">
-              <h3 className="text-lg font-black text-emerald-950 uppercase tracking-wider">
-                Filter Options
-              </h3>
-              <button
-                onClick={() => setFilterMenuOpen(false)}
-                className="p-2 rounded-lg hover:bg-emerald-100 transition-colors"
-              >
-                <X size={20} className="text-emerald-700" />
-              </button>
-            </div>
-
-            {/* CATEGORY SELECTOR AND RESET */}
-            <div className="p-4 border-b border-emerald-50 bg-emerald-50/20 space-y-3">
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full px-4 py-3 bg-white border border-emerald-200 rounded-xl text-sm font-medium text-emerald-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-              >
-                {filterCategories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.label}
-                  </option>
-                ))}
-              </select>
-              {onResetFilters && (
-                <button
-                  onClick={() => {
-                    onResetFilters();
-                  }}
-                  disabled={activeFilterCount === 0}
-                  className={`w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium rounded-xl transition-all ${
-                    activeFilterCount > 0
-                      ? "bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm active:scale-95"
-                      : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                  }`}
-                  title={activeFilterCount > 0 ? "Reset all filters" : "No filters to reset"}
-                >
-                  <RotateCcw size={16} />
-                  <span>Reset All Filters</span>
-                  {activeFilterCount > 0 && (
-                    <span className="ml-1 px-2 py-0.5 bg-white/20 rounded text-xs font-bold">
-                      {activeFilterCount}
-                    </span>
-                  )}
-                </button>
-              )}
-            </div>
-
-            {/* FILTER OPTIONS GRID */}
-            <div className="flex-1 p-4 overflow-y-auto">
-              <div className="grid grid-cols-2 gap-3">
-                {currentOptions.map((option) => {
-                  const imagePath = getMushroomImage(option);
-                  const displayName = getDisplayName(option);
-                  const isSelected = isFilterSelected(option);
-                  return (
-                    <button
-                      key={option}
-                      className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-all group active:scale-95 ${
-                        isSelected
-                          ? "border-emerald-500 bg-emerald-50 shadow-md"
-                          : "border-emerald-100 hover:border-emerald-300 hover:bg-emerald-50/50"
-                      }`}
-                      onClick={() => handleFilterClick(option)}
-                    >
-                      {imagePath && (
-                        <div className="w-14 h-14 flex items-center justify-center relative">
-                          <img
-                            src={imagePath}
-                            alt={displayName}
-                            className={`w-full h-full object-contain transition-transform ${
-                              isSelected
-                                ? "scale-110"
-                                : "group-active:scale-110"
-                            }`}
-                          />
-                          {isSelected && (
-                            <div className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center border-2 border-white">
-                              <span className="text-white text-[10px] font-black">✓</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      <span
-                        className={`text-xs font-medium text-center leading-tight ${
-                          isSelected
-                            ? "text-emerald-700 font-bold"
-                            : "text-emerald-900"
-                        }`}
-                      >
-                        {displayName}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* MOBILE MENU */}
       {mobileMenuOpen && (
