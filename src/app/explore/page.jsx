@@ -540,6 +540,18 @@ export default function MapPage() {
       {/* MOBILE FLOATING BUTTONS */}
       {view === "map" && (
         <div className="md:hidden fixed bottom-6 right-6 z-50 flex flex-col gap-3">
+          {/* Add Observation Button - Moved to top and made bigger */}
+          {user && (
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-4 rounded-2xl flex items-center gap-2 shadow-2xl shadow-emerald-900/50 transition-all active:scale-95"
+              aria-label="Add Observation"
+            >
+              <Plus size={24} strokeWidth={3} />
+              <span className="font-bold text-base whitespace-nowrap">Add</span>
+            </button>
+          )}
+          
           {/* Zones Button */}
           <button
             onClick={() => setShowZoneModal(true)}
@@ -558,18 +570,6 @@ export default function MapPage() {
             <Navigation size={20} strokeWidth={3} />
             <span className="font-bold text-sm whitespace-nowrap">Trails</span>
           </button>
-          
-          {/* Add Observation Button */}
-          {user && (
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-3 rounded-2xl flex items-center gap-2 shadow-2xl shadow-emerald-900/50 transition-all active:scale-95"
-              aria-label="Add Observation"
-            >
-              <Plus size={20} strokeWidth={3} />
-              <span className="font-bold text-sm whitespace-nowrap">Add</span>
-            </button>
-          )}
         </div>
       )}
     </div>
