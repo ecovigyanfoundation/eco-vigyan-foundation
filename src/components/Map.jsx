@@ -561,8 +561,9 @@ map.on("mouseleave", "mushroom-points", () => {
       const handles = getHandlePositions();
       
       // Store handles as Map with type as key for easier lookup
-      const handleMap = new Map();
-      handles.forEach(h => handleMap.set(h.type, h));
+      // Use global Map constructor to avoid conflict with component name
+      const handlesByType = new globalThis.Map();
+      handles.forEach(h => handlesByType.set(h.type, h));
       
       // If handles already exist, update their positions instead of recreating
       if (resizeHandlesRef.current.length === handles.length && resizeHandlesRef.current.length > 0) {
@@ -570,8 +571,8 @@ map.on("mouseleave", "mushroom-points", () => {
         // Update synchronously during shape movement for smooth real-time updates
         resizeHandlesRef.current.forEach((marker) => {
           const handleType = marker._handleType;
-          if (handleType && handleMap.has(handleType)) {
-            const handleData = handleMap.get(handleType);
+          if (handleType && handlesByType.has(handleType)) {
+            const handleData = handlesByType.get(handleType);
             // Use setLngLat to update marker position - this should work on both PC and mobile
             marker.setLngLat(handleData.position);
           }
@@ -685,7 +686,16 @@ map.on("mouseleave", "mushroom-points", () => {
       // Get current boundary
       const source = map.getSource("drawing");
       if (!source) return;
-      const data = source._data;
+      
+      // Safely access source data - handle case where _data might be undefined
+      let data;
+      try {
+        data = source._data;
+      } catch (error) {
+        console.error("Error accessing source data:", error);
+        return;
+      }
+      
       if (!data || !data.features || data.features.length === 0) return;
       
       // Get coordinates from either mouse or touch event
@@ -693,7 +703,10 @@ map.on("mouseleave", "mushroom-points", () => {
       const point = e.lngLat;
       if (!point) return;
       
+      // Safely access boundary coordinates
+      if (!data.features[0] || !data.features[0].geometry || !data.features[0].geometry.coordinates) return;
       const boundary = data.features[0].geometry.coordinates[0];
+      if (!boundary || boundary.length === 0) return;
       
       // Check if clicking near edge (for resizing) - larger threshold for mobile/touch
       const edgeDist = getDistanceToEdge(point, boundary);
@@ -755,9 +768,19 @@ map.on("mouseleave", "mushroom-points", () => {
         if (e.lngLat) {
           const source = map.getSource("drawing");
           if (source) {
-            const data = source._data;
+            let data;
+            try {
+              data = source._data;
+            } catch (error) {
+              // Source data not available yet, skip cursor update
+              return;
+            }
             if (data && data.features && data.features.length > 0) {
+              // Safely access boundary coordinates
+              if (!data.features[0] || !data.features[0].geometry || !data.features[0].geometry.coordinates) return;
               const boundary = data.features[0].geometry.coordinates[0];
+              if (!boundary || boundary.length === 0) return;
+              
               const point = e.lngLat;
               const edgeDist = getDistanceToEdge(point, boundary);
               const threshold = 2 / 111;
@@ -877,10 +900,22 @@ map.on("mouseleave", "mushroom-points", () => {
       // Complete drawing on double click
       const source = map.getSource("drawing");
       if (!source) return;
-      const data = source._data;
+      
+      // Safely access source data
+      let data;
+      try {
+        data = source._data;
+      } catch (error) {
+        console.error("Error accessing source data:", error);
+        return;
+      }
+      
       if (!data || !data.features || data.features.length === 0) return;
       
+      // Safely access boundary coordinates
+      if (!data.features[0] || !data.features[0].geometry || !data.features[0].geometry.coordinates) return;
       const boundary = data.features[0].geometry.coordinates[0];
+      if (!boundary || boundary.length === 0) return;
       const centerPoint = drawingMode === "circle" 
         ? drawingStateRef.current.currentCenter
         : undefined;
@@ -954,9 +989,22 @@ map.on("mouseleave", "mushroom-points", () => {
       onGetCurrentBoundary.current = () => {
         const source = map.getSource("drawing");
         if (!source) return null;
-        const data = source._data;
+        
+        // Safely access source data
+        let data;
+        try {
+          data = source._data;
+        } catch (error) {
+          console.error("Error accessing source data:", error);
+          return null;
+        }
+        
         if (!data || !data.features || data.features.length === 0) return null;
+        
+        // Safely access boundary coordinates
+        if (!data.features[0] || !data.features[0].geometry || !data.features[0].geometry.coordinates) return null;
         const boundary = data.features[0].geometry.coordinates[0];
+        if (!boundary || boundary.length === 0) return null;
         const centerPoint = drawingMode === "circle" 
           ? drawingStateRef.current.currentCenter
           : undefined;
