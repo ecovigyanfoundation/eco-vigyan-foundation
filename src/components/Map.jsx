@@ -21,14 +21,24 @@ export default function Map({
   drawingMode,
   onDrawingComplete,
   onDrawingCancel,
+  onGetCurrentBoundary,
 }) {
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
   const popupRef = useRef(null);
+  const resizeHandlesRef = useRef([]);
   const drawingStateRef = useRef({
     isDrawing: false,
+    isMoving: false,
+    isResizing: false,
     startPoint: null,
     currentShape: null,
+    currentCenter: null,
+    currentSize: null,
+    dragStart: null,
+    initialCenter: null,
+    initialSize: null,
+    activeHandle: null,
   });
 
   const [mapLoaded, setMapLoaded] = useState(false);
@@ -230,14 +240,42 @@ export default function Map({
       }
     } else {
       // Remove zone if not selected
-      if (map.getLayer("zone-boundary")) {
-        map.removeLayer("zone-boundary");
-      }
-      if (map.getLayer("zone-fill")) {
-        map.removeLayer("zone-fill");
-      }
-      if (map.getSource("zone")) {
-        map.removeSource("zone");
+      try {
+        const zoneSource = map.getSource("zone");
+        if (zoneSource) {
+          // Clear source data first to make shape disappear immediately
+          zoneSource.setData({
+            type: "FeatureCollection",
+            features: [],
+          });
+        }
+        // Remove layers first (must be done before removing source)
+        if (map.getLayer("zone-boundary")) {
+          map.removeLayer("zone-boundary");
+        }
+        if (map.getLayer("zone-fill")) {
+          map.removeLayer("zone-fill");
+        }
+        // Remove source after layers are removed
+        if (map.getSource("zone")) {
+          map.removeSource("zone");
+        }
+      } catch (error) {
+        // If error occurs, try to force remove layers
+        console.error("Error removing zone:", error);
+        try {
+          if (map.getLayer("zone-boundary")) {
+            map.removeLayer("zone-boundary");
+          }
+          if (map.getLayer("zone-fill")) {
+            map.removeLayer("zone-fill");
+          }
+          if (map.getSource("zone")) {
+            map.removeSource("zone");
+          }
+        } catch (e) {
+          console.error("Error force removing zone:", e);
+        }
       }
     }
 
@@ -351,14 +389,37 @@ map.on("mouseleave", "mushroom-points", () => {
     if (!drawingMode) {
       // Clean up drawing state
       drawingStateRef.current.isDrawing = false;
+      drawingStateRef.current.isMoving = false;
+      drawingStateRef.current.isResizing = false;
       drawingStateRef.current.startPoint = null;
       drawingStateRef.current.currentShape = null;
+      drawingStateRef.current.currentCenter = null;
+      drawingStateRef.current.currentSize = null;
+      drawingStateRef.current.dragStart = null;
+      drawingStateRef.current.initialCenter = null;
+      drawingStateRef.current.initialSize = null;
       
-      // Remove drawing layers
+      // Remove drawing layers and source
       const map = mapRef.current;
-      if (map.getLayer("drawing-fill")) map.removeLayer("drawing-fill");
-      if (map.getLayer("drawing-outline")) map.removeLayer("drawing-outline");
-      if (map.getSource("drawing")) map.removeSource("drawing");
+      try {
+        // Remove resize handles
+        resizeHandlesRef.current.forEach(handle => handle.remove());
+        resizeHandlesRef.current = [];
+        
+        // Remove layers first (must be done before removing source)
+        if (map.getLayer("drawing-fill")) {
+          map.removeLayer("drawing-fill");
+        }
+        if (map.getLayer("drawing-outline")) {
+          map.removeLayer("drawing-outline");
+        }
+        // Remove source after layers are removed
+        if (map.getSource("drawing")) {
+          map.removeSource("drawing");
+        }
+      } catch (error) {
+        console.error("Error removing drawing layers:", error);
+      }
       
       map.getCanvas().style.cursor = "";
       return;
@@ -404,126 +465,15 @@ map.on("mouseleave", "mushroom-points", () => {
       });
     }
 
-    // Set cursor based on drawing mode
-    map.getCanvas().style.cursor = drawingMode === "rectangle" ? "crosshair" : "crosshair";
+    // Create initial shape centered on current map view (only if not already set)
+    if (!drawingStateRef.current.currentCenter) {
+      const center = map.getCenter();
+      drawingStateRef.current.currentCenter = { lat: center.lat, lng: center.lng };
+      drawingStateRef.current.currentSize = drawingMode === "rectangle" 
+        ? { width: 200, height: 200 } // 200km x 200km rectangle
+        : { radius: 100 }; // 100km radius circle
+    }
 
-    // Clean up previous listeners
-    const cleanup = () => {
-      map.off("mousedown", handleMouseDown);
-      map.off("mousemove", handleMouseMove);
-      map.off("mouseup", handleMouseUp);
-      map.off("dblclick", handleDoubleClick);
-    };
-
-    let isDrawing = false;
-    let startPoint = null;
-
-    const handleMouseDown = (e) => {
-      if (drawingMode === "rectangle") {
-        isDrawing = true;
-        startPoint = e.lngLat;
-        map.getCanvas().style.cursor = "crosshair";
-      }
-    };
-
-    const handleMouseMove = (e) => {
-      if (!isDrawing || !startPoint || drawingMode !== "rectangle") return;
-
-      const currentPoint = e.lngLat;
-      const boundary = [
-        [startPoint.lng, startPoint.lat],
-        [currentPoint.lng, startPoint.lat],
-        [currentPoint.lng, currentPoint.lat],
-        [startPoint.lng, currentPoint.lat],
-        [startPoint.lng, startPoint.lat], // Close polygon
-      ];
-
-      updateDrawingShape(boundary);
-    };
-
-    const handleMouseUp = (e) => {
-      if (drawingMode === "rectangle" && isDrawing && startPoint) {
-        isDrawing = false;
-        const currentPoint = e.lngLat;
-        const boundary = [
-          [startPoint.lng, startPoint.lat],
-          [currentPoint.lng, startPoint.lat],
-          [currentPoint.lng, currentPoint.lat],
-          [startPoint.lng, currentPoint.lat],
-          [startPoint.lng, startPoint.lat],
-        ];
-
-        completeDrawing(boundary, "rectangle");
-        cleanup();
-      }
-    };
-
-    const handleCircleMouseDown = (e) => {
-      if (drawingMode === "circle") {
-        isDrawing = true;
-        startPoint = e.lngLat;
-        map.getCanvas().style.cursor = "crosshair";
-      }
-    };
-
-    const handleCircleMouseMove = (e) => {
-      if (drawingMode === "circle" && isDrawing && startPoint) {
-        const currentPoint = e.lngLat;
-        // Calculate radius in km using Haversine formula
-        const lat1 = startPoint.lat;
-        const lng1 = startPoint.lng;
-        const lat2 = currentPoint.lat;
-        const lng2 = currentPoint.lng;
-        
-        const R = 6371; // Earth radius in km
-        const dLat = ((lat2 - lat1) * Math.PI) / 180;
-        const dLng = ((lng2 - lng1) * Math.PI) / 180;
-        const a =
-          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-          Math.cos((lat1 * Math.PI) / 180) *
-            Math.cos((lat2 * Math.PI) / 180) *
-            Math.sin(dLng / 2) *
-            Math.sin(dLng / 2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        const radiusKm = R * c;
-
-        const boundary = generateCircleBoundary(startPoint.lat, startPoint.lng, radiusKm);
-        updateDrawingShape(boundary);
-      }
-    };
-
-    const handleCircleMouseUp = (e) => {
-      if (drawingMode === "circle" && isDrawing && startPoint) {
-        isDrawing = false;
-        const currentPoint = e.lngLat;
-        const lat1 = startPoint.lat;
-        const lng1 = startPoint.lng;
-        const lat2 = currentPoint.lat;
-        const lng2 = currentPoint.lng;
-        
-        const R = 6371;
-        const dLat = ((lat2 - lat1) * Math.PI) / 180;
-        const dLng = ((lng2 - lng1) * Math.PI) / 180;
-        const a =
-          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-          Math.cos((lat1 * Math.PI) / 180) *
-            Math.cos((lat2 * Math.PI) / 180) *
-            Math.sin(dLng / 2) *
-            Math.sin(dLng / 2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        const radiusKm = R * c;
-
-        const boundary = generateCircleBoundary(startPoint.lat, startPoint.lng, radiusKm);
-        completeDrawing(boundary, "circle");
-        cleanup();
-      }
-    };
-
-    const handleDoubleClick = (e) => {
-      // Cancel drawing on double click
-      cleanupAll();
-      onDrawingCancel?.();
-    };
 
     const updateDrawingShape = (boundary) => {
       if (!map.getSource("drawing")) return;
@@ -548,60 +498,458 @@ map.on("mouseleave", "mushroom-points", () => {
       }
     };
 
-    // Update cleanup to include circle handlers
-    const cleanupAll = () => {
-      cleanup();
-      map.off("mousedown", handleCircleMouseDown);
-      map.off("mousemove", handleCircleMouseMove);
-      map.off("mouseup", handleCircleMouseUp);
-      map.off("dblclick", handleDoubleClick);
+    const createInitialShape = () => {
+      let boundary;
+      const center = drawingStateRef.current.currentCenter;
+      const size = drawingStateRef.current.currentSize;
+      if (drawingMode === "rectangle") {
+        boundary = generateRectangleBoundary(
+          center.lat,
+          center.lng,
+          size.width,
+          size.height
+        );
+      } else {
+        boundary = generateCircleBoundary(
+          center.lat,
+          center.lng,
+          size.radius
+        );
+      }
+      updateDrawingShape(boundary);
+      return boundary;
     };
 
-    const completeDrawing = (boundary, shapeType) => {
-      // Capture center point before cleanup
-      const centerPoint = shapeType === "circle" && startPoint ? {
-        lat: startPoint.lat,
-        lng: startPoint.lng,
-      } : undefined;
+    // Create initial shape
+    createInitialShape();
+
+    // Helper to calculate handle positions
+    const getHandlePositions = () => {
+      const center = drawingStateRef.current.currentCenter;
+      const size = drawingStateRef.current.currentSize;
+      const handles = [];
+
+      if (drawingMode === "rectangle") {
+        // Rectangle: handles at 4 corners
+        const halfWidth = (size.width / 2) / 111; // Convert km to degrees
+        const halfHeight = (size.height / 2) / 111;
+        const cosLat = Math.cos(center.lat * Math.PI / 180);
+        
+        handles.push(
+          { position: [center.lng - halfWidth / cosLat, center.lat - halfHeight], type: 'nw' },
+          { position: [center.lng + halfWidth / cosLat, center.lat - halfHeight], type: 'ne' },
+          { position: [center.lng + halfWidth / cosLat, center.lat + halfHeight], type: 'se' },
+          { position: [center.lng - halfWidth / cosLat, center.lat + halfHeight], type: 'sw' }
+        );
+      } else {
+        // Circle: handles at 4 cardinal directions
+        const radiusDeg = size.radius / 111;
+        const cosLat = Math.cos(center.lat * Math.PI / 180);
+        
+        handles.push(
+          { position: [center.lng, center.lat + radiusDeg], type: 's' },
+          { position: [center.lng + radiusDeg / cosLat, center.lat], type: 'e' },
+          { position: [center.lng, center.lat - radiusDeg], type: 'n' },
+          { position: [center.lng - radiusDeg / cosLat, center.lat], type: 'w' }
+        );
+      }
+      return handles;
+    };
+
+    // Create and update resize handles
+    const updateResizeHandles = () => {
+      // Remove existing handles
+      resizeHandlesRef.current.forEach(handle => handle.remove());
+      resizeHandlesRef.current = [];
+
+      const handles = getHandlePositions();
       
-      // Clean up drawing handlers first
-      cleanupAll();
+      handles.forEach((handleData) => {
+        const el = document.createElement('div');
+        el.className = 'drawing-resize-handle';
+        el.style.cssText = 'width: 32px; height: 32px; background-color: #10b981; border: 3px solid white; border-radius: 50%; cursor: grab; box-shadow: 0 2px 8px rgba(0,0,0,0.4); z-index: 1000; touch-action: none;';
+
+        const marker = new mapboxgl.Marker({ element: el, draggable: true })
+          .setLngLat(handleData.position)
+          .addTo(map);
+
+        marker.getElement().addEventListener('dragstart', () => {
+          drawingStateRef.current.activeHandle = handleData.type;
+          drawingStateRef.current.dragStart = { lat: handleData.position[1], lng: handleData.position[0] };
+          drawingStateRef.current.initialCenter = { ...drawingStateRef.current.currentCenter };
+          drawingStateRef.current.initialSize = drawingMode === "rectangle" 
+            ? { width: drawingStateRef.current.currentSize.width, height: drawingStateRef.current.currentSize.height }
+            : { radius: drawingStateRef.current.currentSize.radius };
+          map.dragPan.disable();
+        });
+
+        marker.on('drag', () => {
+          const newLngLat = marker.getLngLat();
+          const currentPoint = { lat: newLngLat.lat, lng: newLngLat.lng };
+          const initialCenter = drawingStateRef.current.initialCenter;
+          
+          if (drawingMode === "rectangle") {
+            const latDiff = Math.abs(currentPoint.lat - initialCenter.lat);
+            const lngDiff = Math.abs(currentPoint.lng - initialCenter.lng);
+            const latDist = latDiff * 111;
+            const lngDist = lngDiff * 111 * Math.cos(initialCenter.lat * Math.PI / 180);
+            drawingStateRef.current.currentSize.width = Math.max(10, latDist * 2);
+            drawingStateRef.current.currentSize.height = Math.max(10, lngDist * 2);
+          } else {
+            const R = 6371;
+            const dLat = ((currentPoint.lat - initialCenter.lat) * Math.PI) / 180;
+            const dLng = ((currentPoint.lng - initialCenter.lng) * Math.PI) / 180;
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos((initialCenter.lat * Math.PI) / 180) *
+              Math.cos((currentPoint.lat * Math.PI) / 180) *
+              Math.sin(dLng / 2) * Math.sin(dLng / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            drawingStateRef.current.currentSize.radius = Math.max(5, R * c);
+          }
+          
+          createInitialShape();
+        });
+
+        marker.on('dragend', () => {
+          drawingStateRef.current.activeHandle = null;
+          map.dragPan.enable();
+          updateResizeHandles();
+        });
+
+        resizeHandlesRef.current.push(marker);
+      });
+    };
+
+    // Initial handle creation
+    updateResizeHandles();
+
+    // Helper to check if point is near shape edge (for resizing)
+    const getDistanceToEdge = (point, boundary) => {
+      let minDist = Infinity;
+      for (let i = 0; i < boundary.length - 1; i++) {
+        const [x1, y1] = boundary[i];
+        const [x2, y2] = boundary[i + 1];
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const t = Math.max(0, Math.min(1, 
+          ((point.lng - x1) * dx + (point.lat - y1) * dy) / (dx * dx + dy * dy)
+        ));
+        const projX = x1 + t * dx;
+        const projY = y1 + t * dy;
+        const dist = Math.sqrt(
+          Math.pow(point.lng - projX, 2) + Math.pow(point.lat - projY, 2)
+        );
+        minDist = Math.min(minDist, dist);
+      }
+      return minDist;
+    };
+
+    // Helper to check if point is inside shape (for moving)
+    const isPointInShape = (point, boundary) => {
+      let inside = false;
+      for (let i = 0, j = boundary.length - 1; i < boundary.length; j = i++) {
+        const [xi, yi] = boundary[i];
+        const [xj, yj] = boundary[j];
+        const intersect =
+          yi > point.lat !== yj > point.lat &&
+          point.lng < ((xj - xi) * (point.lat - yi)) / (yj - yi) + xi;
+        if (intersect) inside = !inside;
+      }
+      return inside;
+    };
+
+    const handleInteractionStart = (e) => {
+      // Get current boundary
+      const source = map.getSource("drawing");
+      if (!source) return;
+      const data = source._data;
+      if (!data || !data.features || data.features.length === 0) return;
       
-      // Remove drawing layers
-      if (map.getLayer("drawing-fill")) map.removeLayer("drawing-fill");
-      if (map.getLayer("drawing-outline")) map.removeLayer("drawing-outline");
-      if (map.getSource("drawing")) map.removeSource("drawing");
-      map.getCanvas().style.cursor = "";
-      isDrawing = false;
-      const savedStartPoint = startPoint;
-      startPoint = null;
+      // Get coordinates from either mouse or touch event
+      // Mapbox normalizes touch events to have lngLat property
+      const point = e.lngLat;
+      if (!point) return;
       
-      // Notify parent - this will set selectedZone and the zone will be rendered
+      const boundary = data.features[0].geometry.coordinates[0];
+      
+      // Check if clicking near edge (for resizing) - larger threshold for mobile/touch
+      const edgeDist = getDistanceToEdge(point, boundary);
+      // Use larger threshold - check if touch device or use larger default for easier mobile interaction
+      // Mapbox converts touch to mouse events, so check originalEvent.type or touches
+      const isTouch = e.originalEvent && (
+        e.originalEvent.type && e.originalEvent.type.startsWith('touch') || 
+        e.originalEvent.touches && e.originalEvent.touches.length > 0 ||
+        window.matchMedia && window.matchMedia('(pointer: coarse)').matches
+      );
+      // Much larger threshold for touch devices (10km) to make resizing easier on mobile
+      // Also use larger default (5km) to make it easier overall
+      const threshold = (isTouch ? 10 : 5) / 111; // ~10km for touch, ~5km for mouse
+      
+      if (edgeDist < threshold) {
+        drawingStateRef.current.isResizing = true;
+        drawingStateRef.current.dragStart = point;
+        drawingStateRef.current.initialCenter = { ...drawingStateRef.current.currentCenter };
+        drawingStateRef.current.initialSize = drawingMode === "rectangle" 
+          ? { width: drawingStateRef.current.currentSize.width, height: drawingStateRef.current.currentSize.height }
+          : { radius: drawingStateRef.current.currentSize.radius };
+        map.getCanvas().style.cursor = "grabbing";
+        map.dragPan.disable();
+        if (e.originalEvent && e.originalEvent.preventDefault) {
+          e.originalEvent.preventDefault();
+        }
+      } else if (isPointInShape(point, boundary)) {
+        drawingStateRef.current.isMoving = true;
+        drawingStateRef.current.dragStart = point;
+        drawingStateRef.current.initialCenter = { ...drawingStateRef.current.currentCenter };
+        map.getCanvas().style.cursor = "grabbing";
+        map.dragPan.disable();
+        if (e.originalEvent && e.originalEvent.preventDefault) {
+          e.originalEvent.preventDefault();
+        }
+      }
+    };
+
+    const handleMouseDown = (e) => {
+      // Mapbox converts touch events to mouse events, so this handles both
+      handleInteractionStart(e);
+    };
+
+    const handleTouchStart = (e) => {
+      // Mapbox normalizes touch events - they should have lngLat
+      // But if not, try to get it from point
+      if (!e.lngLat && e.point) {
+        const point = map.unproject(e.point);
+        e.lngLat = point;
+      }
+      if (e.lngLat) {
+        handleInteractionStart(e);
+      }
+    };
+
+    const handleInteractionMove = (e) => {
+      if (!drawingStateRef.current.isMoving && !drawingStateRef.current.isResizing) {
+        // Update cursor based on hover (only for mouse)
+        if (e.lngLat) {
+          const source = map.getSource("drawing");
+          if (source) {
+            const data = source._data;
+            if (data && data.features && data.features.length > 0) {
+              const boundary = data.features[0].geometry.coordinates[0];
+              const point = e.lngLat;
+              const edgeDist = getDistanceToEdge(point, boundary);
+              const threshold = 2 / 111;
+              
+              if (edgeDist < threshold) {
+                map.getCanvas().style.cursor = "nwse-resize";
+              } else if (isPointInShape(point, boundary)) {
+                map.getCanvas().style.cursor = "move";
+              } else {
+                map.getCanvas().style.cursor = "default";
+              }
+            }
+          }
+        }
+        return;
+      }
+
+      if (!drawingStateRef.current.dragStart) return;
+
+      // Get coordinates from either mouse or touch event
+      // Mapbox normalizes touch events to have lngLat property
+      const currentPoint = e.lngLat;
+      if (!currentPoint) return;
+
+      if (drawingStateRef.current.isMoving) {
+        // Move the shape
+        const initialCenter = drawingStateRef.current.initialCenter;
+        const latDiff = currentPoint.lat - drawingStateRef.current.dragStart.lat;
+        const lngDiff = currentPoint.lng - drawingStateRef.current.dragStart.lng;
+        drawingStateRef.current.currentCenter.lat = initialCenter.lat + latDiff;
+        drawingStateRef.current.currentCenter.lng = initialCenter.lng + lngDiff;
+        createInitialShape();
+        if (e.originalEvent && e.originalEvent.preventDefault) {
+          e.originalEvent.preventDefault();
+        }
+      } else if (drawingStateRef.current.isResizing) {
+        // Resize the shape
+        const initialCenter = drawingStateRef.current.initialCenter;
+        if (drawingMode === "rectangle") {
+          // Calculate distance from initial center to current position
+          const latDiff = Math.abs(currentPoint.lat - initialCenter.lat);
+          const lngDiff = Math.abs(currentPoint.lng - initialCenter.lng);
+          // Convert degrees to km and double for full width/height
+          const latDist = latDiff * 111; // Convert degrees to km
+          const lngDist = lngDiff * 111 * Math.cos(initialCenter.lat * Math.PI / 180); // Account for latitude
+          drawingStateRef.current.currentSize.width = Math.max(10, latDist * 2); // Min 10km, double for full width
+          drawingStateRef.current.currentSize.height = Math.max(10, lngDist * 2); // Min 10km, double for full height
+          createInitialShape();
+          if (!drawingStateRef.current.activeHandle) {
+            updateResizeHandles();
+          }
+        } else {
+          // Circle: radius is distance from initial center to current position
+          const R = 6371; // Earth radius in km
+          const dLat = ((currentPoint.lat - initialCenter.lat) * Math.PI) / 180;
+          const dLng = ((currentPoint.lng - initialCenter.lng) * Math.PI) / 180;
+          const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos((initialCenter.lat * Math.PI) / 180) *
+              Math.cos((currentPoint.lat * Math.PI) / 180) *
+              Math.sin(dLng / 2) *
+              Math.sin(dLng / 2);
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+          drawingStateRef.current.currentSize.radius = Math.max(5, R * c); // Min 5km
+          createInitialShape();
+          if (!drawingStateRef.current.activeHandle) {
+            updateResizeHandles();
+          }
+        }
+        if (e.originalEvent && e.originalEvent.preventDefault) {
+          e.originalEvent.preventDefault();
+        }
+      }
+    };
+
+    const handleMouseMove = (e) => {
+      handleInteractionMove(e);
+    };
+
+    const handleTouchMove = (e) => {
+      // Mapbox normalizes touch events - they should have lngLat
+      // But if not, try to get it from point
+      if (!e.lngLat && e.point) {
+        const point = map.unproject(e.point);
+        e.lngLat = point;
+      }
+      if (e.lngLat) {
+        handleInteractionMove(e);
+      }
+    };
+
+    const handleInteractionEnd = (e) => {
+      if (drawingStateRef.current.isMoving || drawingStateRef.current.isResizing) {
+        drawingStateRef.current.isMoving = false;
+        drawingStateRef.current.isResizing = false;
+        drawingStateRef.current.dragStart = null;
+        map.getCanvas().style.cursor = "default";
+        map.dragPan.enable();
+        if (e.originalEvent && e.originalEvent.preventDefault) {
+          e.originalEvent.preventDefault();
+        }
+      }
+    };
+
+    const handleMouseUp = (e) => {
+      handleInteractionEnd(e);
+    };
+
+    const handleTouchEnd = (e) => {
+      handleInteractionEnd(e);
+    };
+
+    const handleDoubleClick = (e) => {
+      // Complete drawing on double click
+      const source = map.getSource("drawing");
+      if (!source) return;
+      const data = source._data;
+      if (!data || !data.features || data.features.length === 0) return;
+      
+      const boundary = data.features[0].geometry.coordinates[0];
+      const centerPoint = drawingMode === "circle" 
+        ? drawingStateRef.current.currentCenter
+        : undefined;
+      
+      // Reset drawing state ref
+      drawingStateRef.current.currentCenter = null;
+      drawingStateRef.current.currentSize = null;
+      
+      // Final completion - exit drawing mode
+      completeDrawing(boundary, drawingMode, centerPoint, true);
+    };
+
+    const cleanupAll = () => {
+      map.off("mousedown", handleMouseDown);
+      map.off("mousemove", handleMouseMove);
+      map.off("mouseup", handleMouseUp);
+      map.off("dblclick", handleDoubleClick);
+      map.off("touchstart", handleTouchStart);
+      map.off("touchmove", handleTouchMove);
+      map.off("touchend", handleTouchEnd);
+    };
+
+    const completeDrawing = (boundary, shapeType, centerPoint, isFinal = false) => {
+      if (isFinal) {
+        cleanupAll();
+        
+        // Remove drawing layers and source
+        try {
+          // Remove layers first (must be done before removing source)
+          if (map.getLayer("drawing-fill")) {
+            map.removeLayer("drawing-fill");
+          }
+          if (map.getLayer("drawing-outline")) {
+            map.removeLayer("drawing-outline");
+          }
+          // Remove source after layers are removed
+          if (map.getSource("drawing")) {
+            map.removeSource("drawing");
+          }
+        } catch (error) {
+          console.error("Error removing drawing layers:", error);
+        }
+        
+        // Remove resize handles
+        resizeHandlesRef.current.forEach(handle => handle.remove());
+        resizeHandlesRef.current = [];
+        map.getCanvas().style.cursor = "";
+      }
+      
+      // Notify parent (always update zone, but only exit drawing mode if final)
       onDrawingComplete?.({
         type: shapeType,
         boundary,
         center: centerPoint,
+        isFinal,
       });
     };
 
     // Attach event listeners
-    if (drawingMode === "rectangle") {
-      map.on("mousedown", handleMouseDown);
-      map.on("mousemove", handleMouseMove);
-      map.on("mouseup", handleMouseUp);
-      map.on("dblclick", handleDoubleClick);
-    } else if (drawingMode === "circle") {
-      map.on("mousedown", handleCircleMouseDown);
-      map.on("mousemove", handleCircleMouseMove);
-      map.on("mouseup", handleCircleMouseUp);
-      map.on("dblclick", handleDoubleClick);
+    map.on("mousedown", handleMouseDown);
+    map.on("mousemove", handleMouseMove);
+    map.on("mouseup", handleMouseUp);
+    map.on("dblclick", handleDoubleClick);
+    // Touch events for mobile
+    map.on("touchstart", handleTouchStart);
+    map.on("touchmove", handleTouchMove);
+    map.on("touchend", handleTouchEnd);
+
+    // Expose function to get current boundary
+    if (onGetCurrentBoundary) {
+      onGetCurrentBoundary.current = () => {
+        const source = map.getSource("drawing");
+        if (!source) return null;
+        const data = source._data;
+        if (!data || !data.features || data.features.length === 0) return null;
+        const boundary = data.features[0].geometry.coordinates[0];
+        const centerPoint = drawingMode === "circle" 
+          ? drawingStateRef.current.currentCenter
+          : undefined;
+        return {
+          type: drawingMode,
+          boundary,
+          center: centerPoint,
+        };
+      };
     }
 
     // Return cleanup function
     return () => {
       cleanupAll();
+      if (onGetCurrentBoundary) {
+        onGetCurrentBoundary.current = null;
+      }
     };
-  }, [drawingMode, mapLoaded, onDrawingComplete, onDrawingCancel]);
+  }, [drawingMode, mapLoaded, onDrawingComplete, onDrawingCancel, onGetCurrentBoundary]);
 
   /* ---------------- UI ---------------- */
   return (

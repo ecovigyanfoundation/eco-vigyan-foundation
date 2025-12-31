@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import dynamic from "next/dynamic";
-import { Plus, Menu, X, Home, Info, Users, FileText, Image, Calendar, FileCheck, Mail, User, Settings, Navigation, Heart, Layers, MapPin } from "lucide-react";
+import { Plus, Menu, X, Home, Info, Users, FileText, Image, Calendar, FileCheck, Mail, User, Settings, Navigation, Heart, Layers, MapPin, CheckCircle } from "lucide-react";
 import Link from "next/link";
 import ExploreHeader from "@/components/ExploreHeader";
 import MushroomGrid from "@/components/MushroomGrid";
@@ -40,6 +40,7 @@ export default function MapPage() {
   const [showZoneModal, setShowZoneModal] = useState(false);
   const [selectedZone, setSelectedZone] = useState(null);
   const [drawingMode, setDrawingMode] = useState(null);
+  const getCurrentBoundaryRef = useRef(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -193,6 +194,17 @@ export default function MapPage() {
     setDrawingMode(null);
   };
 
+  // Handle applying the drawn zone
+  const handleApplyZone = () => {
+    if (!drawingMode || !getCurrentBoundaryRef.current) return;
+    
+    const currentZone = getCurrentBoundaryRef.current();
+    if (currentZone) {
+      setSelectedZone(currentZone);
+      setDrawingMode(null);
+    }
+  };
+
   // Handle drawing cancellation
   const handleDrawingCancel = () => {
     setDrawingMode(null);
@@ -202,6 +214,12 @@ export default function MapPage() {
   const handleClearZone = () => {
     setSelectedZone(null);
     setDrawingMode(null);
+    // Reset the boundary ref so the shape disappears
+    if (getCurrentBoundaryRef.current) {
+      getCurrentBoundaryRef.current = null;
+    }
+    // Reload the page to ensure all state is reset
+    window.location.reload();
   };
 
   const handleSubmissionSuccess = async () => {
@@ -419,6 +437,7 @@ export default function MapPage() {
               drawingMode={drawingMode}
               onDrawingComplete={handleDrawingComplete}
               onDrawingCancel={handleDrawingCancel}
+              onGetCurrentBoundary={getCurrentBoundaryRef}
             />
 
             {/* Map Controls - Top Left */}
@@ -430,8 +449,19 @@ export default function MapPage() {
                 selectedFilters={headerFilters}
               />
               
+              {/* Apply Zone Button (shown when in drawing mode) */}
+              {drawingMode && (
+                <button
+                  onClick={handleApplyZone}
+                  className="px-4 py-3 rounded-2xl bg-emerald-600/90 hover:bg-emerald-700/90 backdrop-blur-md border border-emerald-500 text-white shadow-2xl transition-all duration-300 hover:shadow-emerald-500/50 flex items-center gap-2 font-bold text-sm"
+                >
+                  <CheckCircle size={18} className="shrink-0" />
+                  Apply Zone
+                </button>
+              )}
+              
               {/* Zone filter indicator and clear button */}
-              {selectedZone && (
+              {selectedZone && !drawingMode && (
                 <div className="p-3 rounded-2xl bg-emerald-600/90 backdrop-blur-md border border-emerald-500 shadow-2xl flex items-center gap-3">
                   <div className="flex items-center gap-2">
                     <MapPin size={16} className="text-white" />
@@ -448,6 +478,30 @@ export default function MapPage() {
                   </button>
                 </div>
               )}
+            </div>
+
+            {/* Map Controls - Bottom Right (Zones and Trails) - Desktop Only */}
+            <div className="hidden md:flex absolute bottom-6 right-6 z-20 flex-col gap-3">
+              {/* Trails Button */}
+              <button
+                className="bg-blue-600/90 hover:bg-blue-700/90 text-white px-4 py-3 rounded-2xl flex items-center gap-2 shadow-2xl shadow-blue-900/50 transition-all active:scale-95 backdrop-blur-md border border-blue-500"
+                aria-label="Trails"
+                title="Trails"
+              >
+                <Navigation size={20} strokeWidth={3} />
+                <span className="font-bold text-sm whitespace-nowrap">Trails</span>
+              </button>
+              
+              {/* Zones Button */}
+              <button
+                onClick={() => setShowZoneModal(true)}
+                className="bg-emerald-600/90 hover:bg-emerald-700/90 text-white px-4 py-3 rounded-2xl flex items-center gap-2 shadow-2xl shadow-emerald-900/50 transition-all active:scale-95 backdrop-blur-md border border-emerald-500"
+                aria-label="Zones"
+                title="Zones"
+              >
+                <Layers size={20} strokeWidth={3} />
+                <span className="font-bold text-sm whitespace-nowrap">Zones</span>
+              </button>
             </div>
           </>
         )}
@@ -483,15 +537,40 @@ export default function MapPage() {
         onDrawingModeSelect={handleDrawingModeSelect}
       />
 
-      {/* MOBILE FLOATING ADD BUTTON */}
-      {user && (
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="md:hidden fixed bottom-6 right-6 z-50 bg-emerald-600 hover:bg-emerald-700 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-2xl shadow-emerald-900/50 transition-all active:scale-95"
-          aria-label="Add Observation"
-        >
-          <Plus size={24} strokeWidth={3} />
-        </button>
+      {/* MOBILE FLOATING BUTTONS */}
+      {view === "map" && (
+        <div className="md:hidden fixed bottom-6 right-6 z-50 flex flex-col gap-3">
+          {/* Zones Button */}
+          <button
+            onClick={() => setShowZoneModal(true)}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-3 rounded-2xl flex items-center gap-2 shadow-2xl shadow-emerald-900/50 transition-all active:scale-95"
+            aria-label="Zones"
+          >
+            <Layers size={20} strokeWidth={3} />
+            <span className="font-bold text-sm whitespace-nowrap">Zones</span>
+          </button>
+          
+          {/* Trails Button */}
+          <button
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-2xl flex items-center gap-2 shadow-2xl shadow-blue-900/50 transition-all active:scale-95"
+            aria-label="Trails"
+          >
+            <Navigation size={20} strokeWidth={3} />
+            <span className="font-bold text-sm whitespace-nowrap">Trails</span>
+          </button>
+          
+          {/* Add Observation Button */}
+          {user && (
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-3 rounded-2xl flex items-center gap-2 shadow-2xl shadow-emerald-900/50 transition-all active:scale-95"
+              aria-label="Add Observation"
+            >
+              <Plus size={20} strokeWidth={3} />
+              <span className="font-bold text-sm whitespace-nowrap">Add</span>
+            </button>
+          )}
+        </div>
       )}
     </div>
   );
