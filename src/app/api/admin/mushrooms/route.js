@@ -106,17 +106,35 @@ export async function GET(req) {
       });
 
       if (!systemUser) {
-        return NextResponse.json({ mushrooms: [] }, { status: 200 });
+        return NextResponse.json({ mushrooms: [], total: 0, page: 1, totalPages: 0 }, { status: 200 });
       }
 
+      // Pagination parameters
+      const page = parseInt(searchParams.get("page")) || 1;
+      const limit = parseInt(searchParams.get("limit")) || 200;
+      const skip = (page - 1) * limit;
+
+      // Get total count
+      const total = await Mushroom.countDocuments({ submittedBy: systemUser._id });
+      const totalPages = Math.ceil(total / limit);
+
+      // Fetch mushrooms with pagination
       const mushrooms = await Mushroom.find({ submittedBy: systemUser._id })
         .populate("submittedBy", "name username email")
         .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
         .select(
           "commonName images location status submittedBy createdAt"
         );
 
-      return NextResponse.json({ mushrooms }, { status: 200 });
+      return NextResponse.json({ 
+        mushrooms, 
+        total, 
+        page, 
+        totalPages,
+        hasMore: page < totalPages 
+      }, { status: 200 });
     }
 
     const status = searchParams.get("status") || "pending";
