@@ -68,6 +68,8 @@ export default function MapPage() {
           use: m.commonUses?.[0] || m.use || "",
           // Preserve submittedBy for navigation
           submittedBy: m.submittedBy,
+          // Preserve full images array with originalDriveLink
+          images: m.images || [],
         }));
         setAllData(transformedMushrooms);
         setData(transformedMushrooms);
@@ -301,6 +303,8 @@ export default function MapPage() {
       use: m.commonUses?.[0] || m.use || "",
       // Preserve submittedBy for navigation
       submittedBy: m.submittedBy,
+      // Preserve full images array with originalDriveLink
+      images: m.images || [],
     }));
     setAllData(transformedMushrooms);
     setData(transformedMushrooms);

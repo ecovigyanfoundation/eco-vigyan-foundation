@@ -56,6 +56,7 @@ export async function GET(req, { params }) {
       );
     }
 
+
     // Find all approved mushrooms submitted by this user
     const mushrooms = await Mushroom.find({
       submittedBy: userIdString,

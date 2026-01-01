@@ -89,22 +89,79 @@ export default function MushroomGrid({ data, onMushroomClick }) {
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
           {displayedItems.map((item, index) => {
             // Extract user ID and ensure it's a string
+            // Skip profile link for system-imported mushrooms
             let userId = null;
-            if (item.submittedBy) {
+            const contributorName = item.contributor ||
+              item.submittedBy?.name ||
+              item.submittedBy?.username ||
+              "Guest Scientist";
+            const isSystemUser = item.submittedBy?.email === "system@ecovigyan.org" || 
+                                 item.submittedBy?.username === "system" ||
+                                 item.submittedBy?.name === "System Import" ||
+                                 contributorName === "System Import" ||
+                                 contributorName === "system";
+            
+            if (item.submittedBy && !isSystemUser) {
               if (typeof item.submittedBy === 'string') {
                 userId = item.submittedBy;
               } else if (item.submittedBy._id) {
                 // Convert ObjectId to string if needed
-                userId = typeof item.submittedBy._id === 'string' 
+                const idString = typeof item.submittedBy._id === 'string' 
                   ? item.submittedBy._id 
                   : item.submittedBy._id.toString();
+                // Validate it's a proper MongoDB ObjectId format (24 hex chars)
+                if (/^[0-9a-fA-F]{24}$/.test(idString)) {
+                  userId = idString;
+                }
               }
             }
             
+            // Get original Google Drive link for system imports
+            let originalDriveLink = item.images?.[0]?.originalDriveLink || null;
+            
+            // Fallback: If originalDriveLink doesn't exist but it's a system import,
+            // try to extract file ID from the converted image URL and reconstruct the link
+            if (isSystemUser && !originalDriveLink) {
+              const imageUrl = item.image || item.images?.[0]?.url;
+              if (imageUrl && imageUrl.includes('drive.google.com/uc?')) {
+                // Extract file ID from converted URL: https://drive.google.com/uc?export=view&id=FILE_ID
+                const idMatch = imageUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+                if (idMatch && idMatch[1]) {
+                  // Reconstruct a Google Drive sharing link
+                  originalDriveLink = `https://drive.google.com/file/d/${idMatch[1]}/view`;
+                }
+              }
+            }
+            
+            // Handle image click - opens Google Drive for system imports, or profile for regular users
+            const handleImageClick = (e) => {
+              e.stopPropagation();
+              if (isSystemUser && originalDriveLink) {
+                console.log('Opening Google Drive link for system import:', originalDriveLink);
+                window.open(originalDriveLink, '_blank', 'noopener,noreferrer');
+              } else if (userId) {
+                router.push(`/user/${userId}`);
+              }
+            };
+
+            // Handle details click - navigates to user profile
+            const handleDetailsClick = (e) => {
+              e.stopPropagation();
+              if (userId) {
+                router.push(`/user/${userId}`);
+              } else {
+                onMushroomClick?.(item);
+              }
+            };
+
             const cardContent = (
               <>
                 {/* IMAGE AREA */}
-                <div className="aspect-square bg-stone-100 rounded-[2rem] mb-4 overflow-hidden relative shadow-inner">
+                <div 
+                  className={`aspect-square bg-stone-100 rounded-[2rem] mb-4 overflow-hidden relative shadow-inner ${(isSystemUser && originalDriveLink) || userId ? 'cursor-pointer' : ''}`}
+                  onClick={handleImageClick}
+                  title={isSystemUser && originalDriveLink ? "Click image to open Google Drive" : userId ? "Click image to view profile" : ""}
+                >
                 {item.image || item.images?.[0]?.url ? (
                   <img
                     src={item.image || item.images?.[0]?.url}
@@ -118,6 +175,15 @@ export default function MushroomGrid({ data, onMushroomClick }) {
                     <MapIcon size={40} strokeWidth={1} />
                     <span className="text-[8px] font-black uppercase tracking-tighter">
                       No Photo
+                    </span>
+                  </div>
+                )}
+                
+                {/* Hover overlay for image */}
+                {(isSystemUser && originalDriveLink) && (
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                    <span className="text-white text-xs font-bold bg-black/50 px-3 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                      Click to open in Google Drive
                     </span>
                   </div>
                 )}
@@ -142,19 +208,23 @@ export default function MushroomGrid({ data, onMushroomClick }) {
                 </div>
               </div>
 
-              {/* INFO AREA */}
-              <div className="px-3 pb-2">
-                <h3 className="font-black text-sm text-slate-800 group-hover:text-emerald-700 transition-colors uppercase tracking-tight truncate mb-1">
+              {/* INFO AREA - Clickable to view profile */}
+              <div 
+                className={`px-3 pb-2 ${userId ? 'cursor-pointer' : ''}`}
+                onClick={handleDetailsClick}
+                title={userId ? "Click details to view profile" : ""}
+              >
+                <h3 className={`font-black text-sm text-slate-800 transition-colors uppercase tracking-tight truncate mb-1 ${userId ? 'group-hover:text-emerald-700' : ''}`}>
                   {item.name || item.commonName || "Unknown Species"}
                 </h3>
+                {isSystemUser && originalDriveLink && (
+                  <p className="text-[8px] text-blue-600 font-semibold mb-1">
+                    Image → Google Drive | Details → Profile
+                  </p>
+                )}
 
                 <div className="flex items-center justify-between">
                   {(() => {
-                    const contributorName = item.contributor ||
-                      item.submittedBy?.name ||
-                      item.submittedBy?.username ||
-                      "Guest Scientist";
-                    
                     return userId ? (
                       <Link
                         href={`/user/${userId}`}
@@ -195,20 +265,7 @@ export default function MushroomGrid({ data, onMushroomClick }) {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.03, ease: "easeOut" }}
-                className="group bg-white border border-stone-200 rounded-[2.5rem] p-3 hover:border-emerald-500 hover:shadow-2xl hover:shadow-emerald-900/10 transition-all cursor-pointer relative"
-                onClick={(e) => {
-                  // Don't navigate if clicking on the contributor link
-                  if (e.target.closest('a')) {
-                    return;
-                  }
-                  // Navigate to user profile if userId exists
-                  if (userId) {
-                    router.push(`/user/${userId}`);
-                  } else {
-                    // Fallback to original behavior if no user
-                    onMushroomClick?.(item);
-                  }
-                }}
+                className="group bg-white border border-stone-200 rounded-[2.5rem] p-3 hover:border-emerald-500 hover:shadow-2xl hover:shadow-emerald-900/10 transition-all relative"
               >
                 {cardContent}
               </motion.div>

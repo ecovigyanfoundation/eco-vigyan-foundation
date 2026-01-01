@@ -12,7 +12,15 @@ import {
   User,
   MapPin,
   Image as ImageIcon,
+  Upload,
+  FileSpreadsheet,
+  X,
+  Loader2,
+  Edit3,
+  CheckSquare,
+  Square,
 } from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function AdminMushroomsPage() {
   const router = useRouter();
@@ -25,6 +33,20 @@ export default function AdminMushroomsPage() {
     approved: 0,
     rejected: 0,
   });
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importFile, setImportFile] = useState(null);
+  const [selectedMushrooms, setSelectedMushrooms] = useState(new Set());
+  const [showBulkEditModal, setShowBulkEditModal] = useState(false);
+  const [bulkEditForm, setBulkEditForm] = useState({
+    commonName: "",
+    ecologicalRole: "",
+    texture: "",
+    underside: "",
+    stemPresence: "",
+    commonUses: [],
+  });
+  const [bulkEditing, setBulkEditing] = useState(false);
 
   useEffect(() => {
     fetchMushrooms();
@@ -107,6 +129,141 @@ export default function AdminMushroomsPage() {
     });
   };
 
+  const handleImport = async () => {
+    if (!importFile) {
+      toast.error("Please select an Excel file");
+      return;
+    }
+
+    setImporting(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", importFile);
+
+      const res = await fetch("/api/admin/import-mushrooms", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Import failed");
+      }
+
+      toast.success(
+        `Import completed: ${data.results.success} successful, ${data.results.failed} failed`
+      );
+
+      if (data.results.errors.length > 0) {
+        console.error("Import errors:", data.results.errors);
+        // Show first few errors
+        const errorPreview = data.results.errors.slice(0, 5).join("\n");
+        if (data.results.errors.length > 5) {
+          toast.error(
+            `Some errors occurred. Check console for details.\n${errorPreview}...`
+          );
+        } else {
+          toast.error(`Errors:\n${errorPreview}`);
+        }
+      }
+
+      // Refresh the list
+      fetchMushrooms();
+      fetchCounts();
+      setShowImportModal(false);
+      setImportFile(null);
+    } catch (error) {
+      toast.error(error.message || "Failed to import mushrooms");
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const toggleSelectMushroom = (id) => {
+    setSelectedMushrooms((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedMushrooms.size === mushrooms.length) {
+      setSelectedMushrooms(new Set());
+    } else {
+      setSelectedMushrooms(new Set(mushrooms.map((m) => m._id)));
+    }
+  };
+
+  const handleBulkEdit = async () => {
+    if (selectedMushrooms.size === 0) {
+      toast.error("Please select at least one mushroom");
+      return;
+    }
+
+    setBulkEditing(true);
+    try {
+      const updates = {};
+      if (bulkEditForm.commonName) updates.commonName = bulkEditForm.commonName;
+      if (bulkEditForm.ecologicalRole) updates.ecologicalRole = bulkEditForm.ecologicalRole;
+      if (bulkEditForm.texture) updates.texture = bulkEditForm.texture;
+      if (bulkEditForm.underside) updates.underside = bulkEditForm.underside;
+      if (bulkEditForm.stemPresence) updates.stemPresence = bulkEditForm.stemPresence;
+      if (bulkEditForm.commonUses.length > 0) updates.commonUses = bulkEditForm.commonUses;
+
+      // Update each selected mushroom
+      const updatePromises = Array.from(selectedMushrooms).map((id) =>
+        fetch(`/api/admin/mushrooms/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updates),
+        })
+      );
+
+      const results = await Promise.allSettled(updatePromises);
+      const successful = results.filter((r) => r.status === "fulfilled").length;
+      const failed = results.filter((r) => r.status === "rejected").length;
+
+      if (successful > 0) {
+        toast.success(`Updated ${successful} mushroom(s) successfully`);
+      }
+      if (failed > 0) {
+        toast.error(`Failed to update ${failed} mushroom(s)`);
+      }
+
+      // Refresh the list
+      fetchMushrooms();
+      setSelectedMushrooms(new Set());
+      setShowBulkEditModal(false);
+      setBulkEditForm({
+        commonName: "",
+        ecologicalRole: "",
+        texture: "",
+        underside: "",
+        stemPresence: "",
+        commonUses: [],
+      });
+    } catch (error) {
+      toast.error(error.message || "Failed to update mushrooms");
+    } finally {
+      setBulkEditing(false);
+    }
+  };
+
+  const toggleBulkUse = (use) => {
+    setBulkEditForm((prev) => ({
+      ...prev,
+      commonUses: prev.commonUses.includes(use)
+        ? prev.commonUses.filter((u) => u !== use)
+        : [...prev.commonUses, use],
+    }));
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -132,12 +289,30 @@ export default function AdminMushroomsPage() {
                 Review and manage submitted mushroom observations
               </p>
             </div>
-            <Link
-              href="/"
-              className="px-4 py-2 text-sm font-bold text-emerald-600 hover:text-emerald-700 border border-emerald-200 rounded-lg hover:bg-emerald-50 transition-colors"
-            >
-              Back to Home
-            </Link>
+            <div className="flex items-center gap-3">
+              {selectedMushrooms.size > 0 && (
+                <button
+                  onClick={() => setShowBulkEditModal(true)}
+                  className="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <Edit3 size={16} />
+                  Bulk Edit ({selectedMushrooms.size})
+                </button>
+              )}
+              <button
+                onClick={() => setShowImportModal(true)}
+                className="px-4 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors flex items-center gap-2"
+              >
+                <Upload size={16} />
+                Import Excel
+              </button>
+              <Link
+                href="/"
+                className="px-4 py-2 text-sm font-bold text-emerald-600 hover:text-emerald-700 border border-emerald-200 rounded-lg hover:bg-emerald-50 transition-colors"
+              >
+                Back to Home
+              </Link>
+            </div>
           </div>
         </div>
       </div>
@@ -206,13 +381,64 @@ export default function AdminMushroomsPage() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {mushrooms.map((mushroom) => (
-              <Link
-                key={mushroom._id}
-                href={`/admin/mushrooms/${mushroom._id}`}
-                className="bg-white rounded-2xl border border-gray-200 overflow-hidden hover:border-emerald-300 hover:shadow-xl transition-all group"
+          <>
+            {/* SELECT ALL CHECKBOX */}
+            <div className="mb-4 flex items-center gap-3">
+              <button
+                onClick={toggleSelectAll}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
               >
+                {selectedMushrooms.size === mushrooms.length ? (
+                  <CheckSquare size={18} className="text-emerald-600" />
+                ) : (
+                  <Square size={18} />
+                )}
+                <span>
+                  {selectedMushrooms.size === mushrooms.length
+                    ? "Deselect All"
+                    : "Select All"}
+                </span>
+              </button>
+              {selectedMushrooms.size > 0 && (
+                <span className="text-sm text-gray-600 font-medium">
+                  {selectedMushrooms.size} selected
+                </span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {mushrooms.map((mushroom) => {
+                const isSelected = selectedMushrooms.has(mushroom._id);
+                return (
+                  <div
+                    key={mushroom._id}
+                    className={`bg-white rounded-2xl border-2 overflow-hidden transition-all group relative ${
+                      isSelected
+                        ? "border-emerald-500 shadow-lg"
+                        : "border-gray-200 hover:border-emerald-300 hover:shadow-xl"
+                    }`}
+                  >
+                    {/* SELECTION CHECKBOX */}
+                    <div
+                      className="absolute top-3 left-3 z-10"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleSelectMushroom(mushroom._id);
+                      }}
+                    >
+                      <button className="p-1.5 bg-white/90 backdrop-blur-sm rounded-lg shadow-md hover:bg-white transition-colors">
+                        {isSelected ? (
+                          <CheckSquare size={20} className="text-emerald-600" />
+                        ) : (
+                          <Square size={20} className="text-gray-400" />
+                        )}
+                      </button>
+                    </div>
+
+                    <Link
+                      href={`/admin/mushrooms/${mushroom._id}`}
+                      className="block"
+                    >
                 {/* IMAGE */}
                 <div className="aspect-video bg-gray-100 relative overflow-hidden">
                   {mushroom.images && mushroom.images.length > 0 ? (
@@ -282,11 +508,332 @@ export default function AdminMushroomsPage() {
                     </div>
                   </div>
                 </div>
-              </Link>
-            ))}
-          </div>
+                    </Link>
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
+
+      {/* IMPORT MODAL */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2">
+                  <FileSpreadsheet className="text-emerald-600" size={24} />
+                  Import Mushrooms from Excel
+                </h2>
+                <p className="text-sm text-gray-600 mt-2">
+                  Upload an Excel file with mushroom data
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowImportModal(false);
+                  setImportFile(null);
+                }}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* FILE UPLOAD */}
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  Excel File (.xlsx, .xls)
+                </label>
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={(e) => setImportFile(e.target.files[0])}
+                  className="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-xl hover:border-emerald-400 transition-colors cursor-pointer"
+                />
+                {importFile && (
+                  <p className="mt-2 text-sm text-emerald-600 font-medium">
+                    Selected: {importFile.name}
+                  </p>
+                )}
+              </div>
+
+              {/* EXPECTED FORMAT */}
+              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+                <h3 className="font-bold text-emerald-900 mb-2">
+                  Expected Excel Format:
+                </h3>
+                <div className="text-sm text-emerald-800 space-y-1">
+                  <p>
+                    <strong>Column 1:</strong> Photo/Image (Google Drive link) <span className="text-red-600">*Required</span>
+                  </p>
+                  <p>
+                    <strong>Column 2:</strong> Latitude <span className="text-red-600">*Required</span>
+                  </p>
+                  <p>
+                    <strong>Column 3:</strong> Longitude <span className="text-red-600">*Required</span>
+                  </p>
+                  <p>
+                    <strong>Column 4:</strong> Name (optional)
+                  </p>
+                  <p>
+                    <strong>Column 5:</strong> Stem (optional: "has-stem" or "has-no-stem")
+                  </p>
+                  <p>
+                    <strong>Column 6:</strong> Bottom/Underside (optional: "gills", "pores", "teeth", etc.)
+                  </p>
+                  <p>
+                    <strong>Column 7:</strong> Texture (optional: "soft-to-touch", "hard-to-touch", "jelly-like", "leathery")
+                  </p>
+                  <p>
+                    <strong>Column 8:</strong> Role (optional: "decomposer", "symbiont", "parasite")
+                  </p>
+                  <p>
+                    <strong>Column 9:</strong> Use (optional: "edible", "inedible", "poisonous", "medicinal", etc.)
+                  </p>
+                </div>
+                <p className="text-xs text-emerald-700 mt-3 italic">
+                  Note: Column names are case-insensitive. Google Drive links
+                  will be automatically converted to direct image URLs. Optional fields can be left empty.
+                </p>
+              </div>
+
+              {/* ACTIONS */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => {
+                    setShowImportModal(false);
+                    setImportFile(null);
+                  }}
+                  className="px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                  disabled={importing}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleImport}
+                  disabled={!importFile || importing}
+                  className="px-6 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {importing ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      Importing...
+                    </>
+                  ) : (
+                    <>
+                      <Upload size={16} />
+                      Import
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* BULK EDIT MODAL */}
+      {showBulkEditModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2">
+                  <Edit3 className="text-blue-600" size={24} />
+                  Bulk Edit Mushrooms
+                </h2>
+                <p className="text-sm text-gray-600 mt-2">
+                  Update {selectedMushrooms.size} selected mushroom(s)
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowBulkEditModal(false);
+                  setBulkEditForm({
+                    commonName: "",
+                    ecologicalRole: "",
+                    texture: "",
+                    underside: "",
+                    stemPresence: "",
+                    commonUses: [],
+                  });
+                }}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* COMMON NAME */}
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  Common Name (optional)
+                </label>
+                <input
+                  type="text"
+                  value={bulkEditForm.commonName}
+                  onChange={(e) =>
+                    setBulkEditForm({ ...bulkEditForm, commonName: e.target.value })
+                  }
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
+                  placeholder="Leave empty to not update"
+                />
+              </div>
+
+              {/* ECOLOGICAL ROLE */}
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  Ecological Role (optional)
+                </label>
+                <select
+                  value={bulkEditForm.ecologicalRole}
+                  onChange={(e) =>
+                    setBulkEditForm({ ...bulkEditForm, ecologicalRole: e.target.value })
+                  }
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
+                >
+                  <option value="">Leave unchanged</option>
+                  <option value="decomposer">Decomposer</option>
+                  <option value="symbiont">Symbiont</option>
+                  <option value="parasite">Parasite</option>
+                </select>
+              </div>
+
+              {/* TEXTURE */}
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  Texture (optional)
+                </label>
+                <select
+                  value={bulkEditForm.texture}
+                  onChange={(e) =>
+                    setBulkEditForm({ ...bulkEditForm, texture: e.target.value })
+                  }
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
+                >
+                  <option value="">Leave unchanged</option>
+                  <option value="soft-to-touch">Soft to Touch</option>
+                  <option value="hard-to-touch">Hard to Touch</option>
+                  <option value="jelly-like">Jelly-like</option>
+                  <option value="leathery">Leathery</option>
+                </select>
+              </div>
+
+              {/* UNDERSIDE */}
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  Underside/Bottom (optional)
+                </label>
+                <select
+                  value={bulkEditForm.underside}
+                  onChange={(e) =>
+                    setBulkEditForm({ ...bulkEditForm, underside: e.target.value })
+                  }
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
+                >
+                  <option value="">Leave unchanged</option>
+                  <option value="gills">Gills</option>
+                  <option value="pores">Pores</option>
+                  <option value="teeth">Teeth</option>
+                  <option value="ball-with-no-distinctive-bottom">Ball with no distinctive bottom</option>
+                  <option value="cup-with-no-distinctive-bottom">Cup with no distinctive bottom</option>
+                  <option value="star-with-no-distinctive-bottom">Star with no distinctive bottom</option>
+                  <option value="jelly-with-no-distinctive-bottom">Jelly with no distinctive bottom</option>
+                  <option value="sponge-with-no-distinctive-bottom">Sponge with no distinctive bottom</option>
+                </select>
+              </div>
+
+              {/* STEM PRESENCE */}
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  Stem Presence (optional)
+                </label>
+                <select
+                  value={bulkEditForm.stemPresence}
+                  onChange={(e) =>
+                    setBulkEditForm({ ...bulkEditForm, stemPresence: e.target.value })
+                  }
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
+                >
+                  <option value="">Leave unchanged</option>
+                  <option value="has-stem">Has Stem</option>
+                  <option value="has-no-stem">Has No Stem</option>
+                </select>
+              </div>
+
+              {/* COMMON USES */}
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  Common Uses (optional - select multiple)
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {["edible", "inedible", "poisonous", "medicinal", "hallucinogenic", "other-uses", "mysterious"].map(
+                    (use) => (
+                      <button
+                        key={use}
+                        onClick={() => toggleBulkUse(use)}
+                        className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all border-2 ${
+                          bulkEditForm.commonUses.includes(use)
+                            ? "bg-blue-50 border-blue-600 text-blue-700"
+                            : "bg-white border-gray-100 text-gray-500 hover:border-gray-300"
+                        }`}
+                      >
+                        {use.replace(/-/g, " ")}
+                      </button>
+                    )
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Leave empty to not update. Selected uses will be added to existing uses.
+                </p>
+              </div>
+
+              {/* ACTIONS */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => {
+                    setShowBulkEditModal(false);
+                    setBulkEditForm({
+                      commonName: "",
+                      ecologicalRole: "",
+                      texture: "",
+                      underside: "",
+                      stemPresence: "",
+                      commonUses: [],
+                    });
+                  }}
+                  className="px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                  disabled={bulkEditing}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleBulkEdit}
+                  disabled={bulkEditing}
+                  className="px-6 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {bulkEditing ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      Updating...
+                    </>
+                  ) : (
+                    <>
+                      <Edit3 size={16} />
+                      Update {selectedMushrooms.size} Mushroom(s)
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

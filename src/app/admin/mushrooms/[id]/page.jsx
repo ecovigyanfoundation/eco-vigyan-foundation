@@ -25,6 +25,7 @@ export default function AdminMushroomReviewPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const [form, setForm] = useState({
+    commonName: "",
     scientificName: "",
     description: "",
     ecologicalRole: "",
@@ -48,6 +49,7 @@ export default function AdminMushroomReviewPage() {
         const m = data.mushroom;
         setMushroom(m);
         setForm({
+          commonName: m.commonName ?? "",
           scientificName: m.scientificName ?? "",
           description: m.description ?? "",
           ecologicalRole: m.ecologicalRole ?? "",
@@ -216,6 +218,16 @@ export default function AdminMushroomReviewPage() {
                 <h2 className="font-bold text-gray-800">Taxonomy & Description</h2>
               </div>
               <div className="p-6 space-y-6">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-400 uppercase">Common Name</label>
+                  <input
+                    value={form.commonName}
+                    onChange={(e) => setForm({ ...form, commonName: e.target.value })}
+                    className="w-full text-lg font-medium bg-transparent border-b border-gray-200 py-2 focus:border-green-500 outline-none transition-colors"
+                    placeholder="e.g. Fly Agaric"
+                  />
+                </div>
+
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-gray-400 uppercase">Scientific Name</label>
                   <input

@@ -139,6 +139,7 @@ export async function PATCH(req, { params }) {
 
     const body = await req.json();
     const {
+      commonName,
       scientificName,
       description,
       ecologicalRole,
@@ -156,6 +157,9 @@ export async function PATCH(req, { params }) {
 
     const updateData = {};
 
+    if (commonName !== undefined) {
+      updateData.commonName = commonName || null;
+    }
     if (scientificName !== undefined) {
       updateData.scientificName = scientificName || null;
     }

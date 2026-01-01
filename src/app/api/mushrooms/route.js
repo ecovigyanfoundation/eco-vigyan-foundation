@@ -24,7 +24,7 @@ export async function GET(req) {
       .select(
         "commonName scientificName description ecologicalRole texture underside fruitingSurface stemPresence commonUses images location approvedAt submittedBy createdAt"
       )
-      .populate("submittedBy", "name username _id")
+      .populate("submittedBy", "name username _id email")
       .sort({ approvedAt: -1 });
 
     return NextResponse.json(

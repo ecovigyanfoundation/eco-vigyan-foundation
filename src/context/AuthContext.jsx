@@ -20,30 +20,24 @@ export function AuthProvider({ children }) {
     try {
       setLoading(true);
       
-      // First check localStorage for quick access
-      const localUser = localStorage.getItem("user");
-      if (localUser) {
-        try {
-          const parsed = JSON.parse(localUser);
-          setUser(parsed);
-        } catch (e) {
-          localStorage.removeItem("user");
-        }
-      }
-
-      // Then verify with server
-      const res = await fetch("/api/auth/current-user");
+      // Always verify with server first (don't trust localStorage)
+      const res = await fetch("/api/auth/current-user", {
+        credentials: "include", // Important for cookies
+        cache: "no-store", // Don't cache this request
+      });
       const data = await res.json();
       
       if (data.user) {
         setUser(data.user);
         localStorage.setItem("user", JSON.stringify(data.user));
       } else {
+        // Server says no user - clear everything
         setUser(null);
         localStorage.removeItem("user");
       }
     } catch (error) {
       console.error("Error fetching user:", error);
+      // On error, clear user state
       setUser(null);
       localStorage.removeItem("user");
     } finally {
@@ -83,20 +77,34 @@ export function AuthProvider({ children }) {
 
   const logout = async () => {
     try {
-      // Clear localStorage
+      // Clear localStorage FIRST (before API call)
       localStorage.removeItem("user");
       setUser(null);
 
-      // Call logout API to clear cookie
-      await fetch("/api/auth/logout", { method: "POST" });
+      // Call logout API to clear cookie (don't wait for it to complete)
+      fetch("/api/auth/logout", { 
+        method: "POST",
+        credentials: "include",
+        cache: "no-store",
+      }).catch(err => console.error("Logout API error:", err));
 
-      toast.success("Logged out successfully");
+      // Force clear any remaining localStorage data
+      localStorage.clear();
+      
+      // Clear user state immediately
+      setUser(null);
+      
+      // Force a hard page reload to clear all cached state and cookies
+      // This ensures mobile browsers properly clear everything
+      window.location.href = "/";
+      
     } catch (error) {
       console.error("Logout error:", error);
-      // Still clear local state even if API call fails
-      localStorage.removeItem("user");
+      // Still clear local state even if anything fails
+      localStorage.clear();
       setUser(null);
-      router.push("/");
+      // Force redirect to home with hard refresh
+      window.location.href = "/";
     }
   };
 

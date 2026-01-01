@@ -325,25 +325,45 @@ export default function Map({
         popupRef.current = popup;
 
         // Extract user ID and ensure it's a string
+        // Skip profile link for system-imported mushrooms
         let userId = null;
-        if (item.submittedBy) {
+        const contributorName = item.contributor || item.submittedBy?.name || item.submittedBy?.username || "Anonymous";
+        const isSystemUser = item.submittedBy?.email === "system@ecovigyan.org" || 
+                             item.submittedBy?.username === "system" ||
+                             item.submittedBy?.name === "System Import" ||
+                             contributorName === "System Import";
+        
+        if (item.submittedBy && !isSystemUser) {
           if (typeof item.submittedBy === 'string') {
             userId = item.submittedBy;
           } else if (item.submittedBy._id) {
             // Convert ObjectId to string if needed
-            userId = typeof item.submittedBy._id === 'string' 
+            const idString = typeof item.submittedBy._id === 'string' 
               ? item.submittedBy._id 
               : item.submittedBy._id.toString();
+            // Validate it's a proper MongoDB ObjectId format (24 hex chars)
+            if (/^[0-9a-fA-F]{24}$/.test(idString)) {
+              userId = idString;
+            }
           }
         }
-        const contributorName = item.contributor || item.submittedBy?.name || item.submittedBy?.username || "Anonymous";
         
-        const handlePopupClick = (e) => {
-          // Don't navigate if clicking on the contributor link (it has its own handler)
-          if (e.target.closest('a')) {
-            return;
+        // Get original Google Drive link for system imports
+        const originalDriveLink = item.images?.[0]?.originalDriveLink || null;
+        
+        // Handle image click - opens Google Drive for system imports, or profile for regular users
+        const handleImageClick = (e) => {
+          e.stopPropagation();
+          if (isSystemUser && originalDriveLink) {
+            window.open(originalDriveLink, '_blank', 'noopener,noreferrer');
+          } else if (userId) {
+            window.location.href = `/user/${userId}`;
           }
-          // Navigate to user profile if userId exists
+        };
+
+        // Handle details click - navigates to user profile
+        const handleDetailsClick = (e) => {
+          e.stopPropagation();
           if (userId) {
             window.location.href = `/user/${userId}`;
           }
@@ -351,20 +371,34 @@ export default function Map({
 
         createRoot(popupNode).render(
           <div 
-            className={`w-[300px] sm:w-[350px] bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-100 z-[200] ${userId ? 'cursor-pointer hover:shadow-2xl transition-shadow' : ''}`}
-            onClick={userId ? handlePopupClick : undefined}
+            className="w-[300px] sm:w-[350px] bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-100 z-[200]"
           >
             {item.image && (
-              <div className="w-full h-40 bg-gray-200">
+              <div 
+                className={`w-full h-40 bg-gray-200 relative ${(isSystemUser && originalDriveLink) || userId ? 'cursor-pointer group' : ''}`}
+                onClick={handleImageClick}
+                title={isSystemUser && originalDriveLink ? "Click image to open Google Drive" : userId ? "Click image to view profile" : ""}
+              >
                 <img
                   src={item.image}
                   alt={item.name}
                   className="w-full h-full object-cover"
                 />
+                {isSystemUser && originalDriveLink && (
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                    <span className="text-white text-xs font-bold bg-black/50 px-3 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                      Click to open in Google Drive
+                    </span>
+                  </div>
+                )}
               </div>
             )}
 
-            <div className="p-4">
+            <div 
+              className={`p-4 ${userId ? 'cursor-pointer' : ''}`}
+              onClick={handleDetailsClick}
+              title={userId ? "Click details to view profile" : ""}
+            >
               <div className="flex justify-between items-start mb-2">
                 <h3 className="text-xl font-bold text-gray-900 leading-tight">
                   {item.name}
@@ -401,7 +435,15 @@ export default function Map({
                 <span>{lng.toFixed(5)}°E</span>
               </div>
               
-              {userId && (
+              {isSystemUser && originalDriveLink && (
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <p className="text-xs text-blue-600 font-semibold text-center">
+                    Image → Google Drive | Details → Profile
+                  </p>
+                </div>
+              )}
+              
+              {userId && !isSystemUser && (
                 <div className="mt-3 pt-3 border-t border-gray-100">
                   <p className="text-xs text-emerald-600 font-semibold text-center">
                     Click to view {contributorName}'s profile →
