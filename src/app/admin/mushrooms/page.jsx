@@ -19,6 +19,7 @@ import {
   Edit3,
   CheckSquare,
   Square,
+  Trash2,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -32,6 +33,7 @@ export default function AdminMushroomsPage() {
     pending: 0,
     approved: 0,
     rejected: 0,
+    systemImports: 0,
   });
   const [showImportModal, setShowImportModal] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -47,6 +49,8 @@ export default function AdminMushroomsPage() {
     commonUses: [],
   });
   const [bulkEditing, setBulkEditing] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchMushrooms();
@@ -70,7 +74,10 @@ export default function AdminMushroomsPage() {
   const fetchMushrooms = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/admin/mushrooms?status=${statusFilter}`);
+      const url = statusFilter === "system-imports" 
+        ? `/api/admin/mushrooms?systemImports=true`
+        : `/api/admin/mushrooms?status=${statusFilter}`;
+      const res = await fetch(url);
       const data = await res.json();
 
       if (!res.ok) {
@@ -264,6 +271,72 @@ export default function AdminMushroomsPage() {
     }));
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedMushrooms.size === 0) {
+      toast.error("Please select at least one mushroom");
+      return;
+    }
+
+    // Check if all selected mushrooms are system imports
+    const selectedMushroomData = mushrooms.filter((m) =>
+      selectedMushrooms.has(m._id)
+    );
+
+    const systemImports = selectedMushroomData.filter((m) => {
+      const submittedBy = m.submittedBy;
+      return (
+        submittedBy?.email === "system@ecovigyan.org" ||
+        submittedBy?.username === "system" ||
+        submittedBy?.name === "System Import"
+      );
+    });
+
+    if (systemImports.length === 0) {
+      toast.error("Only system-imported mushrooms can be deleted");
+      return;
+    }
+
+    if (systemImports.length < selectedMushrooms.size) {
+      toast.error(
+        `Only ${systemImports.length} of ${selectedMushrooms.size} selected mushrooms are system imports. Only system imports will be deleted.`
+      );
+    }
+
+    setDeleting(true);
+    try {
+      // Delete only system imports
+      const deletePromises = systemImports.map((mushroom) =>
+        fetch(`/api/admin/mushrooms/${mushroom._id}`, {
+          method: "DELETE",
+        })
+      );
+
+      const results = await Promise.allSettled(deletePromises);
+      const successful = results.filter(
+        (r) => r.status === "fulfilled" && r.value.ok
+      ).length;
+      const failed = results.filter(
+        (r) => r.status === "rejected" || !r.value.ok
+      ).length;
+
+      if (successful > 0) {
+        toast.success(`Deleted ${successful} system-imported mushroom(s) successfully`);
+      }
+      if (failed > 0) {
+        toast.error(`Failed to delete ${failed} mushroom(s)`);
+      }
+
+      // Refresh the list
+      fetchMushrooms();
+      setSelectedMushrooms(new Set());
+      setShowDeleteModal(false);
+    } catch (error) {
+      toast.error(error.message || "Failed to delete mushrooms");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -291,13 +364,22 @@ export default function AdminMushroomsPage() {
             </div>
             <div className="flex items-center gap-3">
               {selectedMushrooms.size > 0 && (
-                <button
-                  onClick={() => setShowBulkEditModal(true)}
-                  className="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-2"
-                >
-                  <Edit3 size={16} />
-                  Bulk Edit ({selectedMushrooms.size})
-                </button>
+                <>
+                  <button
+                    onClick={() => setShowBulkEditModal(true)}
+                    className="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-2"
+                  >
+                    <Edit3 size={16} />
+                    Bulk Edit ({selectedMushrooms.size})
+                  </button>
+                  <button
+                    onClick={() => setShowDeleteModal(true)}
+                    className="px-4 py-2 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex items-center gap-2"
+                  >
+                    <Trash2 size={16} />
+                    Delete System Imports ({selectedMushrooms.size})
+                  </button>
+                </>
               )}
               <button
                 onClick={() => setShowImportModal(true)}
@@ -324,10 +406,13 @@ export default function AdminMushroomsPage() {
             { value: "pending", label: "Pending", icon: Clock },
             { value: "approved", label: "Approved", icon: CheckCircle },
             { value: "rejected", label: "Rejected", icon: XCircle },
+            { value: "system-imports", label: "System Imports", icon: Upload },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = statusFilter === tab.value;
-            const count = counts[tab.value] || 0;
+            const count = tab.value === "system-imports" 
+              ? (counts.systemImports || 0)
+              : (counts[tab.value] || 0);
             return (
               <button
                 key={tab.value}
@@ -830,6 +915,73 @@ export default function AdminMushroomsPage() {
                   )}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE CONFIRMATION MODAL */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2">
+                  <Trash2 size={24} className="text-red-600" />
+                  Delete System Imports
+                </h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  This action cannot be undone
+                </p>
+              </div>
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                disabled={deleting}
+              >
+                <X size={20} className="text-gray-600" />
+              </button>
+            </div>
+
+            <div className="mb-6">
+              <p className="text-gray-700 mb-4">
+                Are you sure you want to delete{" "}
+                <span className="font-bold">{selectedMushrooms.size}</span> selected
+                system-imported mushroom(s)?
+              </p>
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-sm text-red-800 font-semibold">
+                  ⚠️ Warning: Only system-imported mushrooms will be deleted. Regular
+                  user submissions will be skipped.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                disabled={deleting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                disabled={deleting}
+                className="px-6 py-2 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {deleting ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={16} />
+                    Delete {selectedMushrooms.size} Mushroom(s)
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>

@@ -58,12 +58,28 @@ export async function GET(req) {
     // Check if requesting counts only
     const countsOnly = searchParams.get("countsOnly") === "true";
     
+    // Check if requesting system imports
+    const systemImportsOnly = searchParams.get("systemImports") === "true";
+
     if (countsOnly) {
-      // Return counts for all statuses
-      const [pendingCount, approvedCount, rejectedCount] = await Promise.all([
-        Mushroom.countDocuments({ status: "pending" }),
-        Mushroom.countDocuments({ status: "approved" }),
-        Mushroom.countDocuments({ status: "rejected" }),
+      // Get system user ID for counting system imports
+      const systemUser = await User.findOne({
+        $or: [
+          { email: "system@ecovigyan.org" },
+          { username: "system" },
+          { name: "System Import" },
+        ],
+      });
+
+      // Return counts for all statuses (excluding system imports from regular counts)
+      const systemUserQuery = systemUser ? { submittedBy: { $ne: systemUser._id } } : {};
+      const [pendingCount, approvedCount, rejectedCount, systemImportsCount] = await Promise.all([
+        Mushroom.countDocuments({ status: "pending", ...systemUserQuery }),
+        Mushroom.countDocuments({ status: "approved", ...systemUserQuery }),
+        Mushroom.countDocuments({ status: "rejected", ...systemUserQuery }),
+        systemUser
+          ? Mushroom.countDocuments({ submittedBy: systemUser._id })
+          : Promise.resolve(0),
       ]);
 
       return NextResponse.json(
@@ -72,10 +88,35 @@ export async function GET(req) {
             pending: pendingCount,
             approved: approvedCount,
             rejected: rejectedCount,
+            systemImports: systemImportsCount,
           },
         },
         { status: 200 }
       );
+    }
+
+    if (systemImportsOnly) {
+      // Get system user ID
+      const systemUser = await User.findOne({
+        $or: [
+          { email: "system@ecovigyan.org" },
+          { username: "system" },
+          { name: "System Import" },
+        ],
+      });
+
+      if (!systemUser) {
+        return NextResponse.json({ mushrooms: [] }, { status: 200 });
+      }
+
+      const mushrooms = await Mushroom.find({ submittedBy: systemUser._id })
+        .populate("submittedBy", "name username email")
+        .sort({ createdAt: -1 })
+        .select(
+          "commonName images location status submittedBy createdAt"
+        );
+
+      return NextResponse.json({ mushrooms }, { status: 200 });
     }
 
     const status = searchParams.get("status") || "pending";
@@ -87,8 +128,23 @@ export async function GET(req) {
       );
     }
 
-    const mushrooms = await Mushroom.find({ status })
-      .populate("submittedBy", "name username")
+    // Get system user ID to exclude from regular submissions
+    const systemUser = await User.findOne({
+      $or: [
+        { email: "system@ecovigyan.org" },
+        { username: "system" },
+        { name: "System Import" },
+      ],
+    });
+
+    // Exclude system imports from regular status filters
+    const query = { status };
+    if (systemUser) {
+      query.submittedBy = { $ne: systemUser._id };
+    }
+
+    const mushrooms = await Mushroom.find(query)
+      .populate("submittedBy", "name username email")
       .sort({ createdAt: -1 })
       .select(
         "commonName images location status submittedBy createdAt"

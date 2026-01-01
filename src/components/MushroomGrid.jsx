@@ -133,35 +133,16 @@ export default function MushroomGrid({ data, onMushroomClick }) {
               }
             }
             
-            // Handle image click - opens Google Drive for system imports, or profile for regular users
-            const handleImageClick = (e) => {
-              e.stopPropagation();
-              if (isSystemUser && originalDriveLink) {
-                console.log('Opening Google Drive link for system import:', originalDriveLink);
-                window.open(originalDriveLink, '_blank', 'noopener,noreferrer');
-              } else if (userId) {
-                router.push(`/user/${userId}`);
-              }
-            };
-
-            // Handle details click - navigates to user profile
+            // Handle details click - opens detail modal
             const handleDetailsClick = (e) => {
               e.stopPropagation();
-              if (userId) {
-                router.push(`/user/${userId}`);
-              } else {
-                onMushroomClick?.(item);
-              }
+              onMushroomClick?.(item);
             };
 
             const cardContent = (
               <>
                 {/* IMAGE AREA */}
-                <div 
-                  className={`aspect-square bg-stone-100 rounded-[2rem] mb-4 overflow-hidden relative shadow-inner ${(isSystemUser && originalDriveLink) || userId ? 'cursor-pointer' : ''}`}
-                  onClick={handleImageClick}
-                  title={isSystemUser && originalDriveLink ? "Click image to open Google Drive" : userId ? "Click image to view profile" : ""}
-                >
+                <div className="aspect-square bg-stone-100 rounded-[2rem] mb-4 overflow-hidden relative shadow-inner">
                 {item.image || item.images?.[0]?.url ? (
                   <img
                     src={item.image || item.images?.[0]?.url}
@@ -175,15 +156,6 @@ export default function MushroomGrid({ data, onMushroomClick }) {
                     <MapIcon size={40} strokeWidth={1} />
                     <span className="text-[8px] font-black uppercase tracking-tighter">
                       No Photo
-                    </span>
-                  </div>
-                )}
-                
-                {/* Hover overlay for image */}
-                {(isSystemUser && originalDriveLink) && (
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-                    <span className="text-white text-xs font-bold bg-black/50 px-3 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
-                      Click to open in Google Drive
                     </span>
                   </div>
                 )}
@@ -208,20 +180,14 @@ export default function MushroomGrid({ data, onMushroomClick }) {
                 </div>
               </div>
 
-              {/* INFO AREA - Clickable to view profile */}
-              <div 
-                className={`px-3 pb-2 ${userId ? 'cursor-pointer' : ''}`}
-                onClick={handleDetailsClick}
-                title={userId ? "Click details to view profile" : ""}
-              >
+              {/* INFO AREA */}
+              <div className="px-3 pb-2">
                 <h3 className={`font-black text-sm text-slate-800 transition-colors uppercase tracking-tight truncate mb-1 ${userId ? 'group-hover:text-emerald-700' : ''}`}>
                   {item.name || item.commonName || "Unknown Species"}
                 </h3>
-                {isSystemUser && originalDriveLink && (
-                  <p className="text-[8px] text-blue-600 font-semibold mb-1">
-                    Image → Google Drive | Details → Profile
-                  </p>
-                )}
+                <p className="text-[8px] text-emerald-600 font-semibold mb-1">
+                  Click to view full details →
+                </p>
 
                 <div className="flex items-center justify-between">
                   {(() => {
@@ -265,7 +231,8 @@ export default function MushroomGrid({ data, onMushroomClick }) {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.03, ease: "easeOut" }}
-                className="group bg-white border border-stone-200 rounded-[2.5rem] p-3 hover:border-emerald-500 hover:shadow-2xl hover:shadow-emerald-900/10 transition-all relative"
+                className="group bg-white border border-stone-200 rounded-[2.5rem] p-3 hover:border-emerald-500 hover:shadow-2xl hover:shadow-emerald-900/10 transition-all relative cursor-pointer"
+                onClick={handleDetailsClick}
               >
                 {cardContent}
               </motion.div>

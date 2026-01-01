@@ -11,6 +11,7 @@ import MobileSearchModal from "@/components/MobileSearchModal";
 import Leaderboard from "@/components/Leaderboard";
 import ZoneModal from "@/components/ZoneModal";
 import MapFilter from "@/components/MapFilter";
+import MushroomDetailModal from "@/components/MushroomDetailModal";
 import { useAuth } from "@/context/AuthContext";
 import { isPointInPolygon } from "@/lib/geocoding";
 import toast from "react-hot-toast";
@@ -32,6 +33,8 @@ export default function MapPage() {
     commonUses: [],
   });
   const [selectedMushroom, setSelectedMushroom] = useState(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [detailMushroom, setDetailMushroom] = useState(null);
   const [view, setView] = useState("map");
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -504,6 +507,10 @@ export default function MapPage() {
               onDrawingComplete={handleDrawingComplete}
               onDrawingCancel={handleDrawingCancel}
               onGetCurrentBoundary={getCurrentBoundaryRef}
+              onMushroomClick={(mushroom) => {
+                setDetailMushroom(mushroom);
+                setShowDetailModal(true);
+              }}
             />
 
             {/* Map Controls - Top Left */}
@@ -575,7 +582,10 @@ export default function MapPage() {
         {view === "grid" && (
           <MushroomGrid
             data={data}
-            onMushroomClick={setSelectedMushroom}
+            onMushroomClick={(mushroom) => {
+              setDetailMushroom(mushroom);
+              setShowDetailModal(true);
+            }}
           />
         )}
 
@@ -596,6 +606,15 @@ export default function MapPage() {
         onSuccess={handleSubmissionSuccess}
         selectedLocation={selectedLocation}
         onLocationSelect={setSelectedLocation}
+      />
+
+      <MushroomDetailModal
+        isOpen={showDetailModal}
+        onClose={() => {
+          setShowDetailModal(false);
+          setDetailMushroom(null);
+        }}
+        mushroom={detailMushroom}
       />
 
       <ZoneModal

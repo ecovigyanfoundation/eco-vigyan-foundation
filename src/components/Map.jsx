@@ -6,6 +6,7 @@ import { createRoot } from "react-dom/client";
 import Link from "next/link";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { generateCircleBoundary, generateRectangleBoundary } from "@/lib/geocoding";
+import MushroomDetailModal from "./MushroomDetailModal";
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
@@ -23,6 +24,7 @@ export default function Map({
   onDrawingComplete,
   onDrawingCancel,
   onGetCurrentBoundary,
+  onMushroomClick,
 }) {
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
@@ -351,54 +353,31 @@ export default function Map({
         // Get original Google Drive link for system imports
         const originalDriveLink = item.images?.[0]?.originalDriveLink || null;
         
-        // Handle image click - opens Google Drive for system imports, or profile for regular users
-        const handleImageClick = (e) => {
-          e.stopPropagation();
-          if (isSystemUser && originalDriveLink) {
-            window.open(originalDriveLink, '_blank', 'noopener,noreferrer');
-          } else if (userId) {
-            window.location.href = `/user/${userId}`;
-          }
-        };
-
-        // Handle details click - navigates to user profile
+        // Handle details click - opens detail modal
         const handleDetailsClick = (e) => {
           e.stopPropagation();
-          if (userId) {
-            window.location.href = `/user/${userId}`;
+          if (onMushroomClick) {
+            onMushroomClick(item);
           }
         };
 
         createRoot(popupNode).render(
           <div 
-            className="w-[300px] sm:w-[350px] bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-100 z-[200]"
+            className="w-[300px] sm:w-[350px] bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-100 z-[200] cursor-pointer"
+            onClick={handleDetailsClick}
+            title="Click to view full details"
           >
             {item.image && (
-              <div 
-                className={`w-full h-40 bg-gray-200 relative ${(isSystemUser && originalDriveLink) || userId ? 'cursor-pointer group' : ''}`}
-                onClick={handleImageClick}
-                title={isSystemUser && originalDriveLink ? "Click image to open Google Drive" : userId ? "Click image to view profile" : ""}
-              >
+              <div className="w-full h-40 bg-gray-200 relative">
                 <img
                   src={item.image}
                   alt={item.name}
                   className="w-full h-full object-cover"
                 />
-                {isSystemUser && originalDriveLink && (
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-                    <span className="text-white text-xs font-bold bg-black/50 px-3 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
-                      Click to open in Google Drive
-                    </span>
-                  </div>
-                )}
               </div>
             )}
 
-            <div 
-              className={`p-4 ${userId ? 'cursor-pointer' : ''}`}
-              onClick={handleDetailsClick}
-              title={userId ? "Click details to view profile" : ""}
-            >
+            <div className="p-4">
               <div className="flex justify-between items-start mb-2">
                 <h3 className="text-xl font-bold text-gray-900 leading-tight">
                   {item.name}
@@ -435,21 +414,11 @@ export default function Map({
                 <span>{lng.toFixed(5)}°E</span>
               </div>
               
-              {isSystemUser && originalDriveLink && (
-                <div className="mt-3 pt-3 border-t border-gray-100">
-                  <p className="text-xs text-blue-600 font-semibold text-center">
-                    Image → Google Drive | Details → Profile
-                  </p>
-                </div>
-              )}
-              
-              {userId && !isSystemUser && (
-                <div className="mt-3 pt-3 border-t border-gray-100">
-                  <p className="text-xs text-emerald-600 font-semibold text-center">
-                    Click to view {contributorName}'s profile →
-                  </p>
-                </div>
-              )}
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                <p className="text-xs text-emerald-600 font-semibold text-center">
+                  Click to view full details →
+                </p>
+              </div>
             </div>
           </div>
         );

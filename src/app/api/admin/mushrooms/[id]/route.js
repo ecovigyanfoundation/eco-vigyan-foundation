@@ -246,3 +246,91 @@ export async function PATCH(req, { params }) {
     );
   }
 }
+
+export async function DELETE(req, { params }) {
+  try {
+    await connectDB();
+
+    /* ================= AUTH ================= */
+
+    // Get token from cookies - await cookies() in Next.js 15+
+    let token = null;
+    try {
+      const cookieStore = await cookies();
+      token = cookieStore.get("token")?.value;
+    } catch (err) {
+      console.error("Error reading cookies:", err);
+      // Fallback: try reading from request headers
+      const cookieHeader = req.headers.get("cookie");
+      if (cookieHeader) {
+        const cookieObj = cookieHeader.split(";").reduce((acc, cookie) => {
+          const [key, value] = cookie.trim().split("=");
+          if (key && value) {
+            acc[key] = decodeURIComponent(value);
+          }
+          return acc;
+        }, {});
+        token = cookieObj.token;
+      }
+    }
+
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    let decoded;
+    try {
+      // Handle URL-encoded token
+      const decodedToken = decodeURIComponent(token);
+      decoded = jwt.verify(decodedToken, process.env.JWT_SECRET);
+    } catch (err) {
+      console.error("JWT verification error:", err);
+      return NextResponse.json({ error: "Invalid or expired token" }, { status: 401 });
+    }
+
+    const admin = await User.findById(decoded.id);
+    if (!admin || admin.role !== "admin") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    /* ================= DELETE MUSHROOM ================= */
+
+    // In Next.js 15+, params is a Promise that must be awaited
+    const { id } = await params;
+    
+    const mushroom = await Mushroom.findById(id).populate("submittedBy", "username email");
+    
+    if (!mushroom) {
+      return NextResponse.json(
+        { error: "Mushroom not found" },
+        { status: 404 }
+      );
+    }
+
+    // Check if it's a system import
+    const isSystemUser =
+      mushroom.submittedBy?.email === "system@ecovigyan.org" ||
+      mushroom.submittedBy?.username === "system" ||
+      mushroom.submittedBy?.name === "System Import";
+
+    if (!isSystemUser) {
+      return NextResponse.json(
+        { error: "Only system-imported mushrooms can be deleted" },
+        { status: 403 }
+      );
+    }
+
+    await Mushroom.findByIdAndDelete(id);
+
+    return NextResponse.json(
+      { message: "Mushroom deleted successfully" },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Admin delete mushroom error:", error);
+    return NextResponse.json(
+      { error: "Failed to delete mushroom" },
+      { status: 500 }
+    );
+  }
+}
