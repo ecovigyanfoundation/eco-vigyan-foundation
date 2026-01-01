@@ -113,17 +113,17 @@ export default function MapFilter({
           filterButtonClickedRef.current = true;
           setFilterMenuOpen(prev => !prev);
         }}
-        className="relative flex items-center gap-2 px-4 py-3 bg-emerald-600/90 hover:bg-emerald-700/90 backdrop-blur-md rounded-2xl border border-emerald-500 text-white shadow-2xl transition-all duration-300 hover:shadow-emerald-500/50"
+        className="relative flex items-center gap-1.5 px-3 py-2 bg-emerald-600/90 hover:bg-emerald-700/90 backdrop-blur-md rounded-xl border border-emerald-500 text-white shadow-2xl transition-all duration-300 hover:shadow-emerald-500/50"
       >
-        <Filter size={18} className="shrink-0" />
+        <Filter size={16} className="shrink-0" />
         <ChevronDown
-          size={14}
+          size={12}
           className={`transition-transform shrink-0 ${
             filterMenuOpen ? "rotate-180" : ""
           }`}
         />
         {activeFilterCount > 0 && (
-          <span className="absolute -top-2 -right-2 w-6 h-6 bg-white text-emerald-600 text-xs font-black rounded-full flex items-center justify-center border-2 border-emerald-600">
+          <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-white text-emerald-600 text-[10px] font-black rounded-full flex items-center justify-center border-2 border-emerald-600">
             {activeFilterCount}
           </span>
         )}
@@ -133,17 +133,17 @@ export default function MapFilter({
       {filterMenuOpen && (
         <div 
           ref={filterDropdownRef}
-          className="absolute left-0 mt-2 mb-4 w-96 max-w-[min(400px,calc(100vw-2rem))] max-h-[calc(100vh-200px)] bg-white rounded-2xl shadow-2xl border border-emerald-100 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200"
+          className="absolute left-0 mt-2 mb-4 w-80 max-w-[min(340px,calc(100vw-2rem))] max-h-[calc(100vh-200px)] bg-white rounded-xl shadow-2xl border border-emerald-100 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="p-3 border-b border-emerald-50 bg-emerald-50/30">
-            <h3 className="text-xs font-black text-emerald-950 uppercase tracking-wider">
+          <div className="p-2 border-b border-emerald-50 bg-emerald-50/30">
+            <h3 className="text-[10px] font-black text-emerald-950 uppercase tracking-wider">
               Filter Options
             </h3>
           </div>
 
           {/* CATEGORY SELECTOR AND RESET */}
-          <div className="p-2 border-b border-emerald-50 bg-emerald-50/20 space-y-1.5">
+          <div className="p-1.5 border-b border-emerald-50 bg-emerald-50/20 space-y-1">
             <select
               value={selectedCategory}
               onChange={(e) => {
@@ -151,7 +151,7 @@ export default function MapFilter({
                 setSelectedCategory(e.target.value);
               }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full px-2.5 py-1.5 bg-white border border-emerald-200 rounded-lg text-xs font-medium text-emerald-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              className="w-full px-2 py-1 bg-white border border-emerald-200 rounded-md text-[10px] font-medium text-emerald-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             >
               {filterCategories.map((cat) => (
                 <option key={cat.id} value={cat.id}>
@@ -166,17 +166,17 @@ export default function MapFilter({
                   onResetFilters();
                 }}
                 disabled={activeFilterCount === 0}
-                className={`w-full flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg transition-all ${
+                className={`w-full flex items-center justify-center gap-1 px-2 py-1 text-[10px] font-medium rounded-md transition-all ${
                   activeFilterCount > 0
                     ? "bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm"
                     : "bg-gray-100 text-gray-400 cursor-not-allowed"
                 }`}
                 title={activeFilterCount > 0 ? "Reset all filters" : "No filters to reset"}
               >
-                <RotateCcw size={12} />
+                <RotateCcw size={10} />
                 <span>Reset All Filters</span>
                 {activeFilterCount > 0 && (
-                  <span className="ml-1 px-1.5 py-0.5 bg-white/20 rounded text-[10px] font-bold">
+                  <span className="ml-1 px-1 py-0.5 bg-white/20 rounded text-[9px] font-bold">
                     {activeFilterCount}
                   </span>
                 )}
@@ -185,8 +185,8 @@ export default function MapFilter({
           </div>
 
           {/* FILTER OPTIONS GRID */}
-          <div className="p-3 max-h-[320px] overflow-y-auto">
-            <div className="grid grid-cols-2 gap-3">
+          <div className="p-2 max-h-[280px] overflow-y-auto">
+            <div className="grid grid-cols-2 gap-2">
               {currentOptions.map((option) => {
                 const imagePath = getMushroomImage(option);
                 const displayName = getDisplayName(option);
@@ -195,7 +195,7 @@ export default function MapFilter({
                   <button
                     key={option}
                     type="button"
-                    className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-all group ${
+                    className={`flex flex-col items-center gap-1.5 p-2 rounded-lg border transition-all group ${
                       isSelected
                         ? "border-emerald-500 bg-emerald-50 shadow-md"
                         : "border-emerald-100 hover:border-emerald-300 hover:bg-emerald-50/50"
@@ -206,7 +206,7 @@ export default function MapFilter({
                     }}
                   >
                     {imagePath && (
-                      <div className="w-12 h-12 flex items-center justify-center relative">
+                      <div className="w-10 h-10 flex items-center justify-center relative">
                         <img
                           src={imagePath}
                           alt={displayName}
@@ -217,14 +217,14 @@ export default function MapFilter({
                           }`}
                         />
                         {isSelected && (
-                          <div className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center border-2 border-white">
-                            <span className="text-white text-[10px] font-black">✓</span>
+                          <div className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center border-2 border-white">
+                            <span className="text-white text-[8px] font-black">✓</span>
                           </div>
                         )}
                       </div>
                     )}
                     <span
-                      className={`text-xs font-medium text-center leading-tight ${
+                      className={`text-[10px] font-medium text-center leading-tight ${
                         isSelected
                           ? "text-emerald-700 font-bold"
                           : "text-emerald-900"

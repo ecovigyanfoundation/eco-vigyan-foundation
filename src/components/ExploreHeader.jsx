@@ -15,8 +15,10 @@ import {
   User,
   Menu,
   X,
+  Loader2,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { getCityBoundary } from "@/lib/geocoding";
 
 export default function ExploreHeader({
   view,
@@ -27,11 +29,24 @@ export default function ExploreHeader({
   onResetFilters,
   selectedFilters = {},
   onZonesClick,
+  onSpeciesSearch,
+  onLocationSearch,
 }) {
   const { user, logout } = useAuth();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [speciesSearch, setSpeciesSearch] = useState("");
+  const [locationSearch, setLocationSearch] = useState("");
+  const [isSearchingLocation, setIsSearchingLocation] = useState(false);
   const userMenuRef = useRef(null);
+  const locationSearchTimeoutRef = useRef(null);
+  const lastSuccessfulLocationRef = useRef(null);
+  const onLocationSearchRef = useRef(onLocationSearch);
+
+  // Keep ref updated
+  useEffect(() => {
+    onLocationSearchRef.current = onLocationSearch;
+  }, [onLocationSearch]);
 
   // Close user menu when clicking outside
   useEffect(() => {
@@ -46,6 +61,77 @@ export default function ExploreHeader({
       document.removeEventListener("mousedown", handleUserMenuClickOutside);
     };
   }, []);
+
+  // Handle species search
+  const handleSpeciesSearchChange = (value) => {
+    setSpeciesSearch(value);
+    if (onSpeciesSearch) {
+      onSpeciesSearch(value);
+    }
+  };
+
+  // Debounce location search
+  useEffect(() => {
+    // Clear any pending timeout
+    if (locationSearchTimeoutRef.current) {
+      clearTimeout(locationSearchTimeoutRef.current);
+    }
+
+    const trimmedLocation = locationSearch.trim();
+
+    // If empty, clear after debounce
+    if (!trimmedLocation) {
+      locationSearchTimeoutRef.current = setTimeout(() => {
+        // Only clear if still empty and different from last successful
+        if (lastSuccessfulLocationRef.current !== null) {
+          lastSuccessfulLocationRef.current = null;
+          if (onLocationSearchRef.current) {
+            onLocationSearchRef.current(null);
+          }
+        }
+        setIsSearchingLocation(false);
+      }, 800);
+      return () => {
+        if (locationSearchTimeoutRef.current) {
+          clearTimeout(locationSearchTimeoutRef.current);
+        }
+      };
+    }
+
+    // If same as last successful, don't refetch
+    if (trimmedLocation === lastSuccessfulLocationRef.current) {
+      return;
+    }
+
+    locationSearchTimeoutRef.current = setTimeout(async () => {
+      // Double check it's still the same after debounce
+      if (locationSearch.trim() !== trimmedLocation) {
+        return;
+      }
+
+      setIsSearchingLocation(true);
+      try {
+        const boundary = await getCityBoundary(trimmedLocation);
+        if (boundary && boundary.boundary) {
+          lastSuccessfulLocationRef.current = trimmedLocation;
+          if (onLocationSearchRef.current) {
+            onLocationSearchRef.current(boundary);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching location boundary:", error);
+        // Don't clear existing boundary on error
+      } finally {
+        setIsSearchingLocation(false);
+      }
+    }, 800);
+
+    return () => {
+      if (locationSearchTimeoutRef.current) {
+        clearTimeout(locationSearchTimeoutRef.current);
+      }
+    };
+  }, [locationSearch]);
 
 
   return (
@@ -84,15 +170,24 @@ export default function ExploreHeader({
             <div className="flex-1 flex items-center bg-emerald-50/60 rounded-2xl border border-emerald-100/50 overflow-hidden px-3 gap-2 focus-within:bg-white focus-within:border-emerald-500 focus-within:ring-4 focus-within:ring-emerald-500/10 transition-all duration-300 min-w-0">
               <Search size={16} className="text-emerald-400 shrink-0" />
               <input
+                type="text"
+                value={speciesSearch}
+                onChange={(e) => handleSpeciesSearchChange(e.target.value)}
                 placeholder="Search Species..."
                 className="bg-transparent flex-1 py-2.5 text-xs outline-none text-emerald-900 placeholder:text-emerald-300 font-medium min-w-0"
               />
               <div className="w-px h-4 bg-emerald-200 mx-0.5 shrink-0" />
               <MapPin size={16} className="text-emerald-400 shrink-0" />
               <input
+                type="text"
+                value={locationSearch}
+                onChange={(e) => setLocationSearch(e.target.value)}
                 placeholder="Location..."
                 className="bg-transparent flex-1 py-2.5 text-xs outline-none text-emerald-900 placeholder:text-emerald-300 font-medium min-w-0"
               />
+              {isSearchingLocation && (
+                <Loader2 size={14} className="text-emerald-400 shrink-0 animate-spin" />
+              )}
             </div>
 
           </div>

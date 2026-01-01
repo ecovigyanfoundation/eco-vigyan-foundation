@@ -40,6 +40,7 @@ export default function MapPage() {
   const [showZoneModal, setShowZoneModal] = useState(false);
   const [selectedZone, setSelectedZone] = useState(null);
   const [drawingMode, setDrawingMode] = useState(null);
+  const [speciesSearchTerm, setSpeciesSearchTerm] = useState("");
   const getCurrentBoundaryRef = useRef(null);
 
   useEffect(() => {
@@ -115,7 +116,7 @@ export default function MapPage() {
     });
   };
 
-  // Filter data based on header filters and zone
+  // Filter data based on header filters, zone, and species search
   useEffect(() => {
     let filtered = [...allData];
 
@@ -124,6 +125,16 @@ export default function MapPage() {
       filtered = filtered.filter((item) => {
         if (!item.latitude || !item.longitude) return false;
         return isPointInPolygon(item.latitude, item.longitude, selectedZone.boundary);
+      });
+    }
+
+    // Apply species search filter
+    if (speciesSearchTerm.trim()) {
+      const searchLower = speciesSearchTerm.toLowerCase().trim();
+      filtered = filtered.filter((item) => {
+        const commonName = (item.commonName || item.name || "").toLowerCase();
+        const scientificName = (item.scientificName || "").toLowerCase();
+        return commonName.includes(searchLower) || scientificName.includes(searchLower);
       });
     }
 
@@ -174,7 +185,7 @@ export default function MapPage() {
     }
 
     setData(filtered);
-  }, [headerFilters, filters, mode, allData, selectedZone]);
+  }, [headerFilters, filters, mode, allData, selectedZone, speciesSearchTerm]);
 
   // Handle zone selection
   const handleZoneSelect = (zone) => {
@@ -259,6 +270,8 @@ export default function MapPage() {
         onResetFilters={handleResetFilters}
         selectedFilters={headerFilters}
         onZonesClick={() => setShowZoneModal(true)}
+        onSpeciesSearch={setSpeciesSearchTerm}
+        onLocationSearch={handleZoneSelect}
       />
 
       {/* DESKTOP SIDEBAR MENU */}
@@ -520,6 +533,8 @@ export default function MapPage() {
       <MobileSearchModal
         isOpen={showMobileSearch}
         onClose={() => setShowMobileSearch(false)}
+        onSpeciesSearch={setSpeciesSearchTerm}
+        onLocationSearch={handleZoneSelect}
       />
 
       <MushroomSubmissionForm

@@ -1,8 +1,92 @@
 "use client";
 
-import { X, Search, MapPin } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { X, Search, MapPin, Loader2 } from "lucide-react";
+import { getCityBoundary } from "@/lib/geocoding";
 
-export default function MobileSearchModal({ isOpen, onClose }) {
+export default function MobileSearchModal({ isOpen, onClose, onSpeciesSearch, onLocationSearch }) {
+  const [speciesSearch, setSpeciesSearch] = useState("");
+  const [locationSearch, setLocationSearch] = useState("");
+  const [isSearchingLocation, setIsSearchingLocation] = useState(false);
+  const locationSearchTimeoutRef = useRef(null);
+  const lastSuccessfulLocationRef = useRef(null);
+  const onLocationSearchRef = useRef(onLocationSearch);
+
+  // Keep ref updated
+  useEffect(() => {
+    onLocationSearchRef.current = onLocationSearch;
+  }, [onLocationSearch]);
+
+  // Debounce location search
+  useEffect(() => {
+    // Clear any pending timeout
+    if (locationSearchTimeoutRef.current) {
+      clearTimeout(locationSearchTimeoutRef.current);
+    }
+
+    const trimmedLocation = locationSearch.trim();
+
+    // If empty, clear after debounce
+    if (!trimmedLocation) {
+      locationSearchTimeoutRef.current = setTimeout(() => {
+        // Only clear if still empty and different from last successful
+        if (lastSuccessfulLocationRef.current !== null) {
+          lastSuccessfulLocationRef.current = null;
+          if (onLocationSearchRef.current) {
+            onLocationSearchRef.current(null);
+          }
+        }
+        setIsSearchingLocation(false);
+      }, 800);
+      return () => {
+        if (locationSearchTimeoutRef.current) {
+          clearTimeout(locationSearchTimeoutRef.current);
+        }
+      };
+    }
+
+    // If same as last successful, don't refetch
+    if (trimmedLocation === lastSuccessfulLocationRef.current) {
+      return;
+    }
+
+    locationSearchTimeoutRef.current = setTimeout(async () => {
+      // Double check it's still the same after debounce
+      if (locationSearch.trim() !== trimmedLocation) {
+        return;
+      }
+
+      setIsSearchingLocation(true);
+      try {
+        const boundary = await getCityBoundary(trimmedLocation);
+        if (boundary && boundary.boundary) {
+          lastSuccessfulLocationRef.current = trimmedLocation;
+          if (onLocationSearchRef.current) {
+            onLocationSearchRef.current(boundary);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching location boundary:", error);
+        // Don't clear existing boundary on error
+      } finally {
+        setIsSearchingLocation(false);
+      }
+    }, 800);
+
+    return () => {
+      if (locationSearchTimeoutRef.current) {
+        clearTimeout(locationSearchTimeoutRef.current);
+      }
+    };
+  }, [locationSearch]);
+
+  // Handle species search change
+  useEffect(() => {
+    if (onSpeciesSearch) {
+      onSpeciesSearch(speciesSearch);
+    }
+  }, [speciesSearch, onSpeciesSearch]);
+
   if (!isOpen) return null;
 
   return (
@@ -30,7 +114,10 @@ export default function MobileSearchModal({ isOpen, onClose }) {
           <div className="flex items-center bg-stone-100 border border-stone-200 rounded-2xl px-4 gap-3 focus-within:bg-white focus-within:border-emerald-500 transition-all">
             <Search size={18} className="text-emerald-600" />
             <input
-              placeholder="What did you find?"
+              type="text"
+              value={speciesSearch}
+              onChange={(e) => setSpeciesSearch(e.target.value)}
+              placeholder="Search Species..."
               className="bg-transparent flex-1 py-4 text-sm outline-none text-stone-800 placeholder:text-stone-400 font-medium"
             />
           </div>
@@ -39,9 +126,15 @@ export default function MobileSearchModal({ isOpen, onClose }) {
           <div className="flex items-center bg-stone-100 border border-stone-200 rounded-2xl px-4 gap-3 focus-within:bg-white focus-within:border-emerald-500 transition-all">
             <MapPin size={18} className="text-emerald-600" />
             <input
-              placeholder="Where?"
+              type="text"
+              value={locationSearch}
+              onChange={(e) => setLocationSearch(e.target.value)}
+              placeholder="Location..."
               className="bg-transparent flex-1 py-4 text-sm outline-none text-stone-800 placeholder:text-stone-400 font-medium"
             />
+            {isSearchingLocation && (
+              <Loader2 size={16} className="text-emerald-600 animate-spin" />
+            )}
           </div>
 
           {/* Search Action Button */}
