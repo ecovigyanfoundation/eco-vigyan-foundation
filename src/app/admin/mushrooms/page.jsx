@@ -352,47 +352,53 @@ export default function AdminMushroomsPage() {
     <div className="min-h-screen bg-gray-50">
       {/* HEADER */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-black text-gray-900 uppercase tracking-tight">
+              <h1 className="text-2xl sm:text-3xl font-black text-gray-900 uppercase tracking-tight">
                 Mushroom <span className="text-emerald-600">Submissions</span>
               </h1>
-              <p className="mt-2 text-sm text-gray-600">
+              <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-gray-600">
                 Review and manage submitted mushroom observations
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               {selectedMushrooms.size > 0 && (
                 <>
                   <button
                     onClick={() => setShowBulkEditModal(true)}
-                    className="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-2"
+                    className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-1.5 sm:gap-2"
                   >
-                    <Edit3 size={16} />
-                    Bulk Edit ({selectedMushrooms.size})
+                    <Edit3 size={14} className="sm:w-4 sm:h-4" />
+                    <span className="hidden sm:inline">Bulk Edit</span>
+                    <span className="sm:hidden">Edit</span>
+                    <span>({selectedMushrooms.size})</span>
                   </button>
                   <button
                     onClick={() => setShowDeleteModal(true)}
-                    className="px-4 py-2 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex items-center gap-2"
+                    className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex items-center gap-1.5 sm:gap-2"
                   >
-                    <Trash2 size={16} />
-                    Delete System Imports ({selectedMushrooms.size})
+                    <Trash2 size={14} className="sm:w-4 sm:h-4" />
+                    <span className="hidden sm:inline">Delete System Imports</span>
+                    <span className="sm:hidden">Delete</span>
+                    <span>({selectedMushrooms.size})</span>
                   </button>
                 </>
               )}
               <button
                 onClick={() => setShowImportModal(true)}
-                className="px-4 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors flex items-center gap-2"
+                className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors flex items-center gap-1.5 sm:gap-2"
               >
-                <Upload size={16} />
-                Import Excel
+                <Upload size={14} className="sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Import Excel</span>
+                <span className="sm:hidden">Import</span>
               </button>
               <Link
                 href="/"
-                className="px-4 py-2 text-sm font-bold text-emerald-600 hover:text-emerald-700 border border-emerald-200 rounded-lg hover:bg-emerald-50 transition-colors"
+                className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-bold text-emerald-600 hover:text-emerald-700 border border-emerald-200 rounded-lg hover:bg-emerald-50 transition-colors whitespace-nowrap"
               >
-                Back to Home
+                <span className="hidden sm:inline">Back to Home</span>
+                <span className="sm:hidden">Home</span>
               </Link>
             </div>
           </div>
@@ -400,8 +406,8 @@ export default function AdminMushroomsPage() {
       </div>
 
       {/* STATUS FILTERS */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="flex gap-3 mb-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6">
+        <div className="flex gap-2 sm:gap-3 mb-4 sm:mb-6 overflow-x-auto pb-2 -mx-3 sm:mx-0 px-3 sm:px-0">
           {[
             { value: "pending", label: "Pending", icon: Clock },
             { value: "approved", label: "Approved", icon: CheckCircle },
@@ -417,17 +423,18 @@ export default function AdminMushroomsPage() {
               <button
                 key={tab.value}
                 onClick={() => setStatusFilter(tab.value)}
-                className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all ${
+                className={`flex items-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap ${
                   isActive
                     ? "bg-emerald-600 text-white shadow-lg shadow-emerald-200"
                     : "bg-white text-gray-700 border border-gray-200 hover:border-emerald-300 hover:text-emerald-600"
                 }`}
               >
-                <Icon size={18} />
-                {tab.label}
+                <Icon size={16} className="sm:w-[18px] sm:h-[18px]" />
+                <span className="hidden sm:inline">{tab.label}</span>
+                <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
                 {count > 0 && (
                   <span
-                    className={`px-2 py-0.5 rounded-full text-xs ${
+                    className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs ${
                       isActive
                         ? "bg-white/20 text-white"
                         : "bg-gray-100 text-gray-600"
@@ -491,7 +498,7 @@ export default function AdminMushroomsPage() {
               )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {mushrooms.map((mushroom) => {
                 const isSelected = selectedMushrooms.has(mushroom._id);
                 return (
@@ -604,8 +611,8 @@ export default function AdminMushroomsPage() {
 
       {/* IMPORT MODAL */}
       {showImportModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-4 sm:p-6 max-h-[95vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2">
@@ -723,8 +730,8 @@ export default function AdminMushroomsPage() {
 
       {/* BULK EDIT MODAL */}
       {showBulkEditModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-4 sm:p-6 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2">
@@ -922,8 +929,8 @@ export default function AdminMushroomsPage() {
 
       {/* DELETE CONFIRMATION MODAL */}
       {showDeleteModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-4 sm:p-6">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2">

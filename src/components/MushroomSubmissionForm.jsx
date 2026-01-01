@@ -407,25 +407,25 @@ export default function MushroomSubmissionForm({
   const currentLocation = getCurrentLocation();
 
   return (
-    <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-emerald-950/40 backdrop-blur-md animate-in fade-in duration-300 overflow-y-auto">
-      <div className="bg-white border border-stone-200 w-full max-w-md rounded-[2.5rem] shadow-2xl relative animate-in zoom-in-95 duration-300 my-8 max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 z-[150] flex items-center justify-center p-2 sm:p-4 bg-emerald-950/40 backdrop-blur-md animate-in fade-in duration-300 overflow-y-auto">
+      <div className="bg-white border border-stone-200 w-full max-w-md rounded-2xl sm:rounded-[2.5rem] shadow-2xl relative animate-in zoom-in-95 duration-300 my-4 sm:my-8 max-h-[95vh] sm:max-h-[90vh] flex flex-col">
         {/* CLOSE BUTTON */}
         <button
           onClick={onClose}
-          className="absolute top-8 right-8 text-stone-400 hover:text-emerald-600 transition-colors z-10"
+          className="absolute top-4 right-4 sm:top-8 sm:right-8 text-stone-400 hover:text-emerald-600 transition-colors z-10"
         >
-          <X size={24} strokeWidth={2.5} />
+          <X size={20} className="sm:w-6 sm:h-6" strokeWidth={2.5} />
         </button>
 
         {/* HEADER - Fixed */}
-        <div className="p-8 md:p-10 pb-6 shrink-0">
+        <div className="p-4 sm:p-6 md:p-8 md:pb-6 pb-4 shrink-0">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-2 h-6 bg-emerald-500 rounded-full" />
             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600">
               Citizen Science
             </span>
           </div>
-          <h2 className="text-3xl font-black text-emerald-900 uppercase tracking-tight">
+          <h2 className="text-2xl sm:text-3xl font-black text-emerald-900 uppercase tracking-tight">
             Add <span className="text-emerald-600 italic">Specimen</span>
           </h2>
         </div>
@@ -434,14 +434,14 @@ export default function MushroomSubmissionForm({
         <form
           id="mushroom-form"
           onSubmit={handleSubmit}
-          className="flex-1 overflow-y-auto px-8 md:px-10 pb-8 md:pb-10 space-y-4"
+          className="flex-1 overflow-y-auto px-4 sm:px-6 md:px-8 md:pb-10 pb-4 sm:pb-6 space-y-4"
         >
           {/* INFO MESSAGE */}
-          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 space-y-2">
-            <p className="text-xs font-bold text-emerald-800 text-center">
+          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3 sm:p-4 space-y-2">
+            <p className="text-[10px] sm:text-xs font-bold text-emerald-800 text-center leading-relaxed">
               📸 <strong>Tip:</strong> Use "Take Photo with Camera" to automatically capture GPS location and date/time from your device.
             </p>
-            <p className="text-[10px] text-emerald-700 text-center">
+            <p className="text-[9px] sm:text-[10px] text-emerald-700 text-center leading-relaxed">
               ⚠️ <strong>Note:</strong> When selecting from gallery, some mobile browsers/galleries may strip EXIF data (GPS, date/time) for privacy reasons. If EXIF is missing, you can select location manually.
             </p>
           </div>
@@ -572,7 +572,7 @@ export default function MushroomSubmissionForm({
             value={commonName}
             onChange={(e) => setCommonName(e.target.value)}
             placeholder="Common name (optional)"
-            className="w-full bg-stone-100 border border-stone-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white outline-none transition-all font-medium text-stone-800 placeholder:text-stone-400"
+            className="w-full bg-stone-100 border border-stone-200 rounded-2xl px-4 sm:px-5 py-3 sm:py-4 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white outline-none transition-all font-medium text-stone-800 placeholder:text-stone-400 text-sm sm:text-base"
           />
 
           {/* LOCATION INPUT - REQUIRED */}
@@ -662,7 +662,7 @@ export default function MushroomSubmissionForm({
                   <button
                     type="button"
                     onClick={() => setShowLocationPicker(true)}
-                    className="w-full bg-stone-100 border-2 border-stone-200 rounded-2xl px-5 py-4 text-left font-bold transition hover:border-emerald-300 text-stone-600"
+                    className="w-full bg-stone-100 border-2 border-stone-200 rounded-2xl px-4 sm:px-5 py-3 sm:py-4 text-left font-bold transition hover:border-emerald-300 text-stone-600 text-sm sm:text-base"
                   >
                     Click to select location on map
                   </button>
@@ -809,12 +809,12 @@ export default function MushroomSubmissionForm({
         </form>
 
         {/* SUBMIT BUTTON - Fixed */}
-        <div className="p-8 md:p-10 pt-4 border-t border-stone-200 shrink-0">
+        <div className="p-4 sm:p-6 md:p-8 md:pt-4 pt-3 border-t border-stone-200 shrink-0">
           <button
             type="submit"
             form="mushroom-form"
             disabled={isSubmitting}
-            className="w-full bg-emerald-600 hover:bg-emerald-700 py-5 rounded-2xl text-white font-black text-sm uppercase tracking-[0.2em] transition-all active:scale-95 shadow-xl shadow-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-emerald-600 hover:bg-emerald-700 py-4 sm:py-5 rounded-2xl text-white font-black text-xs sm:text-sm uppercase tracking-[0.2em] transition-all active:scale-95 shadow-xl shadow-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? "Processing..." : "Submit Observation"}
           </button>
