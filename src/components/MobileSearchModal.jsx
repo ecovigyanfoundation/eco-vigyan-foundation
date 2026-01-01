@@ -112,7 +112,7 @@ export default function MobileSearchModal({ isOpen, onClose, onSpeciesSearch, on
         <div className="space-y-4">
           {/* Species Search */}
           <div className="flex items-center bg-stone-100 border border-stone-200 rounded-2xl px-4 gap-3 focus-within:bg-white focus-within:border-emerald-500 transition-all">
-            <Search size={18} className="text-emerald-600" />
+            <Search size={18} className="text-emerald-600 shrink-0" />
             <input
               type="text"
               value={speciesSearch}
@@ -120,11 +120,21 @@ export default function MobileSearchModal({ isOpen, onClose, onSpeciesSearch, on
               placeholder="Search Species..."
               className="bg-transparent flex-1 py-4 text-sm outline-none text-stone-800 placeholder:text-stone-400 font-medium"
             />
+            {speciesSearch && (
+              <button
+                type="button"
+                onClick={() => setSpeciesSearch("")}
+                className="shrink-0 p-1 rounded-full hover:bg-stone-200 text-stone-500 hover:text-emerald-600 transition-colors"
+                title="Clear species search"
+              >
+                <X size={16} />
+              </button>
+            )}
           </div>
 
           {/* Location Search */}
           <div className="flex items-center bg-stone-100 border border-stone-200 rounded-2xl px-4 gap-3 focus-within:bg-white focus-within:border-emerald-500 transition-all">
-            <MapPin size={18} className="text-emerald-600" />
+            <MapPin size={18} className="text-emerald-600 shrink-0" />
             <input
               type="text"
               value={locationSearch}
@@ -132,8 +142,18 @@ export default function MobileSearchModal({ isOpen, onClose, onSpeciesSearch, on
               placeholder="Location..."
               className="bg-transparent flex-1 py-4 text-sm outline-none text-stone-800 placeholder:text-stone-400 font-medium"
             />
+            {locationSearch && (
+              <button
+                type="button"
+                onClick={() => setLocationSearch("")}
+                className="shrink-0 p-1 rounded-full hover:bg-stone-200 text-stone-500 hover:text-emerald-600 transition-colors"
+                title="Clear location search"
+              >
+                <X size={16} />
+              </button>
+            )}
             {isSearchingLocation && (
-              <Loader2 size={16} className="text-emerald-600 animate-spin" />
+              <Loader2 size={16} className="text-emerald-600 animate-spin shrink-0" />
             )}
           </div>
 

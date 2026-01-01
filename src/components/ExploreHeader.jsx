@@ -169,22 +169,46 @@ export default function ExploreHeader({
             {/* SEARCH BAR */}
             <div className="flex-1 flex items-center bg-emerald-50/60 rounded-2xl border border-emerald-100/50 overflow-hidden px-3 gap-2 focus-within:bg-white focus-within:border-emerald-500 focus-within:ring-4 focus-within:ring-emerald-500/10 transition-all duration-300 min-w-0">
               <Search size={16} className="text-emerald-400 shrink-0" />
-              <input
-                type="text"
-                value={speciesSearch}
-                onChange={(e) => handleSpeciesSearchChange(e.target.value)}
-                placeholder="Search Species..."
-                className="bg-transparent flex-1 py-2.5 text-xs outline-none text-emerald-900 placeholder:text-emerald-300 font-medium min-w-0"
-              />
+              <div className="flex-1 flex items-center gap-1 min-w-0">
+                <input
+                  type="text"
+                  value={speciesSearch}
+                  onChange={(e) => handleSpeciesSearchChange(e.target.value)}
+                  placeholder="Search Species..."
+                  className="bg-transparent flex-1 py-2.5 text-xs outline-none text-emerald-900 placeholder:text-emerald-300 font-medium min-w-0"
+                />
+                {speciesSearch && (
+                  <button
+                    type="button"
+                    onClick={() => handleSpeciesSearchChange("")}
+                    className="shrink-0 p-1 rounded-full hover:bg-emerald-100 text-emerald-400 hover:text-emerald-600 transition-colors"
+                    title="Clear species search"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
               <div className="w-px h-4 bg-emerald-200 mx-0.5 shrink-0" />
               <MapPin size={16} className="text-emerald-400 shrink-0" />
-              <input
-                type="text"
-                value={locationSearch}
-                onChange={(e) => setLocationSearch(e.target.value)}
-                placeholder="Location..."
-                className="bg-transparent flex-1 py-2.5 text-xs outline-none text-emerald-900 placeholder:text-emerald-300 font-medium min-w-0"
-              />
+              <div className="flex-1 flex items-center gap-1 min-w-0">
+                <input
+                  type="text"
+                  value={locationSearch}
+                  onChange={(e) => setLocationSearch(e.target.value)}
+                  placeholder="Location..."
+                  className="bg-transparent flex-1 py-2.5 text-xs outline-none text-emerald-900 placeholder:text-emerald-300 font-medium min-w-0"
+                />
+                {locationSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setLocationSearch("")}
+                    className="shrink-0 p-1 rounded-full hover:bg-emerald-100 text-emerald-400 hover:text-emerald-600 transition-colors"
+                    title="Clear location search"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
               {isSearchingLocation && (
                 <Loader2 size={14} className="text-emerald-400 shrink-0 animate-spin" />
               )}

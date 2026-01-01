@@ -111,7 +111,9 @@ export default function MushroomSubmissionForm({
           toast.success(`Location captured: ${deviceLocation.latitude.toFixed(5)}, ${deviceLocation.longitude.toFixed(5)}`);
         } catch (locationError) {
           console.warn("Could not get device location:", locationError);
-          toast.info("Could not get GPS location. Please enable location services or select location manually.");
+          toast("Could not get GPS location. Please enable location services or select location manually.", {
+            icon: "ℹ️",
+          });
         }
 
         // Get current date/time
@@ -203,11 +205,14 @@ export default function MushroomSubmissionForm({
           setLocationInputMethod("map");
           
           if (isLikelyStripped) {
-            toast.info("EXIF data not found. Some mobile browsers/galleries strip EXIF data for privacy. Please select location manually.", {
+            toast("EXIF data not found. Some mobile browsers/galleries strip EXIF data for privacy. Please select location manually.", {
+              icon: "ℹ️",
               duration: 5000,
             });
           } else {
-            toast.info("No GPS data found in image. Please select location manually.");
+            toast("No GPS data found in image. Please select location manually.", {
+              icon: "ℹ️",
+            });
           }
         }
 

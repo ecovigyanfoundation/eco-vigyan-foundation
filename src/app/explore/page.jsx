@@ -13,6 +13,7 @@ import ZoneModal from "@/components/ZoneModal";
 import MapFilter from "@/components/MapFilter";
 import { useAuth } from "@/context/AuthContext";
 import { isPointInPolygon } from "@/lib/geocoding";
+import toast from "react-hot-toast";
 
 const Map = dynamic(() => import("@/components/Map"), { ssr: false });
 
@@ -42,6 +43,7 @@ export default function MapPage() {
   const [drawingMode, setDrawingMode] = useState(null);
   const [speciesSearchTerm, setSpeciesSearchTerm] = useState("");
   const getCurrentBoundaryRef = useRef(null);
+  const prevFiltersRef = useRef({ speciesSearchTerm: "", hasZone: false });
 
   useEffect(() => {
     setIsMounted(true);
@@ -185,6 +187,49 @@ export default function MapPage() {
     }
 
     setData(filtered);
+
+    // Show toast notification when both species and location are searched
+    const hasSpeciesSearch = speciesSearchTerm.trim().length > 0;
+    const hasZone = selectedZone && selectedZone.boundary;
+    const prevHasSpecies = prevFiltersRef.current.speciesSearchTerm.trim().length > 0;
+    const prevHasZone = prevFiltersRef.current.hasZone;
+    const prevCount = prevFiltersRef.current.count || 0;
+
+    // Show toast when both filters are active and something changed
+    if (hasSpeciesSearch && hasZone) {
+      const count = filtered.length;
+      const locationName = selectedZone.name || "this location";
+      const speciesName = speciesSearchTerm.trim();
+      const speciesChanged = speciesSearchTerm.trim() !== prevFiltersRef.current.speciesSearchTerm.trim();
+      const zoneChanged = !prevHasZone || (selectedZone && prevFiltersRef.current.zoneId !== selectedZone.boundary?.length);
+      const countChanged = count !== prevCount;
+
+      // Show toast when:
+      // 1. Both are newly set (wasn't both before)
+      // 2. Species search changed
+      // 3. Zone changed (new location selected)
+      if ((!prevHasSpecies || !prevHasZone) || speciesChanged || zoneChanged) {
+        if (count > 0) {
+          toast.success(
+            `Found ${count} ${count === 1 ? 'species' : 'species'} of "${speciesName}" in ${locationName}`,
+            { duration: 4000 }
+          );
+        } else {
+          toast.error(
+            `No species "${speciesName}" found in ${locationName}`,
+            { duration: 4000 }
+          );
+        }
+      }
+    }
+
+    // Update previous filters ref
+    prevFiltersRef.current = {
+      speciesSearchTerm: speciesSearchTerm,
+      hasZone: !!hasZone,
+      count: filtered.length,
+      zoneId: selectedZone?.boundary?.length || null,
+    };
   }, [headerFilters, filters, mode, allData, selectedZone, speciesSearchTerm]);
 
   // Handle zone selection

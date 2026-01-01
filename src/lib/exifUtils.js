@@ -61,6 +61,13 @@ export async function extractExifData(fileOrBuffer, originalFile = null) {
     }
 
     console.log("extractExifData: Raw EXIF data", exifData);
+    
+    // Check if exifData is null or undefined before using Object.keys
+    if (!exifData || typeof exifData !== 'object') {
+      console.log("extractExifData: No EXIF data found in file");
+      return { gps: null, dateTime: null };
+    }
+    
     console.log("extractExifData: EXIF keys found", Object.keys(exifData));
     
     // Log all GPS-related fields for debugging
