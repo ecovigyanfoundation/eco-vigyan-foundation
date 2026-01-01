@@ -68,6 +68,16 @@ const userSchema = new mongoose.Schema(
 
     /* ---------------- META ---------------- */
     lastLogin: Date,
+
+    /* ---------------- PASSWORD RESET ---------------- */
+    resetToken: {
+      type: String,
+      select: false,
+    },
+    resetTokenExpiry: {
+      type: Date,
+      select: false,
+    },
   },
   {
     timestamps: true,

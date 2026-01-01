@@ -1,10 +1,71 @@
 "use client";
 
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { Search, MapIcon, Navigation } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Search, MapIcon, Navigation, Loader2 } from "lucide-react";
 import MushroomBadge from "./MushroomBadge";
 
+const ITEMS_PER_PAGE = 30; // Load 30 items at a time
+
 export default function MushroomGrid({ data, onMushroomClick }) {
+  const router = useRouter();
+  const [displayedItems, setDisplayedItems] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const observerTarget = useRef(null);
+  const dataLengthRef = useRef(data.length);
+
+  // Calculate total pages
+  const totalPages = Math.ceil(data.length / ITEMS_PER_PAGE);
+
+  // Reset pagination when data changes (e.g., filters applied)
+  useEffect(() => {
+    if (dataLengthRef.current !== data.length) {
+      setCurrentPage(1);
+      setDisplayedItems([]);
+      dataLengthRef.current = data.length;
+    }
+  }, [data.length]);
+
+  // Load items for current page
+  useEffect(() => {
+    const startIndex = 0;
+    const endIndex = currentPage * ITEMS_PER_PAGE;
+    const itemsToShow = data.slice(startIndex, endIndex);
+    setDisplayedItems(itemsToShow);
+  }, [data, currentPage]);
+
+  // Intersection Observer for infinite scroll
+  useEffect(() => {
+    if (currentPage >= totalPages) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !isLoading) {
+          setIsLoading(true);
+          // Simulate loading delay for smooth UX
+          setTimeout(() => {
+            setCurrentPage((prev) => prev + 1);
+            setIsLoading(false);
+          }, 300);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const currentTarget = observerTarget.current;
+    if (currentTarget) {
+      observer.observe(currentTarget);
+    }
+
+    return () => {
+      if (currentTarget) {
+        observer.unobserve(currentTarget);
+      }
+    };
+  }, [currentPage, totalPages, isLoading]);
   return (
     <div className="p-8 h-full overflow-y-auto bg-stone-50 custom-scrollbar">
       <div className="max-w-7xl mx-auto">
@@ -26,22 +87,31 @@ export default function MushroomGrid({ data, onMushroomClick }) {
 
         {/* THE GRID */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-          {data.map((item, index) => (
-            <motion.div
-              key={item.id || item._id || index}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.03, ease: "easeOut" }}
-              onClick={() => onMushroomClick?.(item)}
-              className="group bg-white border border-stone-200 rounded-[2.5rem] p-3 hover:border-emerald-500 hover:shadow-2xl hover:shadow-emerald-900/10 transition-all cursor-pointer relative"
-            >
-              {/* IMAGE AREA */}
-              <div className="aspect-square bg-stone-100 rounded-[2rem] mb-4 overflow-hidden relative shadow-inner">
+          {displayedItems.map((item, index) => {
+            // Extract user ID and ensure it's a string
+            let userId = null;
+            if (item.submittedBy) {
+              if (typeof item.submittedBy === 'string') {
+                userId = item.submittedBy;
+              } else if (item.submittedBy._id) {
+                // Convert ObjectId to string if needed
+                userId = typeof item.submittedBy._id === 'string' 
+                  ? item.submittedBy._id 
+                  : item.submittedBy._id.toString();
+              }
+            }
+            
+            const cardContent = (
+              <>
+                {/* IMAGE AREA */}
+                <div className="aspect-square bg-stone-100 rounded-[2rem] mb-4 overflow-hidden relative shadow-inner">
                 {item.image || item.images?.[0]?.url ? (
                   <img
                     src={item.image || item.images?.[0]?.url}
                     alt={item.name || item.commonName || "Mushroom"}
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    loading="lazy"
+                    decoding="async"
                   />
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center text-stone-300 gap-2">
@@ -79,15 +149,32 @@ export default function MushroomGrid({ data, onMushroomClick }) {
                 </h3>
 
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-1.5 h-1.5 bg-stone-200 rounded-full group-hover:bg-emerald-400 transition-colors" />
-                    <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest truncate max-w-[80px]">
-                      {item.contributor ||
-                        item.submittedBy?.name ||
-                        item.submittedBy?.username ||
-                        "Guest Scientist"}
-                    </p>
-                  </div>
+                  {(() => {
+                    const contributorName = item.contributor ||
+                      item.submittedBy?.name ||
+                      item.submittedBy?.username ||
+                      "Guest Scientist";
+                    
+                    return userId ? (
+                      <Link
+                        href={`/user/${userId}`}
+                        className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="w-1.5 h-1.5 bg-stone-200 rounded-full group-hover:bg-emerald-400 transition-colors" />
+                        <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest truncate max-w-[80px] group-hover:text-emerald-600 transition-colors">
+                          {contributorName}
+                        </p>
+                      </Link>
+                    ) : (
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-1.5 h-1.5 bg-stone-200 rounded-full group-hover:bg-emerald-400 transition-colors" />
+                        <p className="text-[9px] font-black text-stone-400 uppercase tracking-widest truncate max-w-[80px]">
+                          {contributorName}
+                        </p>
+                      </div>
+                    );
+                  })()}
 
                   {/* LOCATION ICON */}
                   <Navigation
@@ -97,11 +184,58 @@ export default function MushroomGrid({ data, onMushroomClick }) {
                 </div>
               </div>
 
-              {/* HOVER GLOW EFFECT */}
-              <div className="absolute inset-0 rounded-[2.5rem] border-2 border-emerald-500/0 group-hover:border-emerald-500/10 pointer-events-none transition-all" />
-            </motion.div>
-          ))}
+                {/* HOVER GLOW EFFECT */}
+                <div className="absolute inset-0 rounded-[2.5rem] border-2 border-emerald-500/0 group-hover:border-emerald-500/10 pointer-events-none transition-all" />
+              </>
+            );
+
+            return (
+              <motion.div
+                key={item.id || item._id || index}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.03, ease: "easeOut" }}
+                className="group bg-white border border-stone-200 rounded-[2.5rem] p-3 hover:border-emerald-500 hover:shadow-2xl hover:shadow-emerald-900/10 transition-all cursor-pointer relative"
+                onClick={(e) => {
+                  // Don't navigate if clicking on the contributor link
+                  if (e.target.closest('a')) {
+                    return;
+                  }
+                  // Navigate to user profile if userId exists
+                  if (userId) {
+                    router.push(`/user/${userId}`);
+                  } else {
+                    // Fallback to original behavior if no user
+                    onMushroomClick?.(item);
+                  }
+                }}
+              >
+                {cardContent}
+              </motion.div>
+            );
+          })}
         </div>
+
+        {/* LOADING INDICATOR */}
+        {currentPage < totalPages && (
+          <div ref={observerTarget} className="col-span-full flex justify-center py-8">
+            <div className="flex flex-col items-center gap-3">
+              <Loader2 className="w-6 h-6 text-emerald-600 animate-spin" />
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                Loading more observations...
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* END OF LIST INDICATOR */}
+        {currentPage >= totalPages && displayedItems.length > 0 && (
+          <div className="col-span-full flex justify-center py-8">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+              All {data.length} observations loaded
+            </p>
+          </div>
+        )}
 
         {/* EMPTY STATE */}
         {data.length === 0 && (

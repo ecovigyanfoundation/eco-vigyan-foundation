@@ -18,6 +18,7 @@ import {
   LogIn,
   LogOut,
   User,
+  Settings,
 } from "lucide-react";
 
 export default function Navbar() {
@@ -267,6 +268,14 @@ export default function Navbar() {
                               <User className="w-4 h-4" />
                               My Submissions
                             </Link>
+                            <Link
+                              href="/account"
+                              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition"
+                              onClick={() => setUserMenuOpen(false)}
+                            >
+                              <Settings className="w-4 h-4" />
+                              Account Settings
+                            </Link>
                             {user.role === "admin" && (
                               <Link
                                 href="/admin/mushrooms"
@@ -393,6 +402,13 @@ export default function Navbar() {
                       onClick={() => setIsOpen(false)}
                     >
                       My Submissions
+                    </Link>
+                    <Link
+                      href="/account"
+                      className="w-full text-center px-6 py-3 border border-emerald-600 text-emerald-700 font-bold rounded-lg hover:bg-emerald-50 transition mb-2"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      Account Settings
                     </Link>
                     {user.role === "admin" && (
                       <Link

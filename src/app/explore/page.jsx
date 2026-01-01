@@ -66,6 +66,8 @@ export default function MapPage() {
           info: m.description || m.info || "",
           category: m.ecologicalRole || m.category || "Unknown",
           use: m.commonUses?.[0] || m.use || "",
+          // Preserve submittedBy for navigation
+          submittedBy: m.submittedBy,
         }));
         setAllData(transformedMushrooms);
         setData(transformedMushrooms);
@@ -297,6 +299,8 @@ export default function MapPage() {
       info: m.description || m.info || "",
       category: m.ecologicalRole || m.category || "Unknown",
       use: m.commonUses?.[0] || m.use || "",
+      // Preserve submittedBy for navigation
+      submittedBy: m.submittedBy,
     }));
     setAllData(transformedMushrooms);
     setData(transformedMushrooms);

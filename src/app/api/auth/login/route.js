@@ -7,12 +7,22 @@ import { cookies } from "next/headers";
 
 export async function POST(req) {
   try {
-    await connectDB();
+    // Connect to database
+    try {
+      await connectDB();
+    } catch (dbError) {
+      console.error("Database connection error:", dbError);
+      return NextResponse.json(
+        { error: "Database connection failed. Please try again later." },
+        { status: 500 }
+      );
+    }
 
     let body;
     try {
       body = await req.json();
     } catch (error) {
+      console.error("Error parsing request body:", error);
       return NextResponse.json(
         { error: "Invalid request format" },
         { status: 400 }
@@ -46,6 +56,7 @@ export async function POST(req) {
     }
     
     if (!user) {
+      console.log("Login attempt: User not found for", isEmail ? "email" : "username", trimmedInput);
       return NextResponse.json(
         { error: "Invalid credentials" },
         { status: 401 }
@@ -60,8 +71,18 @@ export async function POST(req) {
       );
     }
 
+    // Check if password field was retrieved
+    if (!user.password) {
+      console.error("Login Error: Password field not retrieved for user", user._id);
+      return NextResponse.json(
+        { error: "Authentication error. Please contact support." },
+        { status: 500 }
+      );
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
+      console.log("Login attempt: Password mismatch for user", user._id);
       return NextResponse.json(
         { error: "Invalid credentials" },
         { status: 401 }

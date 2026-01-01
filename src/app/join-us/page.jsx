@@ -12,17 +12,105 @@ import {
   Camera,
   Map as MapIcon,
   X,
+  Loader2,
 } from "lucide-react";
+import toast from "react-hot-toast";
 
 /* ---------------------------------------------------------
    FORM COMPONENT (Reusable Modal)
 --------------------------------------------------------- */
 const JoinFormModal = ({ type, isOpen, onClose }) => {
-  if (!isOpen) return null;
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    currentStatus: "",
+    duration: "",
+    interest: "",
+    message: "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isVolunteer = type === "volunteer";
   const isIntern = type === "intern";
   const isEcoSci = type === "eco-scientist";
+
+  // Reset form when modal closes or type changes
+  React.useEffect(() => {
+    if (!isOpen) {
+      setFormData({
+        name: "",
+        email: "",
+        phone: "",
+        currentStatus: "",
+        duration: "",
+        interest: "",
+        message: "",
+      });
+      setIsSubmitting(false);
+    }
+  }, [isOpen, type]);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    // Validate required fields
+    if (!formData.name.trim() || !formData.email.trim() || !formData.phone.trim()) {
+      toast.error("Please fill in all required fields (Name, Email, Phone)");
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch("/api/join-us", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type,
+          ...formData,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Include details in error message if available
+        const errorMessage = data.error || "Failed to submit application";
+        const errorDetails = data.details ? ` ${data.details}` : "";
+        throw new Error(errorMessage + errorDetails);
+      }
+
+      toast.success("Application submitted successfully! We'll get back to you soon.");
+      setTimeout(() => {
+        onClose();
+      }, 1500);
+    } catch (error) {
+      console.error("Form submission error:", error);
+      toast.error(error.message || "Failed to submit application. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!isOpen) return null;
 
   return (
     <AnimatePresence>
@@ -58,24 +146,32 @@ const JoinFormModal = ({ type, isOpen, onClose }) => {
               you shortly.
             </p>
 
-            <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
+            <form className="space-y-5" onSubmit={handleSubmit}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
                   <label className="block text-xs font-bold text-emerald-800 uppercase mb-2">
-                    Full Name
+                    Full Name <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    required
                     className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
                     placeholder="John Doe"
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-emerald-800 uppercase mb-2">
-                    Email Address
+                    Email Address <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    required
                     className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
                     placeholder="john@example.com"
                   />
@@ -84,10 +180,14 @@ const JoinFormModal = ({ type, isOpen, onClose }) => {
 
               <div>
                 <label className="block text-xs font-bold text-emerald-800 uppercase mb-2">
-                  Phone Number
+                  Phone Number <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="tel"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  required
                   className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
                   placeholder="+91 ..."
                 />
@@ -99,10 +199,16 @@ const JoinFormModal = ({ type, isOpen, onClose }) => {
                     <label className="block text-xs font-bold text-emerald-800 uppercase mb-2">
                       Current Status
                     </label>
-                    <select className="w-full px-4 py-3 rounded-xl border border-stone-200 outline-none bg-white">
-                      <option>Student</option>
-                      <option>Graduate</option>
-                      <option>Professional</option>
+                    <select
+                      name="currentStatus"
+                      value={formData.currentStatus}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 rounded-xl border border-stone-200 outline-none bg-white focus:ring-2 focus:ring-emerald-500"
+                    >
+                      <option value="">Select status</option>
+                      <option value="Student">Student</option>
+                      <option value="Graduate">Graduate</option>
+                      <option value="Professional">Professional</option>
                     </select>
                   </div>
                   <div>
@@ -111,7 +217,10 @@ const JoinFormModal = ({ type, isOpen, onClose }) => {
                     </label>
                     <input
                       type="number"
-                      className="w-full px-4 py-3 rounded-xl border border-stone-200 outline-none"
+                      name="duration"
+                      value={formData.duration}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 rounded-xl border border-stone-200 outline-none focus:ring-2 focus:ring-emerald-500"
                       placeholder="e.g. 8"
                     />
                   </div>
@@ -124,7 +233,11 @@ const JoinFormModal = ({ type, isOpen, onClose }) => {
                 </label>
                 <input
                   type="text"
-                  className="w-full px-4 py-3 rounded-xl border border-stone-200 outline-none"
+                  name="interest"
+                  value={formData.interest}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 rounded-xl border border-stone-200 outline-none focus:ring-2 focus:ring-emerald-500"
+                  placeholder={isEcoSci ? "Enter your city/region" : "Enter your primary interest"}
                 />
               </div>
 
@@ -133,13 +246,27 @@ const JoinFormModal = ({ type, isOpen, onClose }) => {
                   Availability / Message
                 </label>
                 <textarea
-                  className="w-full px-4 py-3 rounded-xl border border-stone-200 outline-none h-24 resize-none"
+                  name="message"
+                  value={formData.message}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 rounded-xl border border-stone-200 outline-none h-24 resize-none focus:ring-2 focus:ring-emerald-500"
                   placeholder="Tell us a bit about why you want to join..."
                 ></textarea>
               </div>
 
-              <button className="w-full py-4 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg shadow-emerald-200 transition-all active:scale-[0.98]">
-                Submit Application
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full py-4 cursor-pointer bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-lg shadow-emerald-200 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>Submitting...</span>
+                  </>
+                ) : (
+                  "Submit Application"
+                )}
               </button>
             </form>
           </div>

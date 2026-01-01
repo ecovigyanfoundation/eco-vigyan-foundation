@@ -13,6 +13,7 @@ import {
   Layers,
   LogOut,
   User,
+  Settings,
   Menu,
   X,
   Loader2,
@@ -263,6 +264,14 @@ export default function ExploreHeader({
                       >
                         <User className="w-4 h-4" />
                         My Submissions
+                      </Link>
+                      <Link
+                        href="/account"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="w-full flex items-center gap-3 px-6 py-4 text-sm font-black text-emerald-700 hover:bg-emerald-50 transition-colors border-b border-emerald-50"
+                      >
+                        <Settings className="w-4 h-4" />
+                        Account Settings
                       </Link>
                       {user?.role === "admin" && (
                         <Link

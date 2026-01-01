@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import { createRoot } from "react-dom/client";
+import Link from "next/link";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { generateCircleBoundary, generateRectangleBoundary } from "@/lib/geocoding";
 
@@ -323,8 +324,36 @@ export default function Map({
 
         popupRef.current = popup;
 
+        // Extract user ID and ensure it's a string
+        let userId = null;
+        if (item.submittedBy) {
+          if (typeof item.submittedBy === 'string') {
+            userId = item.submittedBy;
+          } else if (item.submittedBy._id) {
+            // Convert ObjectId to string if needed
+            userId = typeof item.submittedBy._id === 'string' 
+              ? item.submittedBy._id 
+              : item.submittedBy._id.toString();
+          }
+        }
+        const contributorName = item.contributor || item.submittedBy?.name || item.submittedBy?.username || "Anonymous";
+        
+        const handlePopupClick = (e) => {
+          // Don't navigate if clicking on the contributor link (it has its own handler)
+          if (e.target.closest('a')) {
+            return;
+          }
+          // Navigate to user profile if userId exists
+          if (userId) {
+            window.location.href = `/user/${userId}`;
+          }
+        };
+
         createRoot(popupNode).render(
-          <div className="w-[300px] sm:w-[350px] bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-100 z-[200]">
+          <div 
+            className={`w-[300px] sm:w-[350px] bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-100 z-[200] ${userId ? 'cursor-pointer hover:shadow-2xl transition-shadow' : ''}`}
+            onClick={userId ? handlePopupClick : undefined}
+          >
             {item.image && (
               <div className="w-full h-40 bg-gray-200">
                 <img
@@ -349,9 +378,19 @@ export default function Map({
                 </span>
               </div>
 
-              <p className="text-xs text-emerald-700 font-semibold mb-3">
-                By {item.contributor || "Anonymous"}
-              </p>
+              {userId ? (
+                <Link
+                  href={`/user/${userId}`}
+                  className="text-xs text-emerald-700 font-semibold mb-3 hover:text-emerald-800 hover:underline transition-colors block"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  By {contributorName}
+                </Link>
+              ) : (
+                <p className="text-xs text-emerald-700 font-semibold mb-3">
+                  By {contributorName}
+                </p>
+              )}
 
               <p className="text-sm text-gray-600 italic">
                 {item.info || "No description provided."}
@@ -361,6 +400,14 @@ export default function Map({
                 <span>{lat.toFixed(5)}°N</span>
                 <span>{lng.toFixed(5)}°E</span>
               </div>
+              
+              {userId && (
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <p className="text-xs text-emerald-600 font-semibold text-center">
+                    Click to view {contributorName}'s profile →
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         );
