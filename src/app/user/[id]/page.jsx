@@ -84,97 +84,139 @@ export default function UserProfilePage() {
               {/* Decorative Background Element */}
               <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-full -mr-16 -mt-16 z-0" />
               
-              <div className="relative z-10 flex flex-col items-center text-center md:items-start md:text-left">
-                {/* Avatar */}
-                <div className="relative mb-6">
-                  <div className="w-32 h-32 rounded-3xl overflow-hidden ring-4 ring-white shadow-2xl rotate-3 hover:rotate-0 transition-transform duration-300">
-                    {user.dp?.url ? (
-                      <img src={user.dp.url} alt={user.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full bg-emerald-600 flex items-center justify-center">
-                        <UserIcon className="w-12 h-12 text-white" />
+              {isOwnProfile ? (
+                <Link href="/account" className="relative z-10 flex flex-col items-center text-center md:items-start md:text-left group cursor-pointer">
+                  {/* Avatar */}
+                  <div className="relative mb-6">
+                    <div className="w-32 h-32 rounded-3xl overflow-hidden ring-4 ring-white shadow-2xl transition-transform group-hover:scale-105">
+                      {user.dp?.url ? (
+                        <img src={user.dp.url} alt={user.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-emerald-600 flex items-center justify-center">
+                          <UserIcon className="w-12 h-12 text-white" />
+                        </div>
+                      )}
+                    </div>
+                    {user.isVerified && (
+                      <div className="absolute -bottom-2 -right-2 bg-emerald-500 text-white p-1.5 rounded-xl shadow-lg border-2 border-white">
+                        <CheckCircle className="w-5 h-5 fill-current" />
                       </div>
                     )}
                   </div>
-                  {user.isVerified && (
-                    <div className="absolute -bottom-2 -right-2 bg-emerald-500 text-white p-1.5 rounded-xl shadow-lg border-2 border-white">
-                      <CheckCircle className="w-5 h-5 fill-current" />
-                    </div>
-                  )}
-                </div>
 
-                {/* Identity */}
-                <div className="flex items-center justify-between w-full mb-2">
-                  <h1 className="text-3xl font-black text-slate-900 leading-tight">
-                    {user.name}
-                  </h1>
-                  {isOwnProfile && (
-                    <Link
-                      href="/account"
-                      className="p-2 bg-emerald-50 hover:bg-emerald-100 rounded-xl transition-colors"
-                      title="Account Settings"
-                    >
+                  {/* Identity */}
+                  <div className="flex items-center justify-between w-full mb-2">
+                    <h1 className="text-3xl font-black text-slate-900 leading-tight group-hover:text-emerald-600 transition-colors">
+                      {user.name}
+                    </h1>
+                    <div className="p-2 bg-emerald-50 group-hover:bg-emerald-100 rounded-xl transition-colors">
                       <Settings className="w-5 h-5 text-emerald-600" />
-                    </Link>
+                    </div>
+                  </div>
+                  <p className="text-emerald-600 font-bold text-sm mb-3 group-hover:text-emerald-700 transition-colors">@{user.username}</p>
+                  
+                  {/* Role Badge */}
+                  {user.role && (
+                    <div className="mb-4">
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border ${
+                        user.role === "admin" 
+                          ? "bg-red-100 text-red-700 border-red-200" 
+                          : user.role === "writer"
+                          ? "bg-blue-100 text-blue-700 border-blue-200"
+                          : "bg-emerald-100 text-emerald-700 border-emerald-200"
+                      }`}>
+                        {user.role === "admin" && "👑"}
+                        {user.role === "writer" && "✍️"}
+                        {user.role === "user" && "🌱"}
+                        {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                      </span>
+                    </div>
+                  )}
+                </Link>
+              ) : (
+                <div className="relative z-10 flex flex-col items-center text-center md:items-start md:text-left">
+                  {/* Avatar */}
+                  <div className="relative mb-6">
+                    <div className="w-32 h-32 rounded-3xl overflow-hidden ring-4 ring-white shadow-2xl">
+                      {user.dp?.url ? (
+                        <img src={user.dp.url} alt={user.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-emerald-600 flex items-center justify-center">
+                          <UserIcon className="w-12 h-12 text-white" />
+                        </div>
+                      )}
+                    </div>
+                    {user.isVerified && (
+                      <div className="absolute -bottom-2 -right-2 bg-emerald-500 text-white p-1.5 rounded-xl shadow-lg border-2 border-white">
+                        <CheckCircle className="w-5 h-5 fill-current" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Identity */}
+                  <div className="flex items-center justify-between w-full mb-2">
+                    <h1 className="text-3xl font-black text-slate-900 leading-tight">
+                      {user.name}
+                    </h1>
+                  </div>
+                  <p className="text-emerald-600 font-bold text-sm mb-3">@{user.username}</p>
+                  
+                  {/* Role Badge */}
+                  {user.role && (
+                    <div className="mb-4">
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border ${
+                        user.role === "admin" 
+                          ? "bg-red-100 text-red-700 border-red-200" 
+                          : user.role === "writer"
+                          ? "bg-blue-100 text-blue-700 border-blue-200"
+                          : "bg-emerald-100 text-emerald-700 border-emerald-200"
+                      }`}>
+                        {user.role === "admin" && "👑"}
+                        {user.role === "writer" && "✍️"}
+                        {user.role === "user" && "🌱"}
+                        {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                      </span>
+                    </div>
                   )}
                 </div>
-                <p className="text-emerald-600 font-bold text-sm mb-3">@{user.username}</p>
+              )}
                 
-                {/* Role Badge */}
-                {user.role && (
-                  <div className="mb-4">
-                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border ${
-                      user.role === "admin" 
-                        ? "bg-red-100 text-red-700 border-red-200" 
-                        : user.role === "writer"
-                        ? "bg-blue-100 text-blue-700 border-blue-200"
-                        : "bg-emerald-100 text-emerald-700 border-emerald-200"
-                    }`}>
-                      {user.role === "admin" && "👑"}
-                      {user.role === "writer" && "✍️"}
-                      {user.role === "user" && "🌱"}
-                      {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                    </span>
-                  </div>
+              {/* Bio */}
+              <div className="relative z-10 mb-6">
+                {user.bio ? (
+                  <p className="text-slate-600 text-sm leading-relaxed">
+                    {user.bio}
+                  </p>
+                ) : (
+                  <p className="text-slate-400 text-sm italic">
+                    No bio available
+                  </p>
                 )}
-                
-                {/* Bio */}
-                <div className="mb-6">
-                  {user.bio ? (
-                    <p className="text-slate-600 text-sm leading-relaxed">
-                      {user.bio}
-                    </p>
-                  ) : (
-                    <p className="text-slate-400 text-sm italic">
-                      No bio available
-                    </p>
-                  )}
-                </div>
+              </div>
 
-                <div className="w-full h-px bg-stone-100 mb-6" />
+              <div className="w-full h-px bg-stone-100 mb-6" />
 
-                {/* Stats Grid */}
-                <div className="grid grid-cols-2 gap-4 w-full">
-                  <div className="bg-stone-50 p-4 rounded-2xl border border-stone-100">
-                    <div className="flex items-center gap-2 mb-1">
-                      <ImageIcon className="w-4 h-4 text-emerald-600" />
-                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Posts</span>
-                    </div>
-                    <p className="text-2xl font-black text-slate-800">{submissionCount}</p>
+              {/* Stats Grid */}
+              <div className="relative z-10 grid grid-cols-2 gap-4 w-full">
+                <div className="bg-stone-50 p-4 rounded-2xl border border-stone-100">
+                  <div className="flex items-center gap-2 mb-1">
+                    <ImageIcon className="w-4 h-4 text-emerald-600" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Posts</span>
                   </div>
-                  <div className="bg-stone-50 p-4 rounded-2xl border border-stone-100">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Award className="w-4 h-4 text-amber-500" />
-                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Points</span>
-                    </div>
-                    <p className="text-2xl font-black text-slate-800">{user.points || 0}</p>
+                  <p className="text-2xl font-black text-slate-800">{submissionCount}</p>
+                </div>
+                <div className="bg-stone-50 p-4 rounded-2xl border border-stone-100">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Award className="w-4 h-4 text-amber-500" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Points</span>
                   </div>
+                  <p className="text-2xl font-black text-slate-800">{user.points || 0}</p>
                 </div>
+              </div>
 
-                <div className="mt-8 flex items-center gap-3 text-slate-400 text-sm">
-                  <Calendar className="w-4 h-4" />
-                  <span className="font-medium">Joined {formatDate(user.createdAt)}</span>
-                </div>
+              <div className="relative z-10 mt-8 flex items-center gap-3 text-slate-400 text-sm">
+                <Calendar className="w-4 h-4" />
+                <span className="font-medium">Joined {formatDate(user.createdAt)}</span>
               </div>
             </div>
             

@@ -36,7 +36,20 @@ export async function GET() {
       return NextResponse.json({ user: null });
     }
 
-    return NextResponse.json({ user });
+    // Return user with id field (string) instead of _id (ObjectId) for consistency
+    return NextResponse.json({
+      user: {
+        id: user._id.toString(),
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        points: user.points,
+        dp: user.dp,
+        username: user.username,
+        bio: user.bio,
+        isVerified: user.isVerified,
+      },
+    });
   } catch (error) {
     console.error("Current user error:", error);
     return NextResponse.json({ user: null });

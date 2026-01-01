@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Trophy, Medal, Award, User as UserIcon } from "lucide-react";
 
 export default function Leaderboard() {
@@ -144,30 +145,36 @@ export default function Leaderboard() {
                     {/* RANK ICON */}
                     <div className="shrink-0">{getRankIcon(rank)}</div>
 
-                    {/* PROFILE PICTURE */}
-                    <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-white/50 shadow-lg shrink-0">
-                      {contributor.dp?.url ? (
-                        <img
-                          src={contributor.dp.url}
-                          alt={contributor.name || contributor.username}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-white/20 flex items-center justify-center">
-                          <UserIcon className="w-7 h-7 text-white" />
-                        </div>
-                      )}
-                    </div>
+                    {/* PROFILE PICTURE AND USER INFO - Clickable */}
+                    <Link
+                      href={`/user/${contributor._id || contributor.id}`}
+                      className="flex items-center gap-4 flex-1 min-w-0 hover:opacity-90 transition-opacity"
+                    >
+                      {/* PROFILE PICTURE */}
+                      <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-white/50 shadow-lg shrink-0">
+                        {contributor.dp?.url ? (
+                          <img
+                            src={contributor.dp.url}
+                            alt={contributor.name || contributor.username}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-white/20 flex items-center justify-center">
+                            <UserIcon className="w-7 h-7 text-white" />
+                          </div>
+                        )}
+                      </div>
 
-                    {/* USER INFO */}
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-black text-white text-lg truncate">
-                        {contributor.name || contributor.username || "Anonymous"}
-                      </h3>
-                      <p className="text-white/80 text-xs font-medium truncate">
-                        @{contributor.username || "user"}
-                      </p>
-                    </div>
+                      {/* USER INFO */}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-black text-white text-lg truncate">
+                          {contributor.name || contributor.username || "Anonymous"}
+                        </h3>
+                        <p className="text-white/80 text-xs font-medium truncate">
+                          @{contributor.username || "user"}
+                        </p>
+                      </div>
+                    </Link>
 
                     {/* POINTS */}
                     <div className="shrink-0 text-right">

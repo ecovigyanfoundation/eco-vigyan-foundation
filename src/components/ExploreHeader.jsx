@@ -249,14 +249,18 @@ export default function ExploreHeader({
 
                   {userMenuOpen && (
                     <div className="absolute left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-0 mt-4 w-64 max-w-[calc(100vw-2rem)] sm:max-w-none bg-white rounded-3xl shadow-2xl border border-emerald-100 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200">
-                      <div className="px-6 py-5 border-b border-emerald-50 bg-emerald-50/30">
+                      <Link
+                        href={`/user/${user.id || user._id?.toString() || user._id}`}
+                        onClick={() => setUserMenuOpen(false)}
+                        className="px-6 py-5 border-b border-emerald-50 bg-emerald-50/30 hover:bg-emerald-100/50 transition-colors block"
+                      >
                         <p className="text-sm font-black text-emerald-950 truncate">
                           {user.name}
                         </p>
                         <p className="text-xs font-medium text-emerald-600/70 truncate">
                           {user.email}
                         </p>
-                      </div>
+                      </Link>
                       <Link
                         href="/my-submissions"
                         onClick={() => setUserMenuOpen(false)}
@@ -348,6 +352,13 @@ export default function ExploreHeader({
             {/* Navigation Links - Same as Desktop Navbar */}
             <div className="flex flex-col space-y-2">
               <Link
+                href="/"
+                className="text-xl font-medium text-slate-700 w-full text-center py-3 hover:text-emerald-700 transition"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Home
+              </Link>
+              <Link
                 href="/#about"
                 className="text-xl font-medium text-slate-700 w-full text-center py-3 hover:text-emerald-700 transition"
                 onClick={() => setMobileMenuOpen(false)}
@@ -414,26 +425,6 @@ export default function ExploreHeader({
               </div>
             </div>
 
-            {/* Trails and Zones Buttons */}
-            <div className="w-full pt-4 border-t border-emerald-200 flex flex-col gap-3">
-              <button 
-                className="flex items-center justify-center gap-2 w-full py-4 px-4 rounded-xl bg-white border border-emerald-100 text-lg font-black uppercase tracking-widest text-emerald-700 hover:bg-emerald-500 hover:text-white transition-all shadow-sm"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <Navigation size={20} />
-                Trails
-              </button>
-              <button 
-                onClick={() => {
-                  onZonesClick();
-                  setMobileMenuOpen(false);
-                }}
-                className="flex items-center justify-center gap-2 w-full py-4 px-4 rounded-xl bg-white border border-emerald-100 text-lg font-black uppercase tracking-widest text-emerald-700 hover:bg-emerald-500 hover:text-white transition-all shadow-sm"
-              >
-                <Layers size={20} />
-                Zones
-              </button>
-            </div>
 
             {/* Donate Button */}
             <div className="w-full pt-4 border-t border-emerald-200">

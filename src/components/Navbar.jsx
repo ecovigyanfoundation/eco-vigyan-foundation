@@ -245,7 +245,11 @@ export default function Navbar() {
                       {/* User Dropdown Menu */}
                       {userMenuOpen && (
                         <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-2xl border border-stone-200 overflow-hidden z-50">
-                          <div className="px-4 py-3 border-b border-stone-100">
+                          <Link
+                            href={`/user/${user.id || user._id?.toString() || user._id}`}
+                            onClick={() => setUserMenuOpen(false)}
+                            className="px-4 py-3 border-b border-stone-100 hover:bg-stone-50 transition-colors block"
+                          >
                             <p className="text-sm font-bold text-slate-800">
                               {user.name}
                             </p>
@@ -258,7 +262,7 @@ export default function Navbar() {
                                   user.role.slice(1)}
                               </span>
                             )}
-                          </div>
+                          </Link>
                           <div className="py-1">
                             <Link
                               href="/my-submissions"
@@ -348,6 +352,14 @@ export default function Navbar() {
               }`}
             >
               <div className="px-4 py-6 space-y-4 flex flex-col items-center">
+                {/* Home Link - Always visible */}
+                <Link
+                  href="/"
+                  className="text-lg font-medium text-slate-700 w-full text-center py-2 hover:text-emerald-600 transition-colors"
+                  onClick={() => setIsOpen(false)}
+                >
+                  Home
+                </Link>
                 {navLinks.map((link) => (
                   <Link
                     key={link.name}
@@ -376,9 +388,13 @@ export default function Navbar() {
 
                 {/* Mobile User Profile or Login */}
                 {user ? (
-                  <div className="w-full space-y-2">
-                    <div className="flex items-center gap-3 px-4 py-3 bg-stone-50 rounded-lg">
-                      <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-emerald-600">
+                  <div className="w-full space-y-3 border-t border-stone-200 pt-4 mt-4">
+                    <Link
+                      href={`/user/${user.id || user._id?.toString() || user._id}`}
+                      className="flex items-center gap-3 px-4 py-3 bg-stone-50 rounded-lg hover:bg-emerald-50 transition-colors cursor-pointer"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-emerald-600 shrink-0">
                         {user.dp?.url ? (
                           <img
                             src={user.dp.url}
@@ -391,43 +407,45 @@ export default function Navbar() {
                           </div>
                         )}
                       </div>
-                      <div className="flex-1">
-                        <p className="font-bold text-slate-800">{user.name}</p>
-                        <p className="text-xs text-slate-500">{user.email}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-slate-800 truncate">{user.name}</p>
+                        <p className="text-xs text-slate-500 truncate">{user.email}</p>
                       </div>
-                    </div>
-                    <Link
-                      href="/my-submissions"
-                      className="w-full text-center px-6 py-3 border border-emerald-600 text-emerald-700 font-bold rounded-lg hover:bg-emerald-50 transition mb-2"
-                      onClick={() => setIsOpen(false)}
-                    >
-                      My Submissions
                     </Link>
-                    <Link
-                      href="/account"
-                      className="w-full text-center px-6 py-3 border border-emerald-600 text-emerald-700 font-bold rounded-lg hover:bg-emerald-50 transition mb-2"
-                      onClick={() => setIsOpen(false)}
-                    >
-                      Account Settings
-                    </Link>
-                    {user.role === "admin" && (
+                    <div className="w-full flex flex-col gap-2">
                       <Link
-                        href="/admin/mushrooms"
-                        className="w-full text-center px-6 py-3 border border-emerald-600 text-emerald-700 font-bold rounded-lg hover:bg-emerald-50 transition mb-2"
+                        href="/my-submissions"
+                        className="w-full text-center px-6 py-3 border border-emerald-600 text-emerald-700 font-bold rounded-lg hover:bg-emerald-50 transition"
                         onClick={() => setIsOpen(false)}
                       >
-                        Admin Panel
+                        My Submissions
                       </Link>
-                    )}
-                    <button
-                      onClick={() => {
-                        handleLogout();
-                        setIsOpen(false);
-                      }}
-                      className="w-full text-center px-6 py-3 border border-red-600 text-red-600 font-bold rounded-lg hover:bg-red-50 transition"
-                    >
-                      Logout
-                    </button>
+                      <Link
+                        href="/account"
+                        className="w-full text-center px-6 py-3 border border-emerald-600 text-emerald-700 font-bold rounded-lg hover:bg-emerald-50 transition"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        Account Settings
+                      </Link>
+                      {user.role === "admin" && (
+                        <Link
+                          href="/admin/mushrooms"
+                          className="w-full text-center px-6 py-3 border border-emerald-600 text-emerald-700 font-bold rounded-lg hover:bg-emerald-50 transition"
+                          onClick={() => setIsOpen(false)}
+                        >
+                          Admin Panel
+                        </Link>
+                      )}
+                      <button
+                        onClick={() => {
+                          handleLogout();
+                          setIsOpen(false);
+                        }}
+                        className="w-full text-center px-6 py-3 border border-red-600 text-red-600 font-bold rounded-lg hover:bg-red-50 transition"
+                      >
+                        Logout
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <Link
