@@ -644,6 +644,26 @@ export default function MapPage() {
             </button>
           )}
           
+          {/* Trails Button */}
+          <button
+            className="bg-blue-600/90 hover:bg-blue-700/90 text-white px-4 py-3 rounded-2xl flex items-center gap-2 shadow-2xl shadow-blue-900/50 transition-all active:scale-95 backdrop-blur-md border border-blue-500"
+            aria-label="Trails"
+            title="Trails"
+          >
+            <Navigation size={20} strokeWidth={3} />
+            <span className="font-bold text-sm whitespace-nowrap">Trails</span>
+          </button>
+          
+          {/* Zones Button */}
+          <button
+            onClick={() => setShowZoneModal(true)}
+            className="bg-emerald-600/90 hover:bg-emerald-700/90 text-white px-4 py-3 rounded-2xl flex items-center gap-2 shadow-2xl shadow-emerald-900/50 transition-all active:scale-95 backdrop-blur-md border border-emerald-500"
+            aria-label="Zones"
+            title="Zones"
+          >
+            <Layers size={20} strokeWidth={3} />
+            <span className="font-bold text-sm whitespace-nowrap">Zones</span>
+          </button>
         </div>
       )}
     </div>

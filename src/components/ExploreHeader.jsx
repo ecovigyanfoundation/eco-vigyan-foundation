@@ -457,16 +457,16 @@ export default function ExploreHeader({
                 <button
                   key={tab.id}
                   onClick={() => setView(tab.id)}
-                  className={`flex items-center gap-1.5 sm:gap-2 md:gap-3.5 h-full transition-all text-xs sm:text-sm md:text-[11px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] whitespace-nowrap border-b-4 shrink-0 ${
+                  className={`flex items-center gap-2 sm:gap-2 md:gap-3.5 h-full transition-all text-sm sm:text-sm md:text-[11px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] whitespace-nowrap border-b-4 shrink-0 px-2 sm:px-2 md:px-0 py-2 sm:py-2 md:py-0 rounded-t-lg sm:rounded-t-lg md:rounded-none ${
                     view === tab.id
-                      ? "text-emerald-700 border-emerald-500"
-                      : "text-emerald-900/40 hover:text-emerald-700 border-transparent"
+                      ? "text-emerald-500 border-emerald-500 bg-emerald-50/20 sm:bg-transparent md:bg-transparent"
+                      : "text-emerald-900/60 hover:text-emerald-700 border-transparent hover:bg-emerald-50/10 sm:hover:bg-transparent md:hover:bg-transparent"
                   }`}
                 >
                   <tab.icon
-                    size={18}
+                    size={22}
                     className={`sm:w-5 sm:h-5 md:w-5 md:h-5 ${
-                      view === tab.id ? "text-emerald-500" : "text-emerald-300"
+                      view === tab.id ? "text-emerald-500" : "text-emerald-400"
                     }`}
                   />
                   {tab.label}
