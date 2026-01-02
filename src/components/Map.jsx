@@ -3,10 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import { createRoot } from "react-dom/client";
-import Link from "next/link";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { generateCircleBoundary, generateRectangleBoundary } from "@/lib/geocoding";
-import MushroomDetailModal from "./MushroomDetailModal";
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
@@ -18,14 +16,16 @@ export default function Map({
   data = [], 
   filters = {}, 
   mode, 
-  onMarkerSelect, 
+  onMarkerSelect,
+  onMushroomClick, // Alias for onMarkerSelect for compatibility
   selectedZone,
   drawingMode,
   onDrawingComplete,
   onDrawingCancel,
   onGetCurrentBoundary,
-  onMushroomClick,
 }) {
+  // Use onMushroomClick if provided, otherwise fall back to onMarkerSelect
+  const handleMarkerSelect = onMushroomClick || onMarkerSelect;
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
   const popupRef = useRef(null);
@@ -282,7 +282,7 @@ export default function Map({
       }
     }
 
-    /* ---------------- CLICK POPUP (CENTERED) ---------------- */
+    /* ---------------- CLICK POPUP (NO ZOOM, iNATURALIST STYLE) ---------------- */
     const handleClick = (e) => {
       // Don't show popup if in drawing mode
       if (drawingMode) return;
@@ -293,82 +293,144 @@ export default function Map({
       const item = f.properties;
       const [lng, lat] = f.geometry.coordinates;
 
-      onMarkerSelect?.(item);
+      // Only open popup, don't open details on marker click
       popupRef.current?.remove();
 
-      // FIRST: move map (no popup yet)
-      // Add more top padding to account for header (header is ~150px tall)
-      map.easeTo({
-        center: [lng, lat],
-        zoom: 9,
-        duration: 800,
-        padding: { top: 200, bottom: 120, left: 20, right: 20 },
-        essential: true,
-      });
+      const popupNode = document.createElement("div");
+
+      const popup = new mapboxgl.Popup({
+        closeButton: true,
+        closeOnClick: true,
+        closeOnMove: false,
+        anchor: "bottom",
+        offset: [0, -10],
+        maxWidth: "400px",
+        className: "mushroom-popup-container",
+      })
+        .setLngLat([lng, lat])
+        .setDOMContent(popupNode)
+        .addTo(map);
+
+      popupRef.current = popup;
+
+      // Format date
+      const formatDate = (date) => {
+        if (!date) return null;
+        const d = new Date(date);
+        if (isNaN(d.getTime())) return null;
+        return d.toLocaleDateString("en-US", { 
+          month: "short", 
+          day: "numeric", 
+          year: "numeric" 
+        });
+      };
+
+      const formatDateShort = (date) => {
+        if (!date) return null;
+        const d = new Date(date);
+        if (isNaN(d.getTime())) return null;
+        const month = d.toLocaleDateString("en-US", { month: "short" });
+        const year = d.getFullYear().toString().slice(-2);
+        return `${month} '${year}`;
+      };
+
+      const observationDate = item.photoDateTime || item.createdAt;
+      const displayDate = formatDate(observationDate);
+      const shortDate = formatDateShort(observationDate);
+
+      // Extract user ID and profile picture for profile link
+      let userId = null;
+      let profilePicture = null;
       
-
-      // THEN: open popup AFTER movement finishes
-      map.once("moveend", () => {
-        const popupNode = document.createElement("div");
-
-        const popup = new mapboxgl.Popup({
-          closeButton: true,
-          closeOnClick: true,
-          closeOnMove: false, // 🔒 critical
-          anchor: "bottom", // 🔒 lock anchor
-          offset: [0, -10], // Negative offset to move popup up from marker
-          maxWidth: "none",
-          className: "mushroom-popup-container",
-        })
-          .setLngLat([lng, lat])
-          .setDOMContent(popupNode)
-          .addTo(map);
-
-        popupRef.current = popup;
-
-        // Extract user ID and ensure it's a string
-        // Skip profile link for system-imported mushrooms
-        let userId = null;
-        const contributorName = item.contributor || item.submittedBy?.name || item.submittedBy?.username || "Anonymous";
-        const isSystemUser = item.submittedBy?.email === "system@ecovigyan.org" || 
-                             item.submittedBy?.username === "system" ||
-                             item.submittedBy?.name === "System Import" ||
-                             contributorName === "System Import";
-        
-        if (item.submittedBy && !isSystemUser) {
-          if (typeof item.submittedBy === 'string') {
-            userId = item.submittedBy;
-          } else if (item.submittedBy._id) {
-            // Convert ObjectId to string if needed
-            const idString = typeof item.submittedBy._id === 'string' 
-              ? item.submittedBy._id 
-              : item.submittedBy._id.toString();
-            // Validate it's a proper MongoDB ObjectId format (24 hex chars)
-            if (/^[0-9a-fA-F]{24}$/.test(idString)) {
-              userId = idString;
+      // Helper to validate MongoDB ObjectId format (24 hex characters)
+      const isValidObjectId = (id) => {
+        if (!id) return false;
+        const idStr = typeof id === 'string' ? id : id.toString();
+        return /^[0-9a-fA-F]{24}$/.test(idStr);
+      };
+      
+      // Extract user ID, profile picture, and username
+      // Note: submittedBy might be a JSON string that needs parsing
+      let submittedByData = item.submittedBy;
+      let displayUsername = item.contributor; // Fallback to contributor name
+      
+      // If it's a string, try to parse it as JSON
+      if (typeof submittedByData === 'string') {
+        try {
+          submittedByData = JSON.parse(submittedByData);
+        } catch (e) {
+          // If it's not JSON, treat it as a simple ID string
+          if (isValidObjectId(submittedByData)) {
+            userId = submittedByData;
+          }
+          submittedByData = null;
+        }
+      }
+      
+      // Now process the parsed object
+      if (submittedByData) {
+        // Handle string ID (already validated above)
+        if (typeof submittedByData === "string") {
+          if (isValidObjectId(submittedByData)) {
+            userId = submittedByData;
+          }
+        } 
+        // Handle object with _id or id
+        else if (typeof submittedByData === 'object' && submittedByData !== null) {
+          // Try _id first (most common)
+          if (submittedByData._id !== undefined && submittedByData._id !== null) {
+            const idValue = typeof submittedByData._id === "string" 
+              ? submittedByData._id 
+              : String(submittedByData._id);
+            if (isValidObjectId(idValue)) {
+              userId = idValue;
+            }
+          } 
+          // Fallback to id property
+          else if (submittedByData.id !== undefined && submittedByData.id !== null) {
+            const idValue = typeof submittedByData.id === "string"
+              ? submittedByData.id
+              : String(submittedByData.id);
+            if (isValidObjectId(idValue)) {
+              userId = idValue;
+            }
+          }
+          
+          // Get username for display
+          if (submittedByData.username) {
+            displayUsername = submittedByData.username;
+          } else if (submittedByData.name) {
+            displayUsername = submittedByData.name;
+          }
+          
+          // Get profile picture
+          const dp = submittedByData.dp;
+          if (dp && typeof dp === 'object' && dp !== null && !Array.isArray(dp) && dp.url) {
+            if (typeof dp.url === 'string' && dp.url.trim().length > 0) {
+              profilePicture = dp.url.trim();
             }
           }
         }
-        
-        // Get original Google Drive link for system imports
-        const originalDriveLink = item.images?.[0]?.originalDriveLink || null;
-        
-        // Handle details click - opens detail modal
-        const handleDetailsClick = (e) => {
-          e.stopPropagation();
-          if (onMushroomClick) {
-            onMushroomClick(item);
-          }
-        };
+      }
 
-        createRoot(popupNode).render(
-          <div 
-            className="w-[300px] sm:w-[350px] bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-100 z-[200] cursor-pointer"
-            onClick={handleDetailsClick}
-            title="Click to view full details"
-          >
+      // Handle image click to show details
+      const handleImageClick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        popup.remove(); // Close popup
+        handleMarkerSelect?.(item); // Trigger detail view
+      };
+
+      createRoot(popupNode).render(
+        <div className="w-[380px] bg-white rounded-lg shadow-2xl overflow-hidden border border-gray-200">
+          <div className="flex">
+            {/* Left side - Image (clickable) */}
             {item.image && (
-              <div className="w-full h-40 bg-gray-200 relative">
+              <div 
+                className="w-[150px] h-[150px] bg-gray-200 flex-shrink-0 cursor-pointer hover:opacity-90 transition-opacity"
+                onClick={handleImageClick}
+                title="Click to view details"
+              >
                 <img
                   src={item.image}
                   alt={item.name}
@@ -377,51 +439,175 @@ export default function Map({
               </div>
             )}
 
-            <div className="p-4">
-              <div className="flex justify-between items-start mb-2">
-                <h3 className="text-xl font-bold text-gray-900 leading-tight">
-                  {item.name}
+            {/* Right side - Content */}
+            <div className="flex-1 p-4 flex flex-col justify-between min-w-0">
+              {/* Top section */}
+              <div>
+                {/* Species name */}
+                <h3 className="text-lg font-semibold italic text-gray-900 leading-tight mb-1">
+                  {item.name || "Unnamed Mushroom"}
                 </h3>
-                <span
-                  className={`text-[10px] font-bold px-2 py-1 rounded uppercase text-white ${
-                    item.category === "food" ? "bg-green-600" : "bg-blue-600"
-                  }`}
-                >
-                  {item.category}
-                </span>
+
+                {/* Location and date */}
+                <div className="text-xs text-gray-600 mb-2">
+                  {item.location?.name || `${lat.toFixed(4)}, ${lng.toFixed(4)}`}
+                  {displayDate && ` • ${displayDate}`}
+                </div>
+
+                {/* Research Grade or Category tag */}
+                {item.status === "approved" && (
+                  <div className="inline-block mb-2">
+                    <span className="bg-green-500 text-white text-[10px] font-semibold px-2 py-0.5 rounded-sm uppercase tracking-wide">
+                      Research Grade
+                    </span>
+                  </div>
+                )}
+                {item.category && item.status !== "approved" && (
+                  <div className="inline-block mb-2">
+                    <span className="bg-gray-400 text-white text-[10px] font-semibold px-2 py-0.5 rounded-sm uppercase tracking-wide">
+                      {item.category}
+                    </span>
+                  </div>
+                )}
               </div>
 
-              {userId ? (
-                <Link
-                  href={`/user/${userId}`}
-                  className="text-xs text-emerald-700 font-semibold mb-3 hover:text-emerald-800 hover:underline transition-colors block"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  By {contributorName}
-                </Link>
-              ) : (
-                <p className="text-xs text-emerald-700 font-semibold mb-3">
-                  By {contributorName}
-                </p>
-              )}
+              {/* Bottom section - Interaction icons and date */}
+              <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                <div className="flex items-center gap-2 text-xs text-gray-500">
+                  {/* Contributor with profile picture and link */}
+                  {item.contributor && (
+                    <div className="flex items-center gap-2">
+                      {/* Profile Picture */}
+                      {profilePicture ? (
+                        <a
+                          href={userId ? `/user/${userId}` : '#'}
+                          onClick={(e) => {
+                            if (userId) {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              popup.remove();
+                              setTimeout(() => {
+                                window.location.href = `/user/${userId}`;
+                              }, 100);
+                            } else {
+                              e.preventDefault();
+                            }
+                          }}
+                          className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0 border border-gray-200 hover:border-blue-400 transition-colors cursor-pointer"
+                          title={userId ? "View profile" : undefined}
+                        >
+                          <img
+                            src={profilePicture}
+                            alt={displayUsername}
+                            className="w-full h-full object-cover"
+                          />
+                        </a>
+                      ) : (
+                        <div className="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center flex-shrink-0">
+                          <svg className="w-3.5 h-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
+                        </div>
+                      )}
+                      {/* Contributor username with link - always show as link if we have contributor */}
+                      {displayUsername && (
+                        <a
+                          href={userId ? `/user/${userId}` : '#'}
+                          onClick={(e) => {
+                            if (userId) {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              popup.remove();
+                              window.location.href = `/user/${userId}`;
+                            } else {
+                              e.preventDefault();
+                            }
+                          }}
+                          className={`truncate max-w-[100px] transition-colors cursor-pointer ${
+                            userId 
+                              ? 'text-blue-600 hover:text-blue-800 hover:underline font-medium' 
+                              : 'text-gray-500 cursor-not-allowed'
+                          }`}
+                          title={userId ? "View profile" : "Profile not available"}
+                        >
+                          {displayUsername}
+                        </a>
+                      )}
+                    </div>
+                  )}
+                </div>
 
-              <p className="text-sm text-gray-600 italic">
-                {item.info || "No description provided."}
-              </p>
-
-              <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between text-[10px] font-mono text-gray-400">
-                <span>{lat.toFixed(5)}°N</span>
-                <span>{lng.toFixed(5)}°E</span>
-              </div>
-              
-              <div className="mt-3 pt-3 border-t border-gray-100">
-                <p className="text-xs text-emerald-600 font-semibold text-center">
-                  Click to view full details →
-                </p>
+                {/* Date icon */}
+                {shortDate && (
+                  <div className="flex items-center gap-1 text-xs text-gray-500">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span>{shortDate}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
-        );
+        </div>
+      );
+
+      // Check if popup is out of bounds and adjust map pan if needed
+      const adjustPopupPosition = () => {
+        const popupElement = popup.getElement();
+        if (!popupElement) return;
+
+        const popupRect = popupElement.getBoundingClientRect();
+        const mapContainer = map.getContainer();
+        const mapRect = mapContainer.getBoundingClientRect();
+
+        const padding = 20;
+        let panX = 0;
+        let panY = 0;
+
+        // Calculate how much we need to pan (positive = pan right/down, negative = pan left/up)
+        if (popupRect.right > mapRect.right - padding) {
+          // Popup extends beyond right edge - pan map RIGHT to move popup left
+          panX = popupRect.right - (mapRect.right - padding);
+        } else if (popupRect.left < mapRect.left + padding) {
+          // Popup extends beyond left edge - pan map LEFT to move popup right
+          panX = popupRect.left - (mapRect.left + padding);
+        }
+
+        if (popupRect.bottom > mapRect.bottom - padding) {
+          // Popup extends beyond bottom edge - pan map DOWN to move popup up
+          panY = popupRect.bottom - (mapRect.bottom - padding);
+        } else if (popupRect.top < mapRect.top + padding) {
+          // Popup extends beyond top edge - pan map UP to move popup down
+          panY = popupRect.top - (mapRect.top + padding);
+        }
+
+        // Pan the map to bring popup into view
+        if (panX !== 0 || panY !== 0) {
+          const currentCenter = map.getCenter();
+          const centerPixel = map.project(currentCenter);
+          
+          // Pan: add offset to center pixel (panning right/down moves center pixel right/down)
+          const newCenterPixel = [
+            centerPixel.x + panX,
+            centerPixel.y + panY
+          ];
+          
+          const newCenter = map.unproject(newCenterPixel);
+
+          map.easeTo({
+            center: newCenter,
+            duration: 300,
+            easing: (t) => t * (2 - t), // ease-out
+          });
+        }
+      };
+
+      // Check bounds after popup is fully rendered (use double RAF to ensure DOM is updated)
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          adjustPopupPosition();
+        });
       });
     };
     
@@ -439,7 +625,7 @@ map.on("mouseleave", "mushroom-points", () => {
   map.getCanvas().style.cursor = "";
 });
 
-  }, [data, filters, mode, mapLoaded, onMarkerSelect, selectedZone]);
+  }, [data, filters, mode, mapLoaded, onMarkerSelect, onMushroomClick, selectedZone]);
 
   /* ---------------- DRAWING MODE ---------------- */
   useEffect(() => {
@@ -616,31 +802,11 @@ map.on("mouseleave", "mushroom-points", () => {
 
     // Create and update resize handles
     const updateResizeHandles = () => {
-      const handles = getHandlePositions();
-      
-      // Store handles as Map with type as key for easier lookup
-      // Use global Map constructor to avoid conflict with component name
-      const handlesByType = new globalThis.Map();
-      handles.forEach(h => handlesByType.set(h.type, h));
-      
-      // If handles already exist, update their positions instead of recreating
-      if (resizeHandlesRef.current.length === handles.length && resizeHandlesRef.current.length > 0) {
-        // Update all markers - match by stored type (like iNaturalist does)
-        // Update synchronously during shape movement for smooth real-time updates
-        resizeHandlesRef.current.forEach((marker) => {
-          const handleType = marker._handleType;
-          if (handleType && handlesByType.has(handleType)) {
-            const handleData = handlesByType.get(handleType);
-            // Use setLngLat to update marker position - this should work on both PC and mobile
-            marker.setLngLat(handleData.position);
-          }
-        });
-        return;
-      }
-
-      // Remove existing handles if count doesn't match or we need to recreate
+      // Remove existing handles
       resizeHandlesRef.current.forEach(handle => handle.remove());
       resizeHandlesRef.current = [];
+
+      const handles = getHandlePositions();
       
       handles.forEach((handleData) => {
         const el = document.createElement('div');
@@ -651,13 +817,9 @@ map.on("mouseleave", "mushroom-points", () => {
           .setLngLat(handleData.position)
           .addTo(map);
 
-        // Store type on marker element for easier identification
-        marker._handleType = handleData.type;
-
         marker.getElement().addEventListener('dragstart', () => {
           drawingStateRef.current.activeHandle = handleData.type;
-          const pos = marker.getLngLat();
-          drawingStateRef.current.dragStart = { lat: pos.lat, lng: pos.lng };
+          drawingStateRef.current.dragStart = { lat: handleData.position[1], lng: handleData.position[0] };
           drawingStateRef.current.initialCenter = { ...drawingStateRef.current.currentCenter };
           drawingStateRef.current.initialSize = drawingMode === "rectangle" 
             ? { width: drawingStateRef.current.currentSize.width, height: drawingStateRef.current.currentSize.height }
@@ -744,16 +906,7 @@ map.on("mouseleave", "mushroom-points", () => {
       // Get current boundary
       const source = map.getSource("drawing");
       if (!source) return;
-      
-      // Safely access source data - handle case where _data might be undefined
-      let data;
-      try {
-        data = source._data;
-      } catch (error) {
-        console.error("Error accessing source data:", error);
-        return;
-      }
-      
+      const data = source._data;
       if (!data || !data.features || data.features.length === 0) return;
       
       // Get coordinates from either mouse or touch event
@@ -761,10 +914,7 @@ map.on("mouseleave", "mushroom-points", () => {
       const point = e.lngLat;
       if (!point) return;
       
-      // Safely access boundary coordinates
-      if (!data.features[0] || !data.features[0].geometry || !data.features[0].geometry.coordinates) return;
       const boundary = data.features[0].geometry.coordinates[0];
-      if (!boundary || boundary.length === 0) return;
       
       // Check if clicking near edge (for resizing) - larger threshold for mobile/touch
       const edgeDist = getDistanceToEdge(point, boundary);
@@ -826,19 +976,9 @@ map.on("mouseleave", "mushroom-points", () => {
         if (e.lngLat) {
           const source = map.getSource("drawing");
           if (source) {
-            let data;
-            try {
-              data = source._data;
-            } catch (error) {
-              // Source data not available yet, skip cursor update
-              return;
-            }
+            const data = source._data;
             if (data && data.features && data.features.length > 0) {
-              // Safely access boundary coordinates
-              if (!data.features[0] || !data.features[0].geometry || !data.features[0].geometry.coordinates) return;
               const boundary = data.features[0].geometry.coordinates[0];
-              if (!boundary || boundary.length === 0) return;
-              
               const point = e.lngLat;
               const edgeDist = getDistanceToEdge(point, boundary);
               const threshold = 2 / 111;
@@ -864,15 +1004,13 @@ map.on("mouseleave", "mushroom-points", () => {
       if (!currentPoint) return;
 
       if (drawingStateRef.current.isMoving) {
-        // Move the shape (like iNaturalist - handles move with shape in real-time)
+        // Move the shape
         const initialCenter = drawingStateRef.current.initialCenter;
         const latDiff = currentPoint.lat - drawingStateRef.current.dragStart.lat;
         const lngDiff = currentPoint.lng - drawingStateRef.current.dragStart.lng;
         drawingStateRef.current.currentCenter.lat = initialCenter.lat + latDiff;
         drawingStateRef.current.currentCenter.lng = initialCenter.lng + lngDiff;
         createInitialShape();
-        // Immediately update handles to move with the shape (synchronized like iNaturalist)
-        updateResizeHandles();
         if (e.originalEvent && e.originalEvent.preventDefault) {
           e.originalEvent.preventDefault();
         }
@@ -889,7 +1027,9 @@ map.on("mouseleave", "mushroom-points", () => {
           drawingStateRef.current.currentSize.width = Math.max(10, latDist * 2); // Min 10km, double for full width
           drawingStateRef.current.currentSize.height = Math.max(10, lngDist * 2); // Min 10km, double for full height
           createInitialShape();
-          // Don't update handles here - they're being dragged and will update themselves
+          if (!drawingStateRef.current.activeHandle) {
+            updateResizeHandles();
+          }
         } else {
           // Circle: radius is distance from initial center to current position
           const R = 6371; // Earth radius in km
@@ -904,7 +1044,9 @@ map.on("mouseleave", "mushroom-points", () => {
           const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
           drawingStateRef.current.currentSize.radius = Math.max(5, R * c); // Min 5km
           createInitialShape();
-          // Don't update handles here - they're being dragged and will update themselves
+          if (!drawingStateRef.current.activeHandle) {
+            updateResizeHandles();
+          }
         }
         if (e.originalEvent && e.originalEvent.preventDefault) {
           e.originalEvent.preventDefault();
@@ -930,16 +1072,11 @@ map.on("mouseleave", "mushroom-points", () => {
 
     const handleInteractionEnd = (e) => {
       if (drawingStateRef.current.isMoving || drawingStateRef.current.isResizing) {
-        const wasMoving = drawingStateRef.current.isMoving;
         drawingStateRef.current.isMoving = false;
         drawingStateRef.current.isResizing = false;
         drawingStateRef.current.dragStart = null;
         map.getCanvas().style.cursor = "default";
         map.dragPan.enable();
-        // Ensure handles are in correct position after moving (final sync)
-        if (wasMoving) {
-          updateResizeHandles();
-        }
         if (e.originalEvent && e.originalEvent.preventDefault) {
           e.originalEvent.preventDefault();
         }
@@ -958,22 +1095,10 @@ map.on("mouseleave", "mushroom-points", () => {
       // Complete drawing on double click
       const source = map.getSource("drawing");
       if (!source) return;
-      
-      // Safely access source data
-      let data;
-      try {
-        data = source._data;
-      } catch (error) {
-        console.error("Error accessing source data:", error);
-        return;
-      }
-      
+      const data = source._data;
       if (!data || !data.features || data.features.length === 0) return;
       
-      // Safely access boundary coordinates
-      if (!data.features[0] || !data.features[0].geometry || !data.features[0].geometry.coordinates) return;
       const boundary = data.features[0].geometry.coordinates[0];
-      if (!boundary || boundary.length === 0) return;
       const centerPoint = drawingMode === "circle" 
         ? drawingStateRef.current.currentCenter
         : undefined;
@@ -1047,22 +1172,9 @@ map.on("mouseleave", "mushroom-points", () => {
       onGetCurrentBoundary.current = () => {
         const source = map.getSource("drawing");
         if (!source) return null;
-        
-        // Safely access source data
-        let data;
-        try {
-          data = source._data;
-        } catch (error) {
-          console.error("Error accessing source data:", error);
-          return null;
-        }
-        
+        const data = source._data;
         if (!data || !data.features || data.features.length === 0) return null;
-        
-        // Safely access boundary coordinates
-        if (!data.features[0] || !data.features[0].geometry || !data.features[0].geometry.coordinates) return null;
         const boundary = data.features[0].geometry.coordinates[0];
-        if (!boundary || boundary.length === 0) return null;
         const centerPoint = drawingMode === "circle" 
           ? drawingStateRef.current.currentCenter
           : undefined;
