@@ -245,8 +245,13 @@ export default function MapPage() {
     setDrawingMode(null);
   };
 
-  // Handle drawing mode selection
+  // Handle drawing mode selection (admin only)
   const handleDrawingModeSelect = (mode) => {
+    // Only allow admins to use drawing mode
+    if (!user || user.role !== "admin") {
+      toast.error("Drawing zones is only available for administrators.");
+      return;
+    }
     setDrawingMode(mode);
     setSelectedZone(null); // Clear existing zone when starting new drawing
   };

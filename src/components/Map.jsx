@@ -27,6 +27,11 @@ export default function Map(props) {
     onGetCurrentBoundary,
   } = props || {};
   
+  // Debug: Log when drawingMode prop changes
+  useEffect(() => {
+    console.log("🎨 Map component received drawingMode prop:", drawingMode);
+  }, [drawingMode]);
+  
   // Ensure data is always an array
   const safeData = Array.isArray(data) ? data : [];
   // Use onMushroomClick if provided, otherwise fall back to onMarkerSelect
@@ -76,25 +81,8 @@ export default function Map(props) {
 
     map.addControl(new mapboxgl.NavigationControl(), "top-right");
 
-    // Throttle zoom updates to avoid too frequent recalculations
-    let zoomUpdateTimeout = null;
     const handleZoomChange = () => {
-      // Clear any pending update
-      if (zoomUpdateTimeout) {
-        clearTimeout(zoomUpdateTimeout);
-      }
-      // Update zoom state immediately for responsive grid updates
       setCurrentZoom(map.getZoom());
-    };
-
-    // Throttled version for moveend to avoid excessive updates
-    const handleMoveEnd = () => {
-      if (zoomUpdateTimeout) {
-        clearTimeout(zoomUpdateTimeout);
-      }
-      zoomUpdateTimeout = setTimeout(() => {
-        setCurrentZoom(map.getZoom());
-      }, 100);
     };
 
     map.on("load", () => {
@@ -107,22 +95,16 @@ export default function Map(props) {
       setMapError(e?.error?.message || "Map failed to load");
     });
 
-    // Track zoom changes for grid recalculation
-    // Use 'zoom' event for responsive updates during zooming (with throttling via state updates)
-    map.on("zoom", handleZoomChange);
-    map.on("zoomend", handleZoomChange); // Also update on zoom end to ensure final state
-    map.on("moveend", handleMoveEnd); // Update on pan end (throttled)
+    // Track zoom changes for grid recalculation (use zoomend for better performance)
+    map.on("zoomend", handleZoomChange);
+    map.on("moveend", handleZoomChange); // Also update on pan in case bounds change significantly
 
     mapRef.current = map;
 
     return () => {
       popupRef.current?.remove();
-      if (zoomUpdateTimeout) {
-        clearTimeout(zoomUpdateTimeout);
-      }
-      map.off("zoom", handleZoomChange);
       map.off("zoomend", handleZoomChange);
-      map.off("moveend", handleMoveEnd);
+      map.off("moveend", handleZoomChange);
       map.remove();
       mapRef.current = null;
     };
@@ -169,34 +151,16 @@ export default function Map(props) {
       const currentZoomLevel = zoom !== null && zoom !== undefined ? zoom : 4;
 
       // Grid size based on zoom level - smaller cells at higher zoom
-      // More granular grid sizes for better detail, dividing more as you zoom in
+      // At zoom 2-3: ~2 degrees per cell, zoom 4-5: ~0.5 degrees, zoom 6+: ~0.1 degrees
       let gridSize;
       if (currentZoomLevel < 3) {
         gridSize = 2.0; // ~220km per cell
-      } else if (currentZoomLevel < 4) {
-        gridSize = 1.0; // ~110km per cell
       } else if (currentZoomLevel < 5) {
         gridSize = 0.5; // ~55km per cell
       } else if (currentZoomLevel < 6) {
-        gridSize = 0.25; // ~28km per cell
-      } else if (currentZoomLevel < 6.5) {
-        gridSize = 0.15; // ~17km per cell
-      } else if (currentZoomLevel < 7) {
-        gridSize = 0.1; // ~11km per cell
-      } else if (currentZoomLevel < 7.5) {
-        gridSize = 0.075; // ~8.3km per cell
-      } else if (currentZoomLevel < 8) {
-        gridSize = 0.05; // ~5.5km per cell
-      } else if (currentZoomLevel < 8.5) {
-        gridSize = 0.03; // ~3.3km per cell
-      } else if (currentZoomLevel < 9) {
-        gridSize = 0.02; // ~2.2km per cell
-      } else if (currentZoomLevel < 9.5) {
-        gridSize = 0.015; // ~1.7km per cell
-      } else if (currentZoomLevel < 10) {
-        gridSize = 0.01; // ~1.1km per cell
+        gridSize = 0.2; // ~22km per cell
       } else {
-        gridSize = 0.005; // ~0.55km per cell (shouldn't show as grid stops at zoom 10)
+        gridSize = 0.1; // ~11km per cell
       }
 
       // Create an object to store counts per grid cell (using object instead of Map to avoid naming conflict)
@@ -273,14 +237,14 @@ export default function Map(props) {
     };
 
     // Create grid heatmap data
-    // Always get the current zoom from the map to ensure grid updates during zooming
-    let zoomLevel;
-    try {
-      // Always read zoom directly from map for most current value
-      zoomLevel = map.getZoom();
-    } catch (e) {
-      // Fallback to state or default
-      zoomLevel = currentZoom !== null && currentZoom !== undefined ? currentZoom : 4;
+    // Safely get zoom - map.getZoom() might not be available if map isn't fully initialized
+    let zoomLevel = currentZoom;
+    if (zoomLevel === null || zoomLevel === undefined) {
+      try {
+        zoomLevel = map.getZoom();
+      } catch (e) {
+        zoomLevel = 4; // Default zoom
+      }
     }
     const gridHeatmapData = createGridHeatmap(features, zoomLevel);
 
@@ -294,13 +258,13 @@ export default function Map(props) {
       map.getSource("mushroom-grid-heat").setData(gridHeatmapData);
     }
 
-    // Add grid heatmap layer (stop showing when individual mushroom icons appear)
+    // Add grid heatmap layer (only show when zoomed out)
     if (!map.getLayer("mushroom-grid-heat")) {
       map.addLayer({
         id: "mushroom-grid-heat",
         type: "fill",
         source: "mushroom-grid-heat",
-        maxzoom: 10, // Stop showing grid when mushroom icons start showing
+        maxzoom: 6,
         paint: {
           "fill-color": [
             "interpolate",
@@ -343,7 +307,7 @@ export default function Map(props) {
           id: "mushroom-grid-heat-outline",
           type: "line",
           source: "mushroom-grid-heat",
-          maxzoom: 10, // Stop showing grid outline when mushroom icons start showing
+          maxzoom: 6,
           paint: {
             "line-color": "#10b981",
             "line-width": [
@@ -376,7 +340,7 @@ export default function Map(props) {
         id: "mushroom-points",
         type: "symbol",
         source: "mushrooms",
-        minzoom: 10, // Show individual points at very high zoom levels, grid shows until then
+        minzoom: 6,
         layout: {
           "icon-image": "mushroom-icon",
           "icon-size": 0.04,
@@ -848,8 +812,22 @@ map.on("mouseleave", "mushroom-points", () => {
 
   /* ---------------- DRAWING MODE ---------------- */
   useEffect(() => {
-    if (!mapLoaded || !mapRef.current || !mapRef.current.isStyleLoaded()) return;
+    console.log("🔵 DRAWING MODE useEffect triggered:", { 
+      mapLoaded, 
+      hasMap: !!mapRef.current, 
+      isStyleLoaded: mapRef.current?.isStyleLoaded(), 
+      drawingMode 
+    });
+    
+    if (!mapLoaded || !mapRef.current) {
+      console.log("❌ Map not loaded or doesn't exist, returning early");
+      return;
+    }
+    
+    const map = mapRef.current;
+    
     if (!drawingMode) {
+      console.log("❌ No drawing mode, cleaning up");
       // Clean up drawing state
       drawingStateRef.current.isDrawing = false;
       drawingStateRef.current.isMoving = false;
@@ -862,8 +840,6 @@ map.on("mouseleave", "mushroom-points", () => {
       drawingStateRef.current.initialCenter = null;
       drawingStateRef.current.initialSize = null;
       
-      // Remove drawing layers and source
-      const map = mapRef.current;
       try {
         // Remove resize handles
         resizeHandlesRef.current.forEach(handle => handle.remove());
@@ -888,8 +864,30 @@ map.on("mouseleave", "mushroom-points", () => {
       return;
     }
 
-    const map = mapRef.current;
+    // Function to set up drawing mode (defined first so it can be called by event handlers)
+    const setupDrawingMode = () => {
+      if (!map || !map.isStyleLoaded()) {
+        console.log("❌ Map style still not loaded in setupDrawingMode");
+        return;
+      }
+      
+      console.log("✅ === ENTERING DRAWING MODE ===", { drawingMode, mapReady: map.isStyleLoaded() });
     
+    // Reset drawing state first
+    const center = map.getCenter();
+    drawingStateRef.current.currentCenter = { lat: center.lat, lng: center.lng };
+    drawingStateRef.current.currentSize = drawingMode === "rectangle" 
+      ? { width: 200, height: 200 } // 200km x 200km rectangle
+      : { radius: 100 }; // 100km radius circle
+    drawingStateRef.current.isDrawing = false;
+    drawingStateRef.current.isMoving = false;
+    drawingStateRef.current.isResizing = false;
+    drawingStateRef.current.startPoint = null;
+    drawingStateRef.current.dragStart = null;
+    drawingStateRef.current.initialCenter = null;
+    drawingStateRef.current.initialSize = null;
+    drawingStateRef.current.activeHandle = null;
+
     // Initialize drawing source and layers
     if (!map.getSource("drawing")) {
       map.addSource("drawing", {
@@ -912,6 +910,12 @@ map.on("mouseleave", "mushroom-points", () => {
           "fill-opacity": 0.2,
         },
       });
+      // Move to top to ensure visibility
+      try {
+        map.moveLayer("drawing-fill");
+      } catch (e) {
+        // Layer might already be on top
+      }
     }
 
     if (!map.getLayer("drawing-outline")) {
@@ -926,20 +930,25 @@ map.on("mouseleave", "mushroom-points", () => {
           "line-dasharray": [2, 2],
         },
       });
-    }
-
-    // Create initial shape centered on current map view (only if not already set)
-    if (!drawingStateRef.current.currentCenter) {
-      const center = map.getCenter();
-      drawingStateRef.current.currentCenter = { lat: center.lat, lng: center.lng };
-      drawingStateRef.current.currentSize = drawingMode === "rectangle" 
-        ? { width: 200, height: 200 } // 200km x 200km rectangle
-        : { radius: 100 }; // 100km radius circle
+      // Move to top to ensure visibility
+      try {
+        map.moveLayer("drawing-outline");
+      } catch (e) {
+        // Layer might already be on top
+      }
     }
 
 
-    const updateDrawingShape = (boundary) => {
-      if (!map.getSource("drawing")) return;
+    const updateDrawingShape = (boundary, updateHandles = false) => {
+      if (!map.getSource("drawing")) {
+        console.error("Drawing source not found");
+        return;
+      }
+      
+      if (!boundary || !Array.isArray(boundary) || boundary.length === 0) {
+        console.error("Invalid boundary data:", boundary);
+        return;
+      }
       
       const geojson = {
         type: "FeatureCollection",
@@ -955,16 +964,24 @@ map.on("mouseleave", "mushroom-points", () => {
       };
       
       try {
-        map.getSource("drawing").setData(geojson);
+        const source = map.getSource("drawing");
+        source.setData(geojson);
+        console.log("Drawing shape updated:", geojson);
       } catch (error) {
         console.error("Error updating drawing shape:", error);
       }
     };
 
     const createInitialShape = () => {
-      let boundary;
       const center = drawingStateRef.current.currentCenter;
       const size = drawingStateRef.current.currentSize;
+      
+      if (!center || !size) {
+        console.error("Missing center or size:", { center, size });
+        return null;
+      }
+      
+      let boundary;
       if (drawingMode === "rectangle") {
         boundary = generateRectangleBoundary(
           center.lat,
@@ -979,12 +996,11 @@ map.on("mouseleave", "mushroom-points", () => {
           size.radius
         );
       }
+      
+      console.log("Creating initial shape:", { drawingMode, center, size, boundaryLength: boundary?.length });
       updateDrawingShape(boundary);
       return boundary;
     };
-
-    // Create initial shape
-    createInitialShape();
 
     // Helper to calculate handle positions
     const getHandlePositions = () => {
@@ -994,15 +1010,21 @@ map.on("mouseleave", "mushroom-points", () => {
 
       if (drawingMode === "rectangle") {
         // Rectangle: handles at 4 corners
-        const halfWidth = (size.width / 2) / 111; // Convert km to degrees
-        const halfHeight = (size.height / 2) / 111;
+        // Convert km to degrees: width/height in km, need to convert to degrees
+        const halfWidthKm = size.width / 2;
+        const halfHeightKm = size.height / 2;
         const cosLat = Math.cos(center.lat * Math.PI / 180);
         
+        // Latitude: 1 degree ≈ 111 km
+        const halfHeightDeg = halfHeightKm / 111;
+        // Longitude: 1 degree ≈ 111 * cos(latitude) km
+        const halfWidthDeg = halfWidthKm / (111 * cosLat);
+        
         handles.push(
-          { position: [center.lng - halfWidth / cosLat, center.lat - halfHeight], type: 'nw' },
-          { position: [center.lng + halfWidth / cosLat, center.lat - halfHeight], type: 'ne' },
-          { position: [center.lng + halfWidth / cosLat, center.lat + halfHeight], type: 'se' },
-          { position: [center.lng - halfWidth / cosLat, center.lat + halfHeight], type: 'sw' }
+          { position: [center.lng - halfWidthDeg, center.lat - halfHeightDeg], type: 'nw' },
+          { position: [center.lng + halfWidthDeg, center.lat - halfHeightDeg], type: 'ne' },
+          { position: [center.lng + halfWidthDeg, center.lat + halfHeightDeg], type: 'se' },
+          { position: [center.lng - halfWidthDeg, center.lat + halfHeightDeg], type: 'sw' }
         );
       } else {
         // Circle: handles at 4 cardinal directions
@@ -1052,13 +1074,24 @@ map.on("mouseleave", "mushroom-points", () => {
           const initialCenter = drawingStateRef.current.initialCenter;
           
           if (drawingMode === "rectangle") {
+            // Calculate the distance from center to the dragged corner
+            // This must match the inverse of getHandlePositions calculation
             const latDiff = Math.abs(currentPoint.lat - initialCenter.lat);
             const lngDiff = Math.abs(currentPoint.lng - initialCenter.lng);
+            
+            // Convert degrees to km
+            // For latitude: 1 degree ≈ 111 km
             const latDist = latDiff * 111;
-            const lngDist = lngDiff * 111 * Math.cos(initialCenter.lat * Math.PI / 180);
-            drawingStateRef.current.currentSize.width = Math.max(10, latDist * 2);
-            drawingStateRef.current.currentSize.height = Math.max(10, lngDist * 2);
+            // For longitude: 1 degree ≈ 111 * cos(latitude) km
+            const cosLat = Math.cos(initialCenter.lat * Math.PI / 180);
+            const lngDist = lngDiff * 111 * cosLat;
+            
+            // The size is twice the distance from center to corner
+            // Width corresponds to longitude (east-west), height to latitude (north-south)
+            drawingStateRef.current.currentSize.width = Math.max(10, lngDist * 2);
+            drawingStateRef.current.currentSize.height = Math.max(10, latDist * 2);
           } else {
+            // Circle: radius is distance from initial center to current position
             const R = 6371;
             const dLat = ((currentPoint.lat - initialCenter.lat) * Math.PI) / 180;
             const dLng = ((currentPoint.lng - initialCenter.lng) * Math.PI) / 180;
@@ -1070,6 +1103,7 @@ map.on("mouseleave", "mushroom-points", () => {
             drawingStateRef.current.currentSize.radius = Math.max(5, R * c);
           }
           
+          // Update the shape immediately - this will redraw the shape
           createInitialShape();
         });
 
@@ -1082,9 +1116,6 @@ map.on("mouseleave", "mushroom-points", () => {
         resizeHandlesRef.current.push(marker);
       });
     };
-
-    // Initial handle creation
-    updateResizeHandles();
 
     // Helper to check if point is near shape edge (for resizing)
     const getDistanceToEdge = (point, boundary) => {
@@ -1121,34 +1152,79 @@ map.on("mouseleave", "mushroom-points", () => {
       return inside;
     };
 
+    // Create initial shape - try multiple approaches to ensure it works
+    const createShapeNow = () => {
+      try {
+        console.log("=== DRAWING MODE ACTIVATED ===", {
+          drawingMode,
+          center: drawingStateRef.current.currentCenter,
+          size: drawingStateRef.current.currentSize,
+          hasSource: !!map.getSource("drawing"),
+          hasFillLayer: !!map.getLayer("drawing-fill"),
+          hasOutlineLayer: !!map.getLayer("drawing-outline")
+        });
+        
+        const boundary = createInitialShape();
+        if (boundary) {
+          console.log("Shape created successfully, boundary length:", boundary.length);
+          updateResizeHandles();
+          console.log("Resize handles created");
+        } else {
+          console.error("Failed to create shape - createInitialShape returned null");
+        }
+      } catch (error) {
+        console.error("Error in createShapeNow:", error);
+      }
+    };
+    
+    // Try immediately
+    createShapeNow();
+    
+    // Also try after a short delay as backup
+    setTimeout(createShapeNow, 200);
+    
+    // And try when map is idle
+    if (map.loaded()) {
+      map.once('idle', createShapeNow);
+    }
+
+    // Event handlers for moving and resizing the shape
     const handleInteractionStart = (e) => {
       // Get current boundary
       const source = map.getSource("drawing");
-      if (!source) return;
-      const data = source._data;
-      if (!data || !data.features || data.features.length === 0) return;
+      if (!source) {
+        console.log("No drawing source found");
+        return;
+      }
+      const data = source.getData ? source.getData() : source._data;
+      if (!data || !data.features || data.features.length === 0) {
+        console.log("No drawing data found");
+        return;
+      }
       
       // Get coordinates from either mouse or touch event
-      // Mapbox normalizes touch events to have lngLat property
       const point = e.lngLat;
-      if (!point) return;
+      if (!point) {
+        console.log("No point in event");
+        return;
+      }
       
       const boundary = data.features[0].geometry.coordinates[0];
       
-      // Check if clicking near edge (for resizing) - larger threshold for mobile/touch
+      // Check if clicking near edge (for resizing)
       const edgeDist = getDistanceToEdge(point, boundary);
-      // Use larger threshold - check if touch device or use larger default for easier mobile interaction
-      // Mapbox converts touch to mouse events, so check originalEvent.type or touches
       const isTouch = e.originalEvent && (
         e.originalEvent.type && e.originalEvent.type.startsWith('touch') || 
         e.originalEvent.touches && e.originalEvent.touches.length > 0 ||
         window.matchMedia && window.matchMedia('(pointer: coarse)').matches
       );
-      // Much larger threshold for touch devices (10km) to make resizing easier on mobile
-      // Also use larger default (5km) to make it easier overall
       const threshold = (isTouch ? 10 : 5) / 111; // ~10km for touch, ~5km for mouse
       
+      const isInside = isPointInShape(point, boundary);
+      console.log("Click detected:", { edgeDist, threshold, isInside, point });
+      
       if (edgeDist < threshold) {
+        console.log("Starting resize");
         drawingStateRef.current.isResizing = true;
         drawingStateRef.current.dragStart = point;
         drawingStateRef.current.initialCenter = { ...drawingStateRef.current.currentCenter };
@@ -1160,7 +1236,8 @@ map.on("mouseleave", "mushroom-points", () => {
         if (e.originalEvent && e.originalEvent.preventDefault) {
           e.originalEvent.preventDefault();
         }
-      } else if (isPointInShape(point, boundary)) {
+      } else if (isInside) {
+        console.log("Starting move");
         drawingStateRef.current.isMoving = true;
         drawingStateRef.current.dragStart = point;
         drawingStateRef.current.initialCenter = { ...drawingStateRef.current.currentCenter };
@@ -1169,17 +1246,16 @@ map.on("mouseleave", "mushroom-points", () => {
         if (e.originalEvent && e.originalEvent.preventDefault) {
           e.originalEvent.preventDefault();
         }
+      } else {
+        console.log("Click outside shape, ignoring");
       }
     };
 
     const handleMouseDown = (e) => {
-      // Mapbox converts touch events to mouse events, so this handles both
       handleInteractionStart(e);
     };
 
     const handleTouchStart = (e) => {
-      // Mapbox normalizes touch events - they should have lngLat
-      // But if not, try to get it from point
       if (!e.lngLat && e.point) {
         const point = map.unproject(e.point);
         e.lngLat = point;
@@ -1191,11 +1267,11 @@ map.on("mouseleave", "mushroom-points", () => {
 
     const handleInteractionMove = (e) => {
       if (!drawingStateRef.current.isMoving && !drawingStateRef.current.isResizing) {
-        // Update cursor based on hover (only for mouse)
+        // Update cursor based on hover
         if (e.lngLat) {
           const source = map.getSource("drawing");
           if (source) {
-            const data = source._data;
+            const data = source.getData ? source.getData() : source._data;
             if (data && data.features && data.features.length > 0) {
               const boundary = data.features[0].geometry.coordinates[0];
               const point = e.lngLat;
@@ -1217,8 +1293,6 @@ map.on("mouseleave", "mushroom-points", () => {
 
       if (!drawingStateRef.current.dragStart) return;
 
-      // Get coordinates from either mouse or touch event
-      // Mapbox normalizes touch events to have lngLat property
       const currentPoint = e.lngLat;
       if (!currentPoint) return;
 
@@ -1237,21 +1311,18 @@ map.on("mouseleave", "mushroom-points", () => {
         // Resize the shape
         const initialCenter = drawingStateRef.current.initialCenter;
         if (drawingMode === "rectangle") {
-          // Calculate distance from initial center to current position
           const latDiff = Math.abs(currentPoint.lat - initialCenter.lat);
           const lngDiff = Math.abs(currentPoint.lng - initialCenter.lng);
-          // Convert degrees to km and double for full width/height
-          const latDist = latDiff * 111; // Convert degrees to km
-          const lngDist = lngDiff * 111 * Math.cos(initialCenter.lat * Math.PI / 180); // Account for latitude
-          drawingStateRef.current.currentSize.width = Math.max(10, latDist * 2); // Min 10km, double for full width
-          drawingStateRef.current.currentSize.height = Math.max(10, lngDist * 2); // Min 10km, double for full height
+          const latDist = latDiff * 111;
+          const lngDist = lngDiff * 111 * Math.cos(initialCenter.lat * Math.PI / 180);
+          drawingStateRef.current.currentSize.width = Math.max(10, latDist * 2);
+          drawingStateRef.current.currentSize.height = Math.max(10, lngDist * 2);
           createInitialShape();
           if (!drawingStateRef.current.activeHandle) {
             updateResizeHandles();
           }
         } else {
-          // Circle: radius is distance from initial center to current position
-          const R = 6371; // Earth radius in km
+          const R = 6371;
           const dLat = ((currentPoint.lat - initialCenter.lat) * Math.PI) / 180;
           const dLng = ((currentPoint.lng - initialCenter.lng) * Math.PI) / 180;
           const a =
@@ -1261,7 +1332,7 @@ map.on("mouseleave", "mushroom-points", () => {
               Math.sin(dLng / 2) *
               Math.sin(dLng / 2);
           const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-          drawingStateRef.current.currentSize.radius = Math.max(5, R * c); // Min 5km
+          drawingStateRef.current.currentSize.radius = Math.max(5, R * c);
           createInitialShape();
           if (!drawingStateRef.current.activeHandle) {
             updateResizeHandles();
@@ -1278,8 +1349,6 @@ map.on("mouseleave", "mushroom-points", () => {
     };
 
     const handleTouchMove = (e) => {
-      // Mapbox normalizes touch events - they should have lngLat
-      // But if not, try to get it from point
       if (!e.lngLat && e.point) {
         const point = map.unproject(e.point);
         e.lngLat = point;
@@ -1311,10 +1380,9 @@ map.on("mouseleave", "mushroom-points", () => {
     };
 
     const handleDoubleClick = (e) => {
-      // Complete drawing on double click
       const source = map.getSource("drawing");
       if (!source) return;
-      const data = source._data;
+      const data = source.getData ? source.getData() : source._data;
       if (!data || !data.features || data.features.length === 0) return;
       
       const boundary = data.features[0].geometry.coordinates[0];
@@ -1322,11 +1390,9 @@ map.on("mouseleave", "mushroom-points", () => {
         ? drawingStateRef.current.currentCenter
         : undefined;
       
-      // Reset drawing state ref
       drawingStateRef.current.currentCenter = null;
       drawingStateRef.current.currentSize = null;
       
-      // Final completion - exit drawing mode
       completeDrawing(boundary, drawingMode, centerPoint, true);
     };
 
@@ -1344,16 +1410,13 @@ map.on("mouseleave", "mushroom-points", () => {
       if (isFinal) {
         cleanupAll();
         
-        // Remove drawing layers and source
         try {
-          // Remove layers first (must be done before removing source)
           if (map.getLayer("drawing-fill")) {
             map.removeLayer("drawing-fill");
           }
           if (map.getLayer("drawing-outline")) {
             map.removeLayer("drawing-outline");
           }
-          // Remove source after layers are removed
           if (map.getSource("drawing")) {
             map.removeSource("drawing");
           }
@@ -1361,13 +1424,11 @@ map.on("mouseleave", "mushroom-points", () => {
           console.error("Error removing drawing layers:", error);
         }
         
-        // Remove resize handles
         resizeHandlesRef.current.forEach(handle => handle.remove());
         resizeHandlesRef.current = [];
         map.getCanvas().style.cursor = "";
       }
       
-      // Notify parent (always update zone, but only exit drawing mode if final)
       onDrawingComplete?.({
         type: shapeType,
         boundary,
@@ -1381,7 +1442,6 @@ map.on("mouseleave", "mushroom-points", () => {
     map.on("mousemove", handleMouseMove);
     map.on("mouseup", handleMouseUp);
     map.on("dblclick", handleDoubleClick);
-    // Touch events for mobile
     map.on("touchstart", handleTouchStart);
     map.on("touchmove", handleTouchMove);
     map.on("touchend", handleTouchEnd);
@@ -1391,7 +1451,7 @@ map.on("mouseleave", "mushroom-points", () => {
       onGetCurrentBoundary.current = () => {
         const source = map.getSource("drawing");
         if (!source) return null;
-        const data = source._data;
+        const data = source.getData ? source.getData() : source._data;
         if (!data || !data.features || data.features.length === 0) return null;
         const boundary = data.features[0].geometry.coordinates[0];
         const centerPoint = drawingMode === "circle" 
@@ -1405,12 +1465,82 @@ map.on("mouseleave", "mushroom-points", () => {
       };
     }
 
-    // Return cleanup function
+    // Return cleanup function for setupDrawingMode
     return () => {
       cleanupAll();
       if (onGetCurrentBoundary) {
         onGetCurrentBoundary.current = null;
       }
+    };
+    };
+    
+    // Wait for style to be loaded if it's not ready yet, then call setupDrawingMode
+    if (!map.isStyleLoaded()) {
+      console.log("⏳ Map style not loaded, waiting for style to load...");
+      
+      let cleanupDone = false;
+      let timeoutId = null;
+      
+      const doCleanup = () => {
+        if (cleanupDone) return;
+        cleanupDone = true;
+        map.off('style.load', onStyleLoad);
+        map.off('load', onMapLoad);
+        map.off('idle', onIdle);
+        if (timeoutId) clearTimeout(timeoutId);
+      };
+      
+      // Try multiple events to catch when style is ready
+      const onStyleLoad = () => {
+        console.log("✅ Map style loaded via style.load event");
+        if (map.isStyleLoaded() && drawingMode) {
+          doCleanup();
+          setupDrawingMode();
+        }
+      };
+      
+      const onMapLoad = () => {
+        console.log("✅ Map loaded via load event");
+        if (map.isStyleLoaded() && drawingMode) {
+          doCleanup();
+          setupDrawingMode();
+        }
+      };
+      
+      const onIdle = () => {
+        console.log("✅ Map idle");
+        if (map.isStyleLoaded() && drawingMode) {
+          doCleanup();
+          setupDrawingMode();
+        }
+      };
+      
+      // Listen to multiple events
+      map.on('style.load', onStyleLoad);
+      map.on('load', onMapLoad);
+      map.on('idle', onIdle);
+      
+      // Also try after a delay as fallback
+      timeoutId = setTimeout(() => {
+        console.log("⏰ Timeout fallback - checking if style is loaded");
+        if (map.isStyleLoaded() && drawingMode) {
+          doCleanup();
+          setupDrawingMode();
+        }
+      }, 500);
+      
+      return () => {
+        doCleanup();
+      };
+    }
+    
+    // If style is already loaded, proceed immediately
+    console.log("✅ Style already loaded, proceeding immediately");
+    setupDrawingMode();
+    
+    // Return cleanup for the useEffect
+    return () => {
+      // Cleanup will be handled by setupDrawingMode's return
     };
   }, [drawingMode, mapLoaded, onDrawingComplete, onDrawingCancel, onGetCurrentBoundary]);
 

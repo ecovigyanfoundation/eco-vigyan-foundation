@@ -73,8 +73,8 @@ export default function Navbar() {
   ];
 
   const programLinks = [
-    { name: "Articles", path: "/articles" },
     { name: "Eco-Art Gallery", path: "/gallery" },
+    { name: "Articles", path: "/articles" },
     { name: "Programs", path: "/programs" },
     { name: "Reports", path: "/reports" },
     { name: "Contact Us", path: "/contact" },

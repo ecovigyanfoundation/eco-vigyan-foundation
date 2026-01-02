@@ -3,8 +3,11 @@
 import { useState } from "react";
 import { X, MapPin, Square, Circle, Search, Loader2 } from "lucide-react";
 import { getCityBoundary } from "@/lib/geocoding";
+import { useAuth } from "@/context/AuthContext";
 
 export default function ZoneModal({ isOpen, onClose, onZoneSelect, onDrawingModeSelect }) {
+  const { user } = useAuth();
+  const isAdmin = user && user.role === "admin";
   const [cityName, setCityName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -86,19 +89,21 @@ export default function ZoneModal({ isOpen, onClose, onZoneSelect, onDrawingMode
               <span>Search City</span>
             </div>
           </button>
-          <button
-            onClick={() => setActiveTab("draw")}
-            className={`flex-1 py-4 px-6 text-sm font-bold uppercase tracking-wide transition-colors ${
-              activeTab === "draw"
-                ? "text-emerald-700 border-b-2 border-emerald-500 bg-emerald-50/50"
-                : "text-emerald-600/60 hover:text-emerald-700 hover:bg-emerald-50/30"
-            }`}
-          >
-            <div className="flex items-center justify-center gap-2">
-              <Square size={16} />
-              <span>Draw Area</span>
-            </div>
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => setActiveTab("draw")}
+              className={`flex-1 py-4 px-6 text-sm font-bold uppercase tracking-wide transition-colors ${
+                activeTab === "draw"
+                  ? "text-emerald-700 border-b-2 border-emerald-500 bg-emerald-50/50"
+                  : "text-emerald-600/60 hover:text-emerald-700 hover:bg-emerald-50/30"
+              }`}
+            >
+              <div className="flex items-center justify-center gap-2">
+                <Square size={16} />
+                <span>Draw Area</span>
+              </div>
+            </button>
+          )}
         </div>
 
         {/* Content */}
