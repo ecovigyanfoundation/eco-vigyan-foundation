@@ -151,7 +151,7 @@ export default function Map(props) {
       const currentZoomLevel = zoom !== null && zoom !== undefined ? zoom : 4;
 
       // Grid size based on zoom level - smaller cells at higher zoom
-      // At zoom 2-3: ~2 degrees per cell, zoom 4-5: ~0.5 degrees, zoom 6+: ~0.1 degrees
+      // Grid continues dividing until zoom 9 when individual icons appear
       let gridSize;
       if (currentZoomLevel < 3) {
         gridSize = 2.0; // ~220km per cell
@@ -159,8 +159,14 @@ export default function Map(props) {
         gridSize = 0.5; // ~55km per cell
       } else if (currentZoomLevel < 6) {
         gridSize = 0.2; // ~22km per cell
-      } else {
+      } else if (currentZoomLevel < 7) {
         gridSize = 0.1; // ~11km per cell
+      } else if (currentZoomLevel < 8) {
+        gridSize = 0.05; // ~5.5km per cell
+      } else if (currentZoomLevel < 9) {
+        gridSize = 0.02; // ~2.2km per cell
+      } else {
+        gridSize = 0.01; // ~1.1km per cell (for zoom 9+, though icons will show)
       }
 
       // Create an object to store counts per grid cell (using object instead of Map to avoid naming conflict)
@@ -258,13 +264,13 @@ export default function Map(props) {
       map.getSource("mushroom-grid-heat").setData(gridHeatmapData);
     }
 
-    // Add grid heatmap layer (only show when zoomed out)
+    // Add grid heatmap layer (show until zoom 9 when icons appear)
     if (!map.getLayer("mushroom-grid-heat")) {
       map.addLayer({
         id: "mushroom-grid-heat",
         type: "fill",
         source: "mushroom-grid-heat",
-        maxzoom: 6,
+        maxzoom: 8.9,
         paint: {
           "fill-color": [
             "interpolate",
@@ -307,7 +313,7 @@ export default function Map(props) {
           id: "mushroom-grid-heat-outline",
           type: "line",
           source: "mushroom-grid-heat",
-          maxzoom: 6,
+          maxzoom: 8.9,
           paint: {
             "line-color": "#10b981",
             "line-width": [
@@ -320,6 +326,8 @@ export default function Map(props) {
               1,
               6,
               1.5,
+              8,
+              2,
             ],
             "line-opacity": 0.3,
           },
@@ -327,6 +335,7 @@ export default function Map(props) {
       }
     }
 
+    // Load mushroom icon if not already loaded
     if (!map.hasImage("mushroom-icon")) {
       map.loadImage("/icons/icon1.png", (err, img) => {
         if (!err && img && !map.hasImage("mushroom-icon")) {
@@ -335,12 +344,19 @@ export default function Map(props) {
       });
     }
 
-    if (!map.getLayer("mushroom-points")) {
+    // Remove existing layer if it exists (to update minzoom)
+    if (map.getLayer("mushroom-points")) {
+      map.removeLayer("mushroom-points");
+    }
+    
+    // Create layer with higher minzoom (9) so icons only appear when zoomed in more
+    // Previously was 6, now requires zoom level 9 or higher
+    if (map.hasImage("mushroom-icon")) {
       map.addLayer({
         id: "mushroom-points",
         type: "symbol",
         source: "mushrooms",
-        minzoom: 6,
+        minzoom: 9,
         layout: {
           "icon-image": "mushroom-icon",
           "icon-size": 0.04,
