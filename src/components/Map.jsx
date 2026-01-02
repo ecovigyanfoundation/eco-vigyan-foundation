@@ -12,18 +12,23 @@ if (MAPBOX_TOKEN) {
   mapboxgl.accessToken = MAPBOX_TOKEN;
 }
 
-export default function Map({ 
-  data = [], 
-  filters = {}, 
-  mode, 
-  onMarkerSelect,
-  onMushroomClick, // Alias for onMarkerSelect for compatibility
-  selectedZone,
-  drawingMode,
-  onDrawingComplete,
-  onDrawingCancel,
-  onGetCurrentBoundary,
-}) {
+export default function Map(props) {
+  // Destructure with defaults to handle undefined props
+  const {
+    data,
+    filters = {},
+    mode,
+    onMarkerSelect,
+    onMushroomClick, // Alias for onMarkerSelect for compatibility
+    selectedZone,
+    drawingMode,
+    onDrawingComplete,
+    onDrawingCancel,
+    onGetCurrentBoundary,
+  } = props || {};
+  
+  // Ensure data is always an array
+  const safeData = Array.isArray(data) ? data : [];
   // Use onMushroomClick if provided, otherwise fall back to onMarkerSelect
   const handleMarkerSelect = onMushroomClick || onMarkerSelect;
   const mapContainerRef = useRef(null);
@@ -46,6 +51,7 @@ export default function Map({
 
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapError, setMapError] = useState(null);
+  const [currentZoom, setCurrentZoom] = useState(null);
 
   const isTokenMissing = useMemo(() => !MAPBOX_TOKEN, []);
 
@@ -70,19 +76,30 @@ export default function Map({
 
     map.addControl(new mapboxgl.NavigationControl(), "top-right");
 
+    const handleZoomChange = () => {
+      setCurrentZoom(map.getZoom());
+    };
+
     map.on("load", () => {
       setMapLoaded(true);
       map.resize();
+      setCurrentZoom(map.getZoom());
     });
 
     map.on("error", (e) => {
       setMapError(e?.error?.message || "Map failed to load");
     });
 
+    // Track zoom changes for grid recalculation (use zoomend for better performance)
+    map.on("zoomend", handleZoomChange);
+    map.on("moveend", handleZoomChange); // Also update on pan in case bounds change significantly
+
     mapRef.current = map;
 
     return () => {
       popupRef.current?.remove();
+      map.off("zoomend", handleZoomChange);
+      map.off("moveend", handleZoomChange);
       map.remove();
       mapRef.current = null;
     };
@@ -94,8 +111,8 @@ export default function Map({
 
     const map = mapRef.current;
 
-    const features = data
-      .filter((d) => d.latitude && d.longitude && isItemActive(d))
+    const features = safeData
+      .filter((d) => d && d.latitude && d.longitude && isItemActive(d))
       .map((d) => ({
         type: "Feature",
         properties: d,
@@ -116,32 +133,193 @@ export default function Map({
       map.getSource("mushrooms").setData(geojson);
     }
 
-    if (!map.getLayer("mushroom-heat")) {
+    // Helper function to create grid-based heatmap
+    const createGridHeatmap = (features, zoom) => {
+      if (!features || features.length === 0) {
+        return {
+          type: "FeatureCollection",
+          features: [],
+        };
+      }
+
+      // Default zoom if not provided
+      const currentZoomLevel = zoom !== null && zoom !== undefined ? zoom : 4;
+
+      // Grid size based on zoom level - smaller cells at higher zoom
+      // At zoom 2-3: ~2 degrees per cell, zoom 4-5: ~0.5 degrees, zoom 6+: ~0.1 degrees
+      let gridSize;
+      if (currentZoomLevel < 3) {
+        gridSize = 2.0; // ~220km per cell
+      } else if (currentZoomLevel < 5) {
+        gridSize = 0.5; // ~55km per cell
+      } else if (currentZoomLevel < 6) {
+        gridSize = 0.2; // ~22km per cell
+      } else {
+        gridSize = 0.1; // ~11km per cell
+      }
+
+      // Create an object to store counts per grid cell (using object instead of Map to avoid naming conflict)
+      const gridMap = {};
+
+      // Count features in each grid cell
+      features.forEach((feature) => {
+        // Validate feature has valid geometry and coordinates
+        if (!feature || !feature.geometry || !feature.geometry.coordinates) {
+          return; // Skip invalid features
+        }
+        
+        const coordinates = feature.geometry.coordinates;
+        if (!Array.isArray(coordinates) || coordinates.length < 2) {
+          return; // Skip invalid coordinates
+        }
+        
+        const [lng, lat] = coordinates;
+        
+        // Validate coordinates are numbers
+        if (typeof lng !== 'number' || typeof lat !== 'number' || isNaN(lng) || isNaN(lat)) {
+          return; // Skip invalid coordinates
+        }
+        
+        // Calculate grid cell coordinates
+        const gridX = Math.floor(lng / gridSize);
+        const gridY = Math.floor(lat / gridSize);
+        const cellKey = `${gridX}_${gridY}`;
+
+        if (!gridMap[cellKey]) {
+          gridMap[cellKey] = {
+            count: 0,
+            gridX,
+            gridY,
+          };
+        }
+        gridMap[cellKey].count++;
+      });
+
+      // Create polygon features for each grid cell (only include cells with data)
+      const gridFeatures = Object.entries(gridMap)
+        .filter(([key, data]) => data.count > 0) // Only include cells with mushrooms
+        .map(([key, data]) => {
+          const { count, gridX, gridY } = data;
+          
+          // Create square polygon for this grid cell
+          const minLng = gridX * gridSize;
+          const maxLng = (gridX + 1) * gridSize;
+          const minLat = gridY * gridSize;
+          const maxLat = (gridY + 1) * gridSize;
+
+          return {
+            type: "Feature",
+            properties: {
+              count,
+            },
+            geometry: {
+              type: "Polygon",
+              coordinates: [[
+                [minLng, minLat],
+                [maxLng, minLat],
+                [maxLng, maxLat],
+                [minLng, maxLat],
+                [minLng, minLat],
+              ]],
+            },
+          };
+        });
+
+      return {
+        type: "FeatureCollection",
+        features: gridFeatures,
+      };
+    };
+
+    // Create grid heatmap data
+    // Safely get zoom - map.getZoom() might not be available if map isn't fully initialized
+    let zoomLevel = currentZoom;
+    if (zoomLevel === null || zoomLevel === undefined) {
+      try {
+        zoomLevel = map.getZoom();
+      } catch (e) {
+        zoomLevel = 4; // Default zoom
+      }
+    }
+    const gridHeatmapData = createGridHeatmap(features, zoomLevel);
+
+    // Add or update grid heatmap source
+    if (!map.getSource("mushroom-grid-heat")) {
+      map.addSource("mushroom-grid-heat", {
+        type: "geojson",
+        data: gridHeatmapData,
+      });
+    } else {
+      map.getSource("mushroom-grid-heat").setData(gridHeatmapData);
+    }
+
+    // Add grid heatmap layer (only show when zoomed out)
+    if (!map.getLayer("mushroom-grid-heat")) {
       map.addLayer({
-        id: "mushroom-heat",
-        type: "heatmap",
-        source: "mushrooms",
+        id: "mushroom-grid-heat",
+        type: "fill",
+        source: "mushroom-grid-heat",
         maxzoom: 6,
         paint: {
-          "heatmap-radius": 30,
-          "heatmap-opacity": 0.85,
-          "heatmap-color": [
+          "fill-color": [
             "interpolate",
             ["linear"],
-            ["heatmap-density"],
+            ["get", "count"],
             0,
             "rgba(0,0,0,0)",
-            0.3,
-            "#a7f3d0",
-            0.5,
-            "#34d399",
-            0.7,
-            "#10b981",
             1,
+            "#a7f3d0",
+            5,
+            "#34d399",
+            10,
+            "#10b981",
+            20,
+            "#059669",
+            50,
             "#064e3b",
+          ],
+          "fill-opacity": [
+            "interpolate",
+            ["linear"],
+            ["get", "count"],
+            0,
+            0,
+            1,
+            0.3,
+            5,
+            0.5,
+            10,
+            0.7,
+            20,
+            0.85,
           ],
         },
       });
+
+      // Add grid outline for better visibility
+      if (!map.getLayer("mushroom-grid-heat-outline")) {
+        map.addLayer({
+          id: "mushroom-grid-heat-outline",
+          type: "line",
+          source: "mushroom-grid-heat",
+          maxzoom: 6,
+          paint: {
+            "line-color": "#10b981",
+            "line-width": [
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              2,
+              0.5,
+              4,
+              1,
+              6,
+              1.5,
+            ],
+            "line-opacity": 0.3,
+          },
+        });
+      }
     }
 
     if (!map.hasImage("mushroom-icon")) {
@@ -625,7 +803,7 @@ map.on("mouseleave", "mushroom-points", () => {
   map.getCanvas().style.cursor = "";
 });
 
-  }, [data, filters, mode, mapLoaded, onMarkerSelect, onMushroomClick, selectedZone]);
+  }, [data, filters, mode, mapLoaded, onMarkerSelect, onMushroomClick, selectedZone, currentZoom]);
 
   /* ---------------- DRAWING MODE ---------------- */
   useEffect(() => {
