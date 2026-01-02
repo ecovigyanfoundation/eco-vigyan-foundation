@@ -68,8 +68,7 @@ export default function Navbar() {
   }, []);
 
   const navLinks = [
-    { name: "About", path: "/#about" },
-    { name: "Explore", path: "/explore", isNew: true },
+    { name: "Mushroom Mania", path: "/explore", isNew: true },
     { name: "Join Us", path: "/join-us" },
   ];
 
