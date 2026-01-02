@@ -76,8 +76,25 @@ export default function Map(props) {
 
     map.addControl(new mapboxgl.NavigationControl(), "top-right");
 
+    // Throttle zoom updates to avoid too frequent recalculations
+    let zoomUpdateTimeout = null;
     const handleZoomChange = () => {
+      // Clear any pending update
+      if (zoomUpdateTimeout) {
+        clearTimeout(zoomUpdateTimeout);
+      }
+      // Update zoom state immediately for responsive grid updates
       setCurrentZoom(map.getZoom());
+    };
+
+    // Throttled version for moveend to avoid excessive updates
+    const handleMoveEnd = () => {
+      if (zoomUpdateTimeout) {
+        clearTimeout(zoomUpdateTimeout);
+      }
+      zoomUpdateTimeout = setTimeout(() => {
+        setCurrentZoom(map.getZoom());
+      }, 100);
     };
 
     map.on("load", () => {
@@ -90,16 +107,22 @@ export default function Map(props) {
       setMapError(e?.error?.message || "Map failed to load");
     });
 
-    // Track zoom changes for grid recalculation (use zoomend for better performance)
-    map.on("zoomend", handleZoomChange);
-    map.on("moveend", handleZoomChange); // Also update on pan in case bounds change significantly
+    // Track zoom changes for grid recalculation
+    // Use 'zoom' event for responsive updates during zooming (with throttling via state updates)
+    map.on("zoom", handleZoomChange);
+    map.on("zoomend", handleZoomChange); // Also update on zoom end to ensure final state
+    map.on("moveend", handleMoveEnd); // Update on pan end (throttled)
 
     mapRef.current = map;
 
     return () => {
       popupRef.current?.remove();
+      if (zoomUpdateTimeout) {
+        clearTimeout(zoomUpdateTimeout);
+      }
+      map.off("zoom", handleZoomChange);
       map.off("zoomend", handleZoomChange);
-      map.off("moveend", handleZoomChange);
+      map.off("moveend", handleMoveEnd);
       map.remove();
       mapRef.current = null;
     };
@@ -146,16 +169,34 @@ export default function Map(props) {
       const currentZoomLevel = zoom !== null && zoom !== undefined ? zoom : 4;
 
       // Grid size based on zoom level - smaller cells at higher zoom
-      // At zoom 2-3: ~2 degrees per cell, zoom 4-5: ~0.5 degrees, zoom 6+: ~0.1 degrees
+      // More granular grid sizes for better detail, dividing more as you zoom in
       let gridSize;
       if (currentZoomLevel < 3) {
         gridSize = 2.0; // ~220km per cell
+      } else if (currentZoomLevel < 4) {
+        gridSize = 1.0; // ~110km per cell
       } else if (currentZoomLevel < 5) {
         gridSize = 0.5; // ~55km per cell
       } else if (currentZoomLevel < 6) {
-        gridSize = 0.2; // ~22km per cell
-      } else {
+        gridSize = 0.25; // ~28km per cell
+      } else if (currentZoomLevel < 6.5) {
+        gridSize = 0.15; // ~17km per cell
+      } else if (currentZoomLevel < 7) {
         gridSize = 0.1; // ~11km per cell
+      } else if (currentZoomLevel < 7.5) {
+        gridSize = 0.075; // ~8.3km per cell
+      } else if (currentZoomLevel < 8) {
+        gridSize = 0.05; // ~5.5km per cell
+      } else if (currentZoomLevel < 8.5) {
+        gridSize = 0.03; // ~3.3km per cell
+      } else if (currentZoomLevel < 9) {
+        gridSize = 0.02; // ~2.2km per cell
+      } else if (currentZoomLevel < 9.5) {
+        gridSize = 0.015; // ~1.7km per cell
+      } else if (currentZoomLevel < 10) {
+        gridSize = 0.01; // ~1.1km per cell
+      } else {
+        gridSize = 0.005; // ~0.55km per cell (shouldn't show as grid stops at zoom 10)
       }
 
       // Create an object to store counts per grid cell (using object instead of Map to avoid naming conflict)
@@ -232,14 +273,14 @@ export default function Map(props) {
     };
 
     // Create grid heatmap data
-    // Safely get zoom - map.getZoom() might not be available if map isn't fully initialized
-    let zoomLevel = currentZoom;
-    if (zoomLevel === null || zoomLevel === undefined) {
-      try {
-        zoomLevel = map.getZoom();
-      } catch (e) {
-        zoomLevel = 4; // Default zoom
-      }
+    // Always get the current zoom from the map to ensure grid updates during zooming
+    let zoomLevel;
+    try {
+      // Always read zoom directly from map for most current value
+      zoomLevel = map.getZoom();
+    } catch (e) {
+      // Fallback to state or default
+      zoomLevel = currentZoom !== null && currentZoom !== undefined ? currentZoom : 4;
     }
     const gridHeatmapData = createGridHeatmap(features, zoomLevel);
 
@@ -253,13 +294,13 @@ export default function Map(props) {
       map.getSource("mushroom-grid-heat").setData(gridHeatmapData);
     }
 
-    // Add grid heatmap layer (only show when zoomed out)
+    // Add grid heatmap layer (stop showing when individual mushroom icons appear)
     if (!map.getLayer("mushroom-grid-heat")) {
       map.addLayer({
         id: "mushroom-grid-heat",
         type: "fill",
         source: "mushroom-grid-heat",
-        maxzoom: 6,
+        maxzoom: 10, // Stop showing grid when mushroom icons start showing
         paint: {
           "fill-color": [
             "interpolate",
@@ -302,7 +343,7 @@ export default function Map(props) {
           id: "mushroom-grid-heat-outline",
           type: "line",
           source: "mushroom-grid-heat",
-          maxzoom: 6,
+          maxzoom: 10, // Stop showing grid outline when mushroom icons start showing
           paint: {
             "line-color": "#10b981",
             "line-width": [
@@ -335,10 +376,10 @@ export default function Map(props) {
         id: "mushroom-points",
         type: "symbol",
         source: "mushrooms",
-        minzoom: 6,
+        minzoom: 10, // Show individual points at very high zoom levels, grid shows until then
         layout: {
           "icon-image": "mushroom-icon",
-          "icon-size": 0.08,
+          "icon-size": 0.04,
           "icon-allow-overlap": true,
         },
       });
