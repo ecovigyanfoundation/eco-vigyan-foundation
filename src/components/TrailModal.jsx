@@ -1,11 +1,19 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { X, Loader2, Navigation } from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function TrailModal({ isOpen, onClose, onLocationSelect }) {
   const [gettingLocation, setGettingLocation] = useState(false);
   const [error, setError] = useState(null);
+  const locationTimeoutRef = useRef(null);
+  const gettingLocationRef = useRef(false);
+  
+  // Keep ref in sync with state
+  useEffect(() => {
+    gettingLocationRef.current = gettingLocation;
+  }, [gettingLocation]);
 
   const handleGetCurrentLocation = useCallback(() => {
     if (!navigator.geolocation) {
@@ -15,9 +23,34 @@ export default function TrailModal({ isOpen, onClose, onLocationSelect }) {
 
     setGettingLocation(true);
     setError(null);
+    
+    // Clear any existing timeout
+    if (locationTimeoutRef.current) {
+      clearTimeout(locationTimeoutRef.current);
+      locationTimeoutRef.current = null;
+    }
+    
+    // Set a timeout to show toast if location isn't obtained within 8 seconds
+    // (before the geolocation timeout of 10 seconds)
+    locationTimeoutRef.current = setTimeout(() => {
+      // Check if we're still trying to get location
+      if (gettingLocationRef.current) {
+        toast.error("Failed to get location. Please check your settings and try again.", {
+          id: 'location-timeout',
+          duration: 4000,
+        });
+        // Don't set gettingLocation to false here - let the geolocation error handler do it
+      }
+    }, 8000);
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        // Clear timeout since we got the location
+        if (locationTimeoutRef.current) {
+          clearTimeout(locationTimeoutRef.current);
+          locationTimeoutRef.current = null;
+        }
+        
         const { latitude, longitude } = position.coords;
         setGettingLocation(false);
         // Pass current location - map will zoom to this location
@@ -30,6 +63,12 @@ export default function TrailModal({ isOpen, onClose, onLocationSelect }) {
         onClose();
       },
       (err) => {
+        // Clear timeout since we got an error response
+        if (locationTimeoutRef.current) {
+          clearTimeout(locationTimeoutRef.current);
+          locationTimeoutRef.current = null;
+        }
+        
         setGettingLocation(false);
         let errorMessage = "";
         
@@ -38,23 +77,33 @@ export default function TrailModal({ isOpen, onClose, onLocationSelect }) {
         const errorCode = err?.code;
         if (errorCode === 1) {
           errorMessage = "Please enable your location to start the trail. Allow location access in your browser settings and try again.";
+          toast.error("Failed to get location. Please enable location access and try again.", {
+            id: 'location-permission-denied',
+            duration: 4000,
+          });
         } else if (errorCode === 2) {
           errorMessage = "Location information is unavailable. Please check your device's location settings and try again.";
+          toast.error("Failed to get location. Please check your device settings and try again.", {
+            id: 'location-unavailable',
+            duration: 4000,
+          });
         } else if (errorCode === 3) {
           errorMessage = "Location request timed out. Please check your connection and try again.";
+          toast.error("Failed to get location. Request timed out. Please try again.", {
+            id: 'location-timeout-error',
+            duration: 4000,
+          });
         } else {
           errorMessage = "Please enable your location to start the trail. Check your browser settings and try again.";
+          toast.error("Failed to get location. Please check your settings and try again.", {
+            id: 'location-error',
+            duration: 4000,
+          });
         }
         
         setError(errorMessage);
         
-        // Only log error details in development (not user-facing)
-        if (process.env.NODE_ENV === 'development' && err) {
-          console.error("Geolocation error:", {
-            code: err.code,
-            message: err.message || "Unknown error",
-          });
-        }
+        // Error is handled and displayed to user, no need to log to console
       },
       {
         enableHighAccuracy: true,
@@ -73,8 +122,20 @@ export default function TrailModal({ isOpen, onClose, onLocationSelect }) {
 
   const handleRetry = useCallback(() => {
     setError(null);
-    handleGetCurrentLocation();
+    // Wait a moment before retrying to give user time to see the button click
+    setTimeout(() => {
+      handleGetCurrentLocation();
+    }, 300);
   }, [handleGetCurrentLocation]);
+  
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (locationTimeoutRef.current) {
+        clearTimeout(locationTimeoutRef.current);
+      }
+    };
+  }, []);
 
   if (!isOpen) return null;
 
