@@ -269,7 +269,6 @@ export default function Map(props) {
     }
 
     // Add grid heatmap layer (show until zoom 9 when icons appear)
-    // Hide heatmap when in trail mode
     if (!map.getLayer("mushroom-grid-heat")) {
       map.addLayer({
         id: "mushroom-grid-heat",
@@ -310,9 +309,6 @@ export default function Map(props) {
             0.85,
           ],
         },
-        layout: {
-          visibility: trailMode ? "none" : "visible",
-        },
       });
 
       // Add grid outline for better visibility
@@ -339,22 +335,7 @@ export default function Map(props) {
             ],
             "line-opacity": 0.3,
           },
-          layout: {
-            visibility: trailMode ? "none" : "visible",
-          },
         });
-      }
-    } else {
-      // Update visibility of existing heatmap layers based on trail mode
-      try {
-        if (map.getLayer("mushroom-grid-heat")) {
-          map.setLayoutProperty("mushroom-grid-heat", "visibility", trailMode ? "none" : "visible");
-        }
-        if (map.getLayer("mushroom-grid-heat-outline")) {
-          map.setLayoutProperty("mushroom-grid-heat-outline", "visibility", trailMode ? "none" : "visible");
-        }
-      } catch (error) {
-        console.error("Error updating heatmap visibility:", error);
       }
     }
 
