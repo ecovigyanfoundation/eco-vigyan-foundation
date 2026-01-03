@@ -13,17 +13,34 @@
 }
 
 .mapboxgl-popup-close-button {
-  padding: 5px 10px;
-  color: white; /* Makes 'X' visible against images */
-  font-size: 20px;
-  z-index: 10;
-  background: rgba(0, 0, 0, 0.5);
-  border-radius: 50%;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  padding: 8px !important;
+  color: white !important;
+  font-size: 18px !important;
+  font-weight: bold !important;
+  z-index: 10 !important;
+  background: rgba(0, 0, 0, 0.75) !important;
+  border-radius: 50% !important;
+  width: 32px !important;
+  height: 32px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 2px solid white !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+  transition: all 0.2s ease !important;
+  cursor: pointer !important;
+  top: 8px !important;
+  right: 8px !important;
+}
+
+.mapboxgl-popup-close-button:hover {
+  background: rgba(0, 0, 0, 0.9) !important;
+  transform: scale(1.1) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+}
+
+.mapboxgl-popup-close-button:active {
+  transform: scale(0.95) !important;
 }
 
 /* Custom scrollbar for the info text */

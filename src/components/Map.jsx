@@ -25,6 +25,10 @@ export default function Map(props) {
     onDrawingComplete,
     onDrawingCancel,
     onGetCurrentBoundary,
+    trailMode = false,
+    trailMushrooms = [],
+    trailCurrentLocation = null,
+    onTrailMushroomAdd,
   } = props || {};
   
   // Debug: Log when drawingMode prop changes
@@ -265,6 +269,7 @@ export default function Map(props) {
     }
 
     // Add grid heatmap layer (show until zoom 9 when icons appear)
+    // Hide heatmap when in trail mode
     if (!map.getLayer("mushroom-grid-heat")) {
       map.addLayer({
         id: "mushroom-grid-heat",
@@ -305,6 +310,9 @@ export default function Map(props) {
             0.85,
           ],
         },
+        layout: {
+          visibility: trailMode ? "none" : "visible",
+        },
       });
 
       // Add grid outline for better visibility
@@ -331,7 +339,22 @@ export default function Map(props) {
             ],
             "line-opacity": 0.3,
           },
+          layout: {
+            visibility: trailMode ? "none" : "visible",
+          },
         });
+      }
+    } else {
+      // Update visibility of existing heatmap layers based on trail mode
+      try {
+        if (map.getLayer("mushroom-grid-heat")) {
+          map.setLayoutProperty("mushroom-grid-heat", "visibility", trailMode ? "none" : "visible");
+        }
+        if (map.getLayer("mushroom-grid-heat-outline")) {
+          map.setLayoutProperty("mushroom-grid-heat-outline", "visibility", trailMode ? "none" : "visible");
+        }
+      } catch (error) {
+        console.error("Error updating heatmap visibility:", error);
       }
     }
 
@@ -420,7 +443,8 @@ export default function Map(props) {
       }
 
       // Only auto-zoom for city boundaries, not manually drawn zones
-      if (selectedZone.type === "city") {
+      // Also handle trail locations (city or current location)
+      if ((selectedZone.type === "city" || selectedZone.type === "trail") && selectedZone.boundary) {
         const coordinates = selectedZone.boundary;
         const bounds = coordinates.reduce(
           (bounds, coord) => {
@@ -435,10 +459,60 @@ export default function Map(props) {
           ]
         );
 
-        map.fitBounds(bounds, {
-          padding: { top: 100, bottom: 100, left: 100, right: 100 },
-          duration: 1000,
-        });
+        // Use center from selectedZone if available, otherwise calculate from bounds
+        let centerLng, centerLat;
+        if (selectedZone.center) {
+          centerLng = selectedZone.center.lng;
+          centerLat = selectedZone.center.lat;
+        } else {
+          // Calculate center of bounds as fallback
+          centerLng = (bounds[0][0] + bounds[1][0]) / 2;
+          centerLat = (bounds[0][1] + bounds[1][1]) / 2;
+        }
+
+        // For trail mode, ensure we zoom to at least level 9 so mushrooms are visible
+        if (trailMode) {
+          // Use fitBounds with minZoom option if the calculated zoom would be less than 9
+          // First, let's try to fit bounds and then adjust if needed
+          map.fitBounds(bounds, {
+            padding: { top: 100, bottom: 100, left: 100, right: 100 },
+            duration: 1000,
+            maxZoom: 15,
+          });
+          
+          // After animation completes, check and adjust zoom if needed
+          const checkZoom = () => {
+            const currentZoom = map.getZoom();
+            if (currentZoom < 9) {
+              // Zoom to level 9 centered on the city center (use the actual city center)
+              map.flyTo({
+                center: [centerLng, centerLat],
+                zoom: 9,
+                duration: 500,
+              });
+            }
+          };
+          
+          // Use both moveend and a timeout as fallback
+          map.once('moveend', checkZoom);
+          setTimeout(checkZoom, 1200); // Fallback after animation should complete
+        } else {
+          map.fitBounds(bounds, {
+            padding: { top: 100, bottom: 100, left: 100, right: 100 },
+            duration: 1000,
+          });
+        }
+      } else if (selectedZone.type === "trail" && selectedZone.center && !selectedZone.boundary) {
+        // Handle trail with current location (no boundary, just center)
+        const center = selectedZone.center;
+        if (trailMode) {
+          // Zoom to current location at level 9
+          map.flyTo({
+            center: [center.lng, center.lat],
+            zoom: 9,
+            duration: 1000,
+          });
+        }
       }
     } else {
       // Remove zone if not selected
@@ -481,16 +555,252 @@ export default function Map(props) {
       }
     }
 
+    /* ---------------- TRAIL LAYER ---------------- */
+    // Helper function to create curved line between points using quadratic Bezier curve
+    const createCurvedLine = (points) => {
+      if (points.length < 2) return [];
+      
+      const curvedPoints = [];
+      
+      // Add first point
+      curvedPoints.push(points[0]);
+      
+      for (let i = 0; i < points.length - 1; i++) {
+        const p1 = points[i];
+        const p2 = points[i + 1];
+        
+        // Calculate midpoint
+        const midLat = (p1[1] + p2[1]) / 2;
+        const midLng = (p1[0] + p2[0]) / 2;
+        
+        // Calculate distance in degrees (approximate)
+        const dx = p2[0] - p1[0];
+        const dy = p2[1] - p1[1];
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        // Create a control point offset perpendicular to the line
+        // This creates a natural curve
+        const curveAmount = Math.min(distance * 0.4, 0.01); // Limit curve amount
+        
+        // Perpendicular vector (rotate 90 degrees)
+        const perpX = -dy / distance;
+        const perpY = dx / distance;
+        
+        // Control point (midpoint offset perpendicularly)
+        const controlLat = midLat + perpY * curveAmount;
+        const controlLng = midLng + perpX * curveAmount;
+        
+        // Generate points along the quadratic Bezier curve
+        // Use more points for smoother curves
+        const numPoints = Math.max(30, Math.min(100, Math.floor(distance * 5000)));
+        const step = 1 / numPoints;
+        
+        for (let t = step; t < 1; t += step) {
+          // Quadratic Bezier: (1-t)²P₀ + 2(1-t)tP₁ + t²P₂
+          const mt = 1 - t;
+          const lat = mt * mt * p1[1] + 2 * mt * t * controlLat + t * t * p2[1];
+          const lng = mt * mt * p1[0] + 2 * mt * t * controlLng + t * t * p2[0];
+          curvedPoints.push([lng, lat]);
+        }
+        
+        // Add the endpoint (avoid duplicates)
+        if (i === points.length - 2) {
+          curvedPoints.push(p2);
+        }
+      }
+      
+      return curvedPoints;
+    };
+    
+    // Update trail line layer
+    // Draw line from user's current location to mushrooms in sequence (if at least 1 mushroom)
+    if (trailMode && trailMushrooms.length >= 1) {
+      const trailPoints = [];
+      
+      // Start with user's current location if available
+      if (trailCurrentLocation && trailCurrentLocation.lat && trailCurrentLocation.lng) {
+        trailPoints.push([
+          Number(trailCurrentLocation.lng),
+          Number(trailCurrentLocation.lat),
+        ]);
+      }
+      
+      // Add all mushrooms in the trail in order (no duplicates)
+      const addedCoordinates = new Set();
+      trailMushrooms.forEach((m) => {
+        const lng = Number(m.longitude || m.location?.longitude);
+        const lat = Number(m.latitude || m.location?.latitude);
+        if (!isNaN(lng) && !isNaN(lat)) {
+          // Create a unique key for this coordinate to prevent duplicates
+          const coordKey = `${lng.toFixed(6)},${lat.toFixed(6)}`;
+          if (!addedCoordinates.has(coordKey)) {
+            addedCoordinates.add(coordKey);
+            trailPoints.push([lng, lat]);
+          }
+        }
+      });
+      
+      // Only draw line if we have at least 2 points (user location + at least 1 mushroom, or 2+ mushrooms)
+      // The line should go: user → mushroom1 → mushroom2 → ... → last mushroom (stops there)
+      if (trailPoints.length >= 2) {
+        // Create curved line connecting points in sequence
+        const curvedLine = createCurvedLine(trailPoints);
+        
+        // Ensure the line ends at the last point (last mushroom) and doesn't continue
+        const finalLine = curvedLine.length > 0 ? curvedLine : trailPoints;
+        
+        const trailGeoJSON = {
+          type: "FeatureCollection",
+          features: [
+            {
+              type: "Feature",
+              geometry: {
+                type: "LineString",
+                coordinates: finalLine, // Single LineString from start to end
+              },
+            },
+          ],
+        };
+        
+        if (!map.getSource("trail-line")) {
+          map.addSource("trail-line", {
+            type: "geojson",
+            data: trailGeoJSON,
+          });
+          
+          if (!map.getLayer("trail-line-layer")) {
+            map.addLayer({
+              id: "trail-line-layer",
+              type: "line",
+              source: "trail-line",
+              layout: {
+                "line-cap": "round",
+                "line-join": "round",
+              },
+              paint: {
+                "line-color": "#3b82f6",
+                "line-width": 4,
+                "line-opacity": 0.8,
+                "line-dasharray": [2, 2], // Creates a dotted/dashed line pattern
+              },
+            });
+          }
+        } else {
+          map.getSource("trail-line").setData(trailGeoJSON);
+        }
+      }
+    } else {
+      // Remove trail line if not in trail mode or not enough mushrooms
+      try {
+        if (map.getLayer("trail-line-layer")) {
+          map.removeLayer("trail-line-layer");
+        }
+        if (map.getSource("trail-line")) {
+          map.removeSource("trail-line");
+        }
+      } catch (error) {
+        // Ignore errors if layers don't exist
+      }
+    }
+    
+    // Update trail markers (highlight selected mushrooms)
+    if (trailMode && trailMushrooms.length > 0) {
+      const trailMarkerFeatures = trailMushrooms
+        .filter((m) => m.latitude && m.longitude)
+        .map((m) => ({
+          type: "Feature",
+          properties: { ...m, isTrailMarker: true },
+          geometry: {
+            type: "Point",
+            coordinates: [
+              Number(m.longitude || m.location?.longitude),
+              Number(m.latitude || m.location?.latitude),
+            ],
+          },
+        }));
+      
+      const trailMarkersGeoJSON = {
+        type: "FeatureCollection",
+        features: trailMarkerFeatures,
+      };
+      
+      if (!map.getSource("trail-markers")) {
+        map.addSource("trail-markers", {
+          type: "geojson",
+          data: trailMarkersGeoJSON,
+        });
+        
+        // Load trail marker icon if not already loaded
+        if (!map.hasImage("trail-marker-icon")) {
+          map.loadImage("/icons/icon1.png", (err, img) => {
+            if (!err && img && !map.hasImage("trail-marker-icon")) {
+              map.addImage("trail-marker-icon", img);
+            }
+          });
+        }
+        
+        if (map.hasImage("trail-marker-icon") && !map.getLayer("trail-markers-layer")) {
+          map.addLayer({
+            id: "trail-markers-layer",
+            type: "symbol",
+            source: "trail-markers",
+            minzoom: 9,
+            layout: {
+              "icon-image": "trail-marker-icon",
+              "icon-size": 0.06,
+              "icon-allow-overlap": true,
+            },
+            paint: {
+              "icon-color": "#3b82f6",
+            },
+          });
+        }
+      } else {
+        map.getSource("trail-markers").setData(trailMarkersGeoJSON);
+      }
+    } else {
+      // Remove trail markers if not in trail mode
+      try {
+        if (map.getLayer("trail-markers-layer")) {
+          map.removeLayer("trail-markers-layer");
+        }
+        if (map.getSource("trail-markers")) {
+          map.removeSource("trail-markers");
+        }
+      } catch (error) {
+        // Ignore errors if layers don't exist
+      }
+    }
+
     /* ---------------- CLICK POPUP (NO ZOOM, iNATURALIST STYLE) ---------------- */
     const handleClick = (e) => {
       // Don't show popup if in drawing mode
       if (drawingMode) return;
+      
+      // Prevent event propagation to avoid multiple triggers
+      if (e.originalEvent) {
+        e.originalEvent.stopPropagation();
+        e.originalEvent.preventDefault();
+      }
       
       const f = e.features?.[0];
       if (!f) return;
 
       const item = f.properties;
       const [lng, lat] = f.geometry.coordinates;
+      
+      // In trail mode, add mushroom to trail instead of showing popup
+      if (trailMode && onTrailMushroomAdd) {
+        // Use a small delay to prevent rapid multiple clicks
+        const clickTime = Date.now();
+        if (handleClick.lastClickTime && (clickTime - handleClick.lastClickTime) < 500) {
+          return; // Ignore clicks within 500ms
+        }
+        handleClick.lastClickTime = clickTime;
+        
+        onTrailMushroomAdd(item);
+        return;
+      }
 
       // Only open popup, don't open details on marker click
       popupRef.current?.remove();
@@ -824,7 +1134,14 @@ map.on("mouseleave", "mushroom-points", () => {
   map.getCanvas().style.cursor = "";
 });
 
-  }, [data, filters, mode, mapLoaded, onMarkerSelect, onMushroomClick, selectedZone, currentZoom]);
+// Update cursor in trail mode
+if (trailMode) {
+  map.getCanvas().style.cursor = "crosshair";
+} else {
+  map.getCanvas().style.cursor = "";
+}
+
+  }, [data, filters, mode, mapLoaded, onMarkerSelect, onMushroomClick, selectedZone, currentZoom, trailMode, trailMushrooms, trailCurrentLocation, onTrailMushroomAdd]);
 
   /* ---------------- DRAWING MODE ---------------- */
   useEffect(() => {

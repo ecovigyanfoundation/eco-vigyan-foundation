@@ -30,6 +30,7 @@ export default function ExploreHeader({
   onResetFilters,
   selectedFilters = {},
   onZonesClick,
+  onTrailsClick,
   onSpeciesSearch,
   onLocationSearch,
 }) {
@@ -141,7 +142,7 @@ export default function ExploreHeader({
       <div className="border-b border-emerald-50/50 overflow-visible">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-10 py-4 sm:py-4 md:py-0 flex items-center justify-between gap-2 sm:gap-3 md:gap-4 lg:gap-5 overflow-visible relative">
           {/* LEFT: BRANDING */}
-            <a
+            <Link
               href="/explore"
               className="flex items-center gap-3 sm:gap-3 md:gap-4 lg:gap-5 shrink-0 hover:opacity-90 transition-opacity group min-w-0 ml-10 md:ml-0 md:mr-8"
             >
@@ -160,7 +161,7 @@ export default function ExploreHeader({
                 />
               </div>
             </div>
-          </a>
+          </Link>
 
           {/* CENTER: SEARCH BAR AND FILTER */}
           <div className="hidden md:flex flex-1 items-center gap-2 min-w-0 max-w-full">
@@ -474,7 +475,10 @@ export default function ExploreHeader({
 
           {/* SECONDARY ACTION BUTTONS */}
           <div className="hidden sm:flex items-center gap-2 md:gap-4 ml-2 md:ml-4 lg:ml-10 shrink-0">
-            <button className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 md:px-6 py-1.5 sm:py-2 md:py-2.5 rounded-lg sm:rounded-xl bg-white border border-emerald-100 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-emerald-700 hover:bg-emerald-500 hover:text-white transition-all shadow-sm shadow-emerald-100/50 whitespace-nowrap">
+            <button 
+              onClick={onTrailsClick}
+              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 md:px-6 py-1.5 sm:py-2 md:py-2.5 rounded-lg sm:rounded-xl bg-white border border-emerald-100 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-emerald-700 hover:bg-emerald-500 hover:text-white transition-all shadow-sm shadow-emerald-100/50 whitespace-nowrap"
+            >
               <Navigation size={12} className="sm:w-3.5 sm:h-3.5 md:w-[14px] md:h-[14px]" /> <span className="hidden md:inline">Trails</span>
             </button>
             <button 

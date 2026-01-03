@@ -10,10 +10,11 @@ import MushroomSubmissionForm from "@/components/MushroomSubmissionForm";
 import MobileSearchModal from "@/components/MobileSearchModal";
 import Leaderboard from "@/components/Leaderboard";
 import ZoneModal from "@/components/ZoneModal";
+import TrailModal from "@/components/TrailModal";
 import MapFilter from "@/components/MapFilter";
 import MushroomDetailModal from "@/components/MushroomDetailModal";
 import { useAuth } from "@/context/AuthContext";
-import { isPointInPolygon } from "@/lib/geocoding";
+import { isPointInPolygon, calculateDistance } from "@/lib/geocoding";
 import toast from "react-hot-toast";
 
 const Map = dynamic(() => import("@/components/Map"), { ssr: false });
@@ -42,11 +43,23 @@ export default function MapPage() {
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [showSidebar, setShowSidebar] = useState(false);
   const [showZoneModal, setShowZoneModal] = useState(false);
+  const [showTrailModal, setShowTrailModal] = useState(false);
   const [selectedZone, setSelectedZone] = useState(null);
   const [drawingMode, setDrawingMode] = useState(null);
+  const [trailMode, setTrailMode] = useState(false);
+  const [trailLocation, setTrailLocation] = useState(null);
+  const [trailCurrentLocation, setTrailCurrentLocation] = useState(null);
+  const [trailMushrooms, setTrailMushrooms] = useState([]);
   const [speciesSearchTerm, setSpeciesSearchTerm] = useState("");
   const getCurrentBoundaryRef = useRef(null);
   const prevFiltersRef = useRef({ speciesSearchTerm: "", hasZone: false });
+  const lastAddedMushroomRef = useRef(null);
+  const trailModeRef = useRef(false);
+  
+  // Keep trailModeRef in sync with trailMode state
+  useEffect(() => {
+    trailModeRef.current = trailMode;
+  }, [trailMode]);
 
   useEffect(() => {
     setIsMounted(true);
@@ -245,6 +258,188 @@ export default function MapPage() {
     setDrawingMode(null);
   };
 
+  // Handle trail location selection
+  const handleTrailLocationSelect = (location) => {
+    // Store current location for distance calculation
+    if (location.currentLocation) {
+      const currentLoc = {
+        lat: Number(location.currentLocation.lat),
+        lng: Number(location.currentLocation.lng),
+      };
+      setTrailCurrentLocation(currentLoc);
+      console.log("Trail current location set:", currentLoc);
+    } else {
+      console.warn("No current location in location object:", location);
+    }
+    
+    setTrailLocation(location);
+    setTrailMode(true);
+    setTrailMushrooms([]);
+    
+    // Set the zone to zoom to user's location
+    setSelectedZone({
+      type: "trail",
+      center: location.currentLocation 
+        ? { lat: Number(location.currentLocation.lat), lng: Number(location.currentLocation.lng) }
+        : location.center,
+      boundary: location.boundary || null,
+    });
+    
+    toast.success("Trail mode started! Click mushrooms on the map to add them to your trail.");
+  };
+
+  // Handle adding mushroom to trail
+  const handleTrailMushroomAdd = (mushroom) => {
+    // Early return if not in trail mode - don't process at all
+    if (!trailMode) {
+      return;
+    }
+    
+    // Get mushroom coordinates for comparison
+    const mushroomLat = Number(mushroom.latitude || mushroom.location?.latitude);
+    const mushroomLng = Number(mushroom.longitude || mushroom.location?.longitude);
+    const mushroomId = mushroom._id || mushroom.id;
+    
+    // Check if mushroom is already in trail using multiple criteria
+    const isAlreadyAdded = trailMushrooms.some((m) => {
+      // Check by ID if available
+      if (mushroomId && (m._id === mushroomId || m.id === mushroomId)) {
+        return true;
+      }
+      
+      // Check by coordinates (with small tolerance for floating point comparison)
+      const mLat = Number(m.latitude || m.location?.latitude);
+      const mLng = Number(m.longitude || m.location?.longitude);
+      
+      if (!isNaN(mLat) && !isNaN(mLng) && !isNaN(mushroomLat) && !isNaN(mushroomLng)) {
+        const latDiff = Math.abs(mLat - mushroomLat);
+        const lngDiff = Math.abs(mLng - mushroomLng);
+        // Consider same if within 0.0001 degrees (~11 meters)
+        if (latDiff < 0.0001 && lngDiff < 0.0001) {
+          return true;
+        }
+      }
+      
+      return false;
+    });
+    
+    if (isAlreadyAdded) {
+      toast.error("This mushroom is already in your trail", { id: 'duplicate-mushroom' });
+      return;
+    }
+    
+    // Create a unique key for this mushroom to prevent duplicate toasts
+    const mushroomKey = mushroomId || `${mushroomLat.toFixed(6)},${mushroomLng.toFixed(6)}`;
+    
+    // Check if we just added this mushroom (prevent duplicate toasts)
+    if (lastAddedMushroomRef.current === mushroomKey) {
+      return; // Already processing this mushroom
+    }
+    
+    // Use functional update to ensure we're working with latest state
+    setTrailMushrooms((prev) => {
+      // Double-check in the update function to prevent race conditions
+      const alreadyInList = prev.some((m) => {
+        if (mushroomId && (m._id === mushroomId || m.id === mushroomId)) {
+          return true;
+        }
+        const mLat = Number(m.latitude || m.location?.latitude);
+        const mLng = Number(m.longitude || m.location?.longitude);
+        if (!isNaN(mLat) && !isNaN(mLng) && !isNaN(mushroomLat) && !isNaN(mushroomLng)) {
+          const latDiff = Math.abs(mLat - mushroomLat);
+          const lngDiff = Math.abs(mLng - mushroomLng);
+          if (latDiff < 0.0001 && lngDiff < 0.0001) {
+            return true;
+          }
+        }
+        return false;
+      });
+      
+      if (alreadyInList) {
+        return prev; // Don't add if already in list
+      }
+      
+      // Mark this mushroom as being added
+      lastAddedMushroomRef.current = mushroomKey;
+      
+      // Show toast only once - check trail mode is still active using ref
+      setTimeout(() => {
+        // Double-check trail mode is still active before showing toast (use ref to get current value)
+        if (trailModeRef.current) {
+          toast.success("Mushroom added to trail", { id: `mushroom-${mushroomKey}` });
+        }
+        // Clear the ref after a short delay to allow re-adding if needed
+        setTimeout(() => {
+          lastAddedMushroomRef.current = null;
+        }, 1000);
+      }, 0);
+      
+      return [...prev, mushroom];
+    });
+  };
+
+  // Handle removing mushroom from trail
+  const handleTrailMushroomRemove = (mushroomId) => {
+    setTrailMushrooms((prev) => prev.filter((m) => 
+      m._id !== mushroomId && 
+      !(m.latitude === trailMushrooms.find(tm => tm._id === mushroomId)?.latitude && 
+        m.longitude === trailMushrooms.find(tm => tm._id === mushroomId)?.longitude)
+    ));
+  };
+
+  // Handle ending trail mode
+  const handleEndTrail = () => {
+    // Refresh the page to completely clear all state
+    window.location.reload();
+  };
+
+  // Calculate distance and estimated time to next mushroom in trail
+  const getDistanceToNextMushroom = () => {
+    if (!trailCurrentLocation || trailMushrooms.length === 0) {
+      return null;
+    }
+    
+    // Get the first mushroom in the trail (next one to visit)
+    const nextMushroom = trailMushrooms[0];
+    
+    // Try multiple ways to get coordinates
+    const mushroomLat = nextMushroom.latitude 
+      || nextMushroom.location?.latitude 
+      || (nextMushroom.location && typeof nextMushroom.location === 'object' && nextMushroom.location.latitude);
+    const mushroomLng = nextMushroom.longitude 
+      || nextMushroom.location?.longitude 
+      || (nextMushroom.location && typeof nextMushroom.location === 'object' && nextMushroom.location.longitude);
+    
+    if (!mushroomLat || !mushroomLng || isNaN(mushroomLat) || isNaN(mushroomLng)) {
+      console.warn("Mushroom coordinates not found:", nextMushroom);
+      return null;
+    }
+    
+    // Ensure current location has valid coordinates
+    if (!trailCurrentLocation.lat || !trailCurrentLocation.lng || 
+        isNaN(trailCurrentLocation.lat) || isNaN(trailCurrentLocation.lng)) {
+      console.warn("Current location invalid:", trailCurrentLocation);
+      return null;
+    }
+    
+    const distance = calculateDistance(
+      trailCurrentLocation.lat,
+      trailCurrentLocation.lng,
+      Number(mushroomLat),
+      Number(mushroomLng)
+    );
+    
+    // Calculate estimated time (assuming average walking speed of 5 km/h)
+    const walkingSpeedKmh = 5; // km/h
+    const walkingSpeedKms = walkingSpeedKmh / 3600; // km/s
+    const estimatedTimeSeconds = distance / walkingSpeedKms;
+    
+    return {
+      distance,
+      estimatedTimeSeconds,
+    };
+  };
+
   // Handle drawing mode selection (admin only)
   const handleDrawingModeSelect = (mode) => {
     // Only allow admins to use drawing mode
@@ -331,6 +526,7 @@ export default function MapPage() {
         onResetFilters={handleResetFilters}
         selectedFilters={headerFilters}
         onZonesClick={() => setShowZoneModal(true)}
+        onTrailsClick={() => setShowTrailModal(true)}
         onSpeciesSearch={setSpeciesSearchTerm}
         onLocationSearch={handleZoneSelect}
       />
@@ -512,9 +708,17 @@ export default function MapPage() {
               onDrawingComplete={handleDrawingComplete}
               onDrawingCancel={handleDrawingCancel}
               onGetCurrentBoundary={getCurrentBoundaryRef}
+              trailMode={trailMode}
+              trailMushrooms={trailMushrooms}
+              trailCurrentLocation={trailCurrentLocation}
+              onTrailMushroomAdd={handleTrailMushroomAdd}
               onMushroomClick={(mushroom) => {
-                setDetailMushroom(mushroom);
-                setShowDetailModal(true);
+                if (trailMode) {
+                  handleTrailMushroomAdd(mushroom);
+                } else {
+                  setDetailMushroom(mushroom);
+                  setShowDetailModal(true);
+                }
               }}
             />
 
@@ -539,7 +743,7 @@ export default function MapPage() {
               )}
               
               {/* Zone filter indicator and clear button */}
-              {selectedZone && !drawingMode && (
+              {selectedZone && !drawingMode && !trailMode && (
                 <div className="p-3 rounded-2xl bg-emerald-600/90 backdrop-blur-md border border-emerald-500 shadow-2xl flex items-center gap-3">
                   <div className="flex items-center gap-2">
                     <MapPin size={16} className="text-white" />
@@ -556,19 +760,101 @@ export default function MapPage() {
                   </button>
                 </div>
               )}
+              
+              {/* Trail mode indicator */}
+              {trailMode && (
+                <div className="p-3 rounded-2xl bg-blue-600/90 backdrop-blur-md border border-blue-500 shadow-2xl">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Navigation size={16} className="text-white" />
+                    <span className="text-white text-xs font-bold">
+                      Trail Mode: {trailMushrooms.length} mushroom{trailMushrooms.length !== 1 ? 's' : ''} selected
+                    </span>
+                  </div>
+                  {trailCurrentLocation && (
+                    <p className="text-white/70 text-[9px] mb-1">
+                      Your location: {trailCurrentLocation.lat?.toFixed(4)}, {trailCurrentLocation.lng?.toFixed(4)}
+                    </p>
+                  )}
+                  {trailCurrentLocation && trailMushrooms.length > 0 && (() => {
+                    const result = getDistanceToNextMushroom();
+                    if (result !== null) {
+                      const { distance, estimatedTimeSeconds } = result;
+                      const distanceText = distance < 1 
+                        ? `${(distance * 1000).toFixed(0)} m` 
+                        : `${distance.toFixed(2)} km`;
+                      
+                      // Format estimated time
+                      let timeText = "";
+                      if (estimatedTimeSeconds < 60) {
+                        timeText = `${Math.round(estimatedTimeSeconds)} sec`;
+                      } else if (estimatedTimeSeconds < 3600) {
+                        const minutes = Math.round(estimatedTimeSeconds / 60);
+                        timeText = `${minutes} min`;
+                      } else {
+                        const hours = Math.floor(estimatedTimeSeconds / 3600);
+                        const minutes = Math.round((estimatedTimeSeconds % 3600) / 60);
+                        timeText = minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+                      }
+                      
+                      return (
+                        <div className="space-y-1">
+                          <p className="text-white/90 text-[10px] font-semibold">
+                            Distance: {distanceText}
+                          </p>
+                          <p className="text-white/80 text-[9px]">
+                            Est. time: {timeText} (walking)
+                          </p>
+                        </div>
+                      );
+                    } else {
+                      return (
+                        <p className="text-white/70 text-[9px]">
+                          Calculating distance...
+                        </p>
+                      );
+                    }
+                  })()}
+                  {!trailCurrentLocation && (
+                    <p className="text-white/70 text-[9px] mb-1">
+                      Location not available
+                    </p>
+                  )}
+                  <p className="text-white/80 text-[10px] mt-1">
+                    Click mushrooms on the map to add them to your trail
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Map Controls - Bottom Right (Zones and Trails) - Desktop Only */}
             <div className="hidden md:flex absolute bottom-6 right-6 z-20 flex-col gap-3">
               {/* Trails Button */}
               <button
-                className="bg-blue-600/90 hover:bg-blue-700/90 text-white px-4 py-3 rounded-2xl flex items-center gap-2 shadow-2xl shadow-blue-900/50 transition-all active:scale-95 backdrop-blur-md border border-blue-500"
+                onClick={() => setShowTrailModal(true)}
+                className={`px-4 py-3 rounded-2xl flex items-center gap-2 shadow-2xl transition-all active:scale-95 backdrop-blur-md border ${
+                  trailMode
+                    ? "bg-blue-700 hover:bg-blue-800 border-blue-600 text-white"
+                    : "bg-blue-600/90 hover:bg-blue-700/90 border-blue-500 text-white"
+                }`}
                 aria-label="Trails"
                 title="Trails"
               >
                 <Navigation size={20} strokeWidth={3} />
                 <span className="font-bold text-sm whitespace-nowrap">Trails</span>
               </button>
+              
+              {/* End Trail Button (shown when in trail mode) */}
+              {trailMode && (
+                <button
+                  onClick={handleEndTrail}
+                  className="px-4 py-3 rounded-2xl bg-red-600/90 hover:bg-red-700/90 text-white shadow-2xl transition-all active:scale-95 backdrop-blur-md border border-red-500 flex items-center gap-2"
+                  aria-label="End Trail"
+                  title="End Trail"
+                >
+                  <X size={20} strokeWidth={3} />
+                  <span className="font-bold text-sm whitespace-nowrap">End Trail</span>
+                </button>
+              )}
               
               {/* Zones Button */}
               <button
@@ -629,6 +915,12 @@ export default function MapPage() {
         onDrawingModeSelect={handleDrawingModeSelect}
       />
 
+      <TrailModal
+        isOpen={showTrailModal}
+        onClose={() => setShowTrailModal(false)}
+        onLocationSelect={handleTrailLocationSelect}
+      />
+
       {/* MOBILE FLOATING BUTTONS */}
       {view === "map" && (
         <div className="md:hidden fixed bottom-6 right-6 z-50 flex flex-col gap-3">
@@ -646,13 +938,31 @@ export default function MapPage() {
           
           {/* Trails Button */}
           <button
-            className="bg-blue-600/90 hover:bg-blue-700/90 text-white px-4 py-3 rounded-2xl flex items-center gap-2 shadow-2xl shadow-blue-900/50 transition-all active:scale-95 backdrop-blur-md border border-blue-500"
+            onClick={() => setShowTrailModal(true)}
+            className={`px-4 py-3 rounded-2xl flex items-center gap-2 shadow-2xl transition-all active:scale-95 backdrop-blur-md border ${
+              trailMode
+                ? "bg-blue-700 hover:bg-blue-800 border-blue-600 text-white"
+                : "bg-blue-600/90 hover:bg-blue-700/90 border-blue-500 text-white"
+            }`}
             aria-label="Trails"
             title="Trails"
           >
             <Navigation size={20} strokeWidth={3} />
             <span className="font-bold text-sm whitespace-nowrap">Trails</span>
           </button>
+          
+          {/* End Trail Button (shown when in trail mode) */}
+          {trailMode && (
+            <button
+              onClick={handleEndTrail}
+              className="px-4 py-3 rounded-2xl bg-red-600/90 hover:bg-red-700/90 text-white shadow-2xl transition-all active:scale-95 backdrop-blur-md border border-red-500 flex items-center gap-2"
+              aria-label="End Trail"
+              title="End Trail"
+            >
+              <X size={20} strokeWidth={3} />
+              <span className="font-bold text-sm whitespace-nowrap">End</span>
+            </button>
+          )}
           
           {/* Zones Button */}
           <button
