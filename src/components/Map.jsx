@@ -29,6 +29,7 @@ export default function Map(props) {
     trailMushrooms = [],
     trailCurrentLocation = null,
     onTrailMushroomAdd,
+    onStartTrail,
   } = props || {};
   
   // Debug: Log when drawingMode prop changes
@@ -962,27 +963,27 @@ export default function Map(props) {
       };
 
       createRoot(popupNode).render(
-        <div className="w-[380px] bg-white rounded-lg shadow-2xl overflow-hidden border border-gray-200">
-          <div className="flex">
+        <div className="w-[380px] bg-white rounded-lg shadow-2xl border border-gray-200 overflow-hidden">
+          <div className="flex items-stretch">
             {/* Left side - Image (clickable) */}
             {item.image && (
               <div 
-                className="w-[150px] h-[150px] bg-gray-200 flex-shrink-0 cursor-pointer hover:opacity-90 transition-opacity"
+                className="w-[150px] bg-gray-200 flex-shrink-0 cursor-pointer hover:opacity-90 transition-opacity overflow-hidden"
                 onClick={handleImageClick}
                 title="Click to view details"
               >
                 <img
                   src={item.image}
                   alt={item.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover min-h-[150px]"
                 />
               </div>
             )}
 
             {/* Right side - Content */}
-            <div className="flex-1 p-4 flex flex-col justify-between min-w-0">
+            <div className="flex-1 p-4 flex flex-col min-w-0 min-h-[150px]">
               {/* Top section */}
-              <div>
+              <div className="flex-1">
                 {/* Species name */}
                 <h3 className="text-lg font-semibold italic text-gray-900 leading-tight mb-1">
                   {item.name || "Unnamed Mushroom"}
@@ -1087,6 +1088,26 @@ export default function Map(props) {
                   </div>
                 )}
               </div>
+
+              {/* Start Trail Button */}
+              {!trailMode && onStartTrail && (
+                <div className="mt-3 pt-3 border-t border-gray-200">
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      popup.remove();
+                      onStartTrail(item);
+                    }}
+                    className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                    </svg>
+                    <span>Start Trail</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1172,7 +1193,7 @@ if (trailMode) {
   map.getCanvas().style.cursor = "";
 }
 
-  }, [data, filters, mode, mapLoaded, onMarkerSelect, onMushroomClick, selectedZone, currentZoom, trailMode, trailMushrooms, trailCurrentLocation, onTrailMushroomAdd]);
+  }, [data, filters, mode, mapLoaded, onMarkerSelect, onMushroomClick, selectedZone, currentZoom, trailMode, trailMushrooms, trailCurrentLocation, onTrailMushroomAdd, onStartTrail]);
 
   /* ---------------- DRAWING MODE ---------------- */
   useEffect(() => {

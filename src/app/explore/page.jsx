@@ -468,6 +468,54 @@ export default function MapPage() {
     }
   };
 
+  // Handle starting trail to a specific mushroom
+  const handleStartTrailToMushroom = (mushroom) => {
+    // Get current location first
+    if (!navigator.geolocation) {
+      toast.error("Geolocation is not supported by your browser.");
+      return;
+    }
+
+    toast.loading("Getting your location...", { id: 'starting-trail' });
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        const currentLoc = {
+          lat: Number(latitude),
+          lng: Number(longitude),
+        };
+
+        setTrailCurrentLocation(currentLoc);
+        setTrailMushrooms([mushroom]); // Start with the selected mushroom
+        setTrailMode(true);
+        setTrailLocation({
+          type: "trail",
+          currentLocation: currentLoc,
+          center: currentLoc,
+          boundary: null,
+        });
+
+        // Set the zone to zoom to user's location
+        setSelectedZone({
+          type: "trail",
+          center: currentLoc,
+          boundary: null,
+        });
+
+        toast.success(`Trail started to "${mushroom.name || mushroom.commonName || 'mushroom'}"!`, { id: 'starting-trail' });
+      },
+      (err) => {
+        toast.error("Failed to get location. Please enable location access and try again.", { id: 'starting-trail' });
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
+  };
+
   // Handle ending trail mode
   const handleEndTrail = () => {
     // Reset all trail-related state without reloading
@@ -801,6 +849,7 @@ export default function MapPage() {
               trailMushrooms={trailMushrooms}
               trailCurrentLocation={trailCurrentLocation}
               onTrailMushroomAdd={handleTrailMushroomAdd}
+              onStartTrail={handleStartTrailToMushroom}
               onMushroomClick={(mushroom) => {
                 if (trailMode) {
                   handleTrailMushroomAdd(mushroom);
