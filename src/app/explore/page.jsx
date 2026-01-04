@@ -1201,7 +1201,7 @@ export default function MapPage() {
                   
                   {/* Trail mode indicator */}
                   {trailMode && (
-                    <div className="p-3 rounded-2xl bg-blue-600/90 backdrop-blur-md border border-blue-500 shadow-2xl pointer-events-auto max-w-xs">
+                    <div className="p-3 rounded-2xl bg-blue-600/90 backdrop-blur-md border border-blue-500 shadow-2xl pointer-events-auto max-w-[200px] md:max-w-xs">
                       <div className="flex items-center gap-2 mb-2">
                         <Navigation size={16} className="text-white" />
                         <span className="text-white text-xs font-bold">

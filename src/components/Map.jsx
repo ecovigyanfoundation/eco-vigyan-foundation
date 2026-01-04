@@ -452,7 +452,11 @@ export default function Map(props) {
           });
         }
       }
+    }
 
+    /* ---------------- ZONE ZOOM ---------------- */
+    // Handle auto-zoom for zones and trails (separate from boundary rendering)
+    if (selectedZone) {
       // Auto-zoom for city boundaries, trail locations, and saved zones
       // Saved zones have types: rectangle, circle, polygon
       const shouldZoom = (selectedZone.type === "city" || 
@@ -462,11 +466,25 @@ export default function Map(props) {
                          selectedZone.type === "polygon");
       
       // Create a unique key for this zone to track if we've already zoomed
-      const zoneKey = selectedZone.boundary 
-        ? JSON.stringify(selectedZone.boundary) 
-        : selectedZone.center 
-          ? `${selectedZone.type}-${selectedZone.center.lat}-${selectedZone.center.lng}`
-          : null;
+      let zoneKey = null;
+      if (selectedZone.boundary) {
+        zoneKey = JSON.stringify(selectedZone.boundary);
+      } else if (selectedZone.type === "trail") {
+        // For trails, use mushroom IDs from selectedZone or trailMushrooms prop
+        const mushroomsForKey = selectedZone.trailMushrooms || trailMushrooms || [];
+        if (mushroomsForKey.length > 0) {
+          const mushroomIds = mushroomsForKey
+            .map(m => m._id || m.id)
+            .filter(id => id)
+            .sort()
+            .join(',');
+          zoneKey = mushroomIds ? `trail-${mushroomIds}` : `trail-${selectedZone.center?.lat}-${selectedZone.center?.lng}`;
+        } else if (selectedZone.center) {
+          zoneKey = `trail-center-${selectedZone.center.lat}-${selectedZone.center.lng}`;
+        }
+      } else if (selectedZone.center) {
+        zoneKey = `${selectedZone.type}-${selectedZone.center.lat}-${selectedZone.center.lng}`;
+      }
       
       // Only zoom if this is a new zone (hasn't been zoomed to yet)
       const needsZoom = shouldZoom && zoneKey && lastZoomedZoneRef.current !== zoneKey;
@@ -515,10 +533,12 @@ export default function Map(props) {
         
         // Mark this zone as zoomed to
         lastZoomedZoneRef.current = zoneKey;
-      } else if (needsZoom && selectedZone.type === "trail" && selectedZone.center && !selectedZone.boundary) {
+      } else if (needsZoom && selectedZone.type === "trail" && !selectedZone.boundary) {
         // Handle trail - zoom to fit all mushrooms in the trail
+        // Use mushrooms from selectedZone first, then fall back to trailMushrooms prop
         const mushroomsToZoom = selectedZone.trailMushrooms || trailMushrooms;
-        if (trailMode && mushroomsToZoom && mushroomsToZoom.length > 0) {
+        // Check if we have mushrooms to zoom to
+        if (mushroomsToZoom && mushroomsToZoom.length > 0) {
           // Calculate bounds from trail mushrooms
           const validMushrooms = mushroomsToZoom.filter(m => {
             const lat = m.latitude || m.location?.latitude;
@@ -552,16 +572,22 @@ export default function Map(props) {
               duration: 1000,
               minZoom: 9,
             });
+            
+            // Mark this zone as zoomed to
+            lastZoomedZoneRef.current = zoneKey;
           } else {
             // Fallback: zoom to center at level 9
             const center = selectedZone.center;
-            map.flyTo({
-              center: [center.lng, center.lat],
-              zoom: 9,
-              duration: 1000,
-            });
+            if (center) {
+              map.flyTo({
+                center: [center.lng, center.lat],
+                zoom: 9,
+                duration: 1000,
+              });
+              lastZoomedZoneRef.current = zoneKey;
+            }
           }
-        } else if (trailMode) {
+        } else if (selectedZone.center) {
           // Fallback: zoom to center at level 9
           const center = selectedZone.center;
           map.flyTo({
@@ -569,13 +595,8 @@ export default function Map(props) {
             zoom: 9,
             duration: 1000,
           });
+          lastZoomedZoneRef.current = zoneKey;
         }
-        
-        // Mark this zone as zoomed to
-        lastZoomedZoneRef.current = zoneKey;
-      } else if (!selectedZone || !selectedZone.boundary) {
-        // Clear zoom tracking when zone is removed
-        lastZoomedZoneRef.current = null;
       }
     } else {
       // Remove zone if not selected
