@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus, Menu, X, Home, Info, Users, FileText, Image, Calendar, FileCheck, Mail, User, Settings, Navigation, Heart, Layers, MapPin, CheckCircle, Save } from "lucide-react";
+import { Plus, Menu, X, Home, Info, Users, FileText, Image, Calendar, FileCheck, Mail, User, Settings, Navigation, Heart, Layers, MapPin, CheckCircle, Save, Trash2 } from "lucide-react";
 import Link from "next/link";
 import ExploreHeader from "@/components/ExploreHeader";
 import MushroomGrid from "@/components/MushroomGrid";
@@ -13,6 +13,7 @@ import Leaderboard from "@/components/Leaderboard";
 import ZoneModal from "@/components/ZoneModal";
 import TrailModal from "@/components/TrailModal";
 import SaveTrailModal from "@/components/SaveTrailModal";
+import SaveZoneModal from "@/components/SaveZoneModal";
 import MapFilter from "@/components/MapFilter";
 import MushroomDetailModal from "@/components/MushroomDetailModal";
 import { useAuth } from "@/context/AuthContext";
@@ -128,6 +129,7 @@ export default function MapPage() {
   const [showZoneModal, setShowZoneModal] = useState(false);
   const [showTrailModal, setShowTrailModal] = useState(false);
   const [showSaveTrailModal, setShowSaveTrailModal] = useState(false);
+  const [showSaveZoneModal, setShowSaveZoneModal] = useState(false);
   const [selectedZone, setSelectedZone] = useState(null);
   const [drawingMode, setDrawingMode] = useState(null);
   const [trailMode, setTrailMode] = useState(false);
@@ -685,9 +687,55 @@ export default function MapPage() {
     }
   };
 
+  // Handle saving the zone
+  const handleSaveZone = async (zoneData) => {
+    try {
+      const response = await fetch("/api/zones", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(zoneData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to save zone");
+      }
+
+      toast.success("Zone saved successfully!");
+      setShowSaveZoneModal(false);
+    } catch (error) {
+      console.error("Error saving zone:", error);
+      toast.error(error.message || "Failed to save zone");
+    }
+  };
+
   // Handle drawing cancellation
   const handleDrawingCancel = () => {
     setDrawingMode(null);
+  };
+
+  // Handle clearing the current drawing (reset but keep drawing mode active)
+  const handleClearDrawing = () => {
+    // Clear the drawing source data immediately if clear function is available
+    if (getCurrentBoundaryRef.current && getCurrentBoundaryRef.current.clear) {
+      getCurrentBoundaryRef.current.clear();
+    }
+    
+    // Reset the drawing mode to trigger a fresh start
+    // We'll set it to null first, then back to the current mode to reset state
+    const currentMode = drawingMode;
+    setDrawingMode(null);
+    
+    // Use setTimeout to ensure cleanup happens before re-initializing
+    setTimeout(() => {
+      if (currentMode) {
+        setDrawingMode(currentMode);
+      }
+    }, 50);
   };
 
   // Clear selected zone
@@ -952,15 +1000,42 @@ export default function MapPage() {
                     />
                   </div>
                   
-                  {/* Apply Zone Button (shown when in drawing mode) */}
+                  {/* Drawing Controls (shown when in drawing mode) */}
                   {drawingMode && (
-                    <button
-                      onClick={handleApplyZone}
-                      className="px-4 py-3 rounded-2xl bg-emerald-600/90 hover:bg-emerald-700/90 backdrop-blur-md border border-emerald-500 text-white shadow-2xl transition-all duration-300 hover:shadow-emerald-500/50 flex items-center gap-2 font-bold text-sm pointer-events-auto"
-                    >
-                      <CheckCircle size={18} className="shrink-0" />
-                      Apply Zone
-                    </button>
+                    <div className="flex flex-col gap-2 pointer-events-auto">
+                      <button
+                        onClick={handleApplyZone}
+                        className="px-4 py-3 rounded-2xl bg-emerald-600/90 hover:bg-emerald-700/90 backdrop-blur-md border border-emerald-500 text-white shadow-2xl transition-all duration-300 hover:shadow-emerald-500/50 flex items-center gap-2 font-bold text-sm"
+                      >
+                        <CheckCircle size={18} className="shrink-0" />
+                        Apply Zone
+                      </button>
+                      {user?.role === "admin" && (
+                        <button
+                          onClick={() => {
+                            const currentZone = getCurrentBoundaryRef.current?.();
+                            if (currentZone && currentZone.boundary) {
+                              setShowSaveZoneModal(true);
+                            } else {
+                              toast.error("Please draw a zone first");
+                            }
+                          }}
+                          className="px-4 py-3 rounded-2xl bg-blue-600/90 hover:bg-blue-700/90 backdrop-blur-md border border-blue-500 text-white shadow-2xl transition-all duration-300 hover:shadow-blue-500/50 flex items-center gap-2 font-bold text-sm"
+                          title="Save zone"
+                        >
+                          <Save size={18} className="shrink-0" />
+                          Save Zone
+                        </button>
+                      )}
+                      <button
+                        onClick={handleClearDrawing}
+                        className="px-4 py-3 rounded-2xl bg-red-600/90 hover:bg-red-700/90 backdrop-blur-md border border-red-500 text-white shadow-2xl transition-all duration-300 hover:shadow-red-500/50 flex items-center gap-2 font-bold text-sm"
+                        title="Clear current drawing"
+                      >
+                        <Trash2 size={18} className="shrink-0" />
+                        Clear
+                      </button>
+                    </div>
                   )}
                   
                   {/* Zone filter indicator and clear button */}
@@ -1161,6 +1236,13 @@ export default function MapPage() {
         onClose={() => setShowSaveTrailModal(false)}
         onSave={handleSaveTrailConfirm}
         mushroomCount={trailMushrooms.length}
+      />
+
+      <SaveZoneModal
+        isOpen={showSaveZoneModal}
+        onClose={() => setShowSaveZoneModal(false)}
+        onSave={handleSaveZone}
+        zoneData={selectedZone || (getCurrentBoundaryRef.current?.() || null)}
       />
 
       {/* MOBILE FLOATING BUTTONS */}

@@ -64,6 +64,9 @@ export default function Map(props) {
     initialCenter: null,
     initialSize: null,
     activeHandle: null,
+    polygonPoints: [], // For polygon drawing mode
+    polygonEditMode: false, // True after double-click, allows resizing vertices
+    activeVertexIndex: undefined, // Index of vertex being dragged
   });
 
   const [mapLoaded, setMapLoaded] = useState(false);
@@ -469,9 +472,15 @@ export default function Map(props) {
         }
       }
 
-      // Only auto-zoom for city boundaries, not manually drawn zones
-      // Also handle trail locations (city or current location)
-      if ((selectedZone.type === "city" || selectedZone.type === "trail") && selectedZone.boundary) {
+      // Auto-zoom for city boundaries, trail locations, and saved zones
+      // Saved zones have types: rectangle, circle, polygon
+      const shouldZoom = (selectedZone.type === "city" || 
+                         selectedZone.type === "trail" || 
+                         selectedZone.type === "rectangle" || 
+                         selectedZone.type === "circle" || 
+                         selectedZone.type === "polygon");
+      
+      if (shouldZoom && selectedZone.boundary) {
         const coordinates = selectedZone.boundary;
         const bounds = coordinates.reduce(
           (bounds, coord) => {
@@ -1267,6 +1276,10 @@ if (trailMode) {
       drawingStateRef.current.dragStart = null;
       drawingStateRef.current.initialCenter = null;
       drawingStateRef.current.initialSize = null;
+      drawingStateRef.current.activeHandle = null;
+      drawingStateRef.current.polygonPoints = []; // Clear polygon points
+      drawingStateRef.current.polygonEditMode = false;
+      drawingStateRef.current.activeVertexIndex = undefined;
       
       try {
         // Remove resize handles
@@ -1302,19 +1315,37 @@ if (trailMode) {
       console.log("✅ === ENTERING DRAWING MODE ===", { drawingMode, mapReady: map.isStyleLoaded() });
     
     // Reset drawing state first
-    const center = map.getCenter();
-    drawingStateRef.current.currentCenter = { lat: center.lat, lng: center.lng };
-    drawingStateRef.current.currentSize = drawingMode === "rectangle" 
-      ? { width: 200, height: 200 } // 200km x 200km rectangle
-      : { radius: 100 }; // 100km radius circle
-    drawingStateRef.current.isDrawing = false;
-    drawingStateRef.current.isMoving = false;
-    drawingStateRef.current.isResizing = false;
-    drawingStateRef.current.startPoint = null;
-    drawingStateRef.current.dragStart = null;
-    drawingStateRef.current.initialCenter = null;
-    drawingStateRef.current.initialSize = null;
-    drawingStateRef.current.activeHandle = null;
+    if (drawingMode === "polygon") {
+      // For polygon, initialize with empty points array
+      drawingStateRef.current.polygonPoints = [];
+      drawingStateRef.current.polygonEditMode = false;
+      drawingStateRef.current.activeVertexIndex = undefined;
+      drawingStateRef.current.isDrawing = false;
+      drawingStateRef.current.isMoving = false;
+      drawingStateRef.current.isResizing = false;
+      drawingStateRef.current.startPoint = null;
+      drawingStateRef.current.dragStart = null;
+      drawingStateRef.current.initialCenter = null;
+      drawingStateRef.current.initialSize = null;
+      drawingStateRef.current.activeHandle = null;
+      drawingStateRef.current.currentCenter = null;
+      drawingStateRef.current.currentSize = null;
+    } else {
+      const center = map.getCenter();
+      drawingStateRef.current.currentCenter = { lat: center.lat, lng: center.lng };
+      drawingStateRef.current.currentSize = drawingMode === "rectangle" 
+        ? { width: 50, height: 50 } // 50km x 50km rectangle
+        : { radius: 25 }; // 25km radius circle
+      drawingStateRef.current.isDrawing = false;
+      drawingStateRef.current.isMoving = false;
+      drawingStateRef.current.isResizing = false;
+      drawingStateRef.current.startPoint = null;
+      drawingStateRef.current.dragStart = null;
+      drawingStateRef.current.initialCenter = null;
+      drawingStateRef.current.initialSize = null;
+      drawingStateRef.current.activeHandle = null;
+      drawingStateRef.current.polygonPoints = [];
+    }
 
     // Initialize drawing source and layers
     if (!map.getSource("drawing")) {
@@ -1368,14 +1399,60 @@ if (trailMode) {
 
 
     const updateDrawingShape = (boundary, updateHandles = false) => {
-      if (!map.getSource("drawing")) {
-        console.error("Drawing source not found");
-        return;
-      }
-      
       if (!boundary || !Array.isArray(boundary) || boundary.length === 0) {
         console.error("Invalid boundary data:", boundary);
         return;
+      }
+      
+      // Ensure drawing source exists, create it if it doesn't
+      if (!map.getSource("drawing")) {
+        try {
+          map.addSource("drawing", {
+            type: "geojson",
+            data: {
+              type: "FeatureCollection",
+              features: [],
+            },
+          });
+        } catch (error) {
+          console.error("Error creating drawing source:", error);
+          return;
+        }
+      }
+      
+      // Ensure drawing layers exist
+      if (!map.getLayer("drawing-fill")) {
+        try {
+          map.addLayer({
+            id: "drawing-fill",
+            type: "fill",
+            source: "drawing",
+            paint: {
+              "fill-color": "#10b981",
+              "fill-opacity": 0.2,
+            },
+          });
+        } catch (error) {
+          console.error("Error creating drawing-fill layer:", error);
+        }
+      }
+      
+      if (!map.getLayer("drawing-outline")) {
+        try {
+          map.addLayer({
+            id: "drawing-outline",
+            type: "line",
+            source: "drawing",
+            paint: {
+              "line-color": "#10b981",
+              "line-width": 3,
+              "line-opacity": 0.8,
+              "line-dasharray": [2, 2],
+            },
+          });
+        } catch (error) {
+          console.error("Error creating drawing-outline layer:", error);
+        }
       }
       
       const geojson = {
@@ -1393,14 +1470,21 @@ if (trailMode) {
       
       try {
         const source = map.getSource("drawing");
-        source.setData(geojson);
-        console.log("Drawing shape updated:", geojson);
+        if (source) {
+          source.setData(geojson);
+          console.log("Drawing shape updated:", geojson);
+        }
       } catch (error) {
         console.error("Error updating drawing shape:", error);
       }
     };
 
     const createInitialShape = () => {
+      // For polygon mode, don't create initial shape - user will click to add points
+      if (drawingMode === "polygon") {
+        return null;
+      }
+      
       const center = drawingStateRef.current.currentCenter;
       const size = drawingStateRef.current.currentSize;
       
@@ -1432,9 +1516,26 @@ if (trailMode) {
 
     // Helper to calculate handle positions
     const getHandlePositions = () => {
+      const handles = [];
+      
+      // For polygon mode, create handles at each vertex
+      if (drawingMode === "polygon") {
+        const points = drawingStateRef.current.polygonPoints;
+        if (points.length >= 3) {
+          // Create a handle for each vertex (excluding the closing point)
+          points.forEach((point, index) => {
+            handles.push({
+              position: [point[0], point[1]],
+              type: `vertex-${index}`,
+              index: index,
+            });
+          });
+        }
+        return handles;
+      }
+      
       const center = drawingStateRef.current.currentCenter;
       const size = drawingStateRef.current.currentSize;
-      const handles = [];
 
       if (drawingMode === "rectangle") {
         // Rectangle: handles at 4 corners
@@ -1477,6 +1578,11 @@ if (trailMode) {
 
       const handles = getHandlePositions();
       
+      // If no handles (e.g., polygon with less than 3 points), return
+      if (handles.length === 0) {
+        return;
+      }
+      
       handles.forEach((handleData) => {
         const el = document.createElement('div');
         el.className = 'drawing-resize-handle';
@@ -1489,16 +1595,37 @@ if (trailMode) {
         marker.getElement().addEventListener('dragstart', () => {
           drawingStateRef.current.activeHandle = handleData.type;
           drawingStateRef.current.dragStart = { lat: handleData.position[1], lng: handleData.position[0] };
-          drawingStateRef.current.initialCenter = { ...drawingStateRef.current.currentCenter };
-          drawingStateRef.current.initialSize = drawingMode === "rectangle" 
-            ? { width: drawingStateRef.current.currentSize.width, height: drawingStateRef.current.currentSize.height }
-            : { radius: drawingStateRef.current.currentSize.radius };
+          
+          // For polygon, store the vertex index
+          if (drawingMode === "polygon" && handleData.index !== undefined) {
+            drawingStateRef.current.activeVertexIndex = handleData.index;
+          } else {
+            drawingStateRef.current.initialCenter = { ...drawingStateRef.current.currentCenter };
+            drawingStateRef.current.initialSize = drawingMode === "rectangle" 
+              ? { width: drawingStateRef.current.currentSize.width, height: drawingStateRef.current.currentSize.height }
+              : { radius: drawingStateRef.current.currentSize.radius };
+          }
           map.dragPan.disable();
         });
 
         marker.on('drag', () => {
           const newLngLat = marker.getLngLat();
           const currentPoint = { lat: newLngLat.lat, lng: newLngLat.lng };
+          
+          // Handle polygon vertex dragging
+          if (drawingMode === "polygon" && drawingStateRef.current.activeVertexIndex !== undefined) {
+            const vertexIndex = drawingStateRef.current.activeVertexIndex;
+            const points = drawingStateRef.current.polygonPoints;
+            
+            // Update the vertex position
+            if (points[vertexIndex]) {
+              points[vertexIndex] = [currentPoint.lng, currentPoint.lat];
+              // Update the polygon shape
+              updatePolygonShape();
+            }
+            return;
+          }
+          
           const initialCenter = drawingStateRef.current.initialCenter;
           
           if (drawingMode === "rectangle") {
@@ -1537,6 +1664,9 @@ if (trailMode) {
 
         marker.on('dragend', () => {
           drawingStateRef.current.activeHandle = null;
+          if (drawingMode === "polygon") {
+            drawingStateRef.current.activeVertexIndex = undefined;
+          }
           map.dragPan.enable();
           updateResizeHandles();
         });
@@ -1605,19 +1735,76 @@ if (trailMode) {
       }
     };
     
-    // Try immediately
-    createShapeNow();
-    
-    // Also try after a short delay as backup
-    setTimeout(createShapeNow, 200);
-    
-    // And try when map is idle
-    if (map.loaded()) {
-      map.once('idle', createShapeNow);
+    // For polygon mode, set cursor and skip initial shape creation
+    if (drawingMode === "polygon") {
+      map.getCanvas().style.cursor = "crosshair";
+    } else {
+      // Try immediately
+      createShapeNow();
+      
+      // Also try after a short delay as backup
+      setTimeout(createShapeNow, 200);
+      
+      // And try when map is idle
+      if (map.loaded()) {
+        map.once('idle', createShapeNow);
+      }
     }
+
+    // Helper to update polygon shape
+    const updatePolygonShape = () => {
+      const points = drawingStateRef.current.polygonPoints;
+      if (points.length < 2) {
+        // Need at least 2 points to draw a line
+        if (map.getSource("drawing")) {
+          map.getSource("drawing").setData({
+            type: "FeatureCollection",
+            features: [],
+          });
+        }
+        return;
+      }
+      
+      // Create boundary: connect all points and close the polygon
+      const boundary = [...points];
+      if (points.length >= 3) {
+        // Close the polygon by adding the first point at the end
+        boundary.push([points[0][0], points[0][1]]);
+      }
+      
+      updateDrawingShape(boundary);
+    };
 
     // Event handlers for moving and resizing the shape
     const handleInteractionStart = (e) => {
+      // For polygon mode, handle clicks differently
+      if (drawingMode === "polygon") {
+        // If in edit mode (after double-click), don't add new points
+        if (drawingStateRef.current.polygonEditMode) {
+          // Allow moving the entire polygon or other interactions
+          // But don't add new points
+          return;
+        }
+        
+        const point = e.lngLat;
+        if (!point) return;
+        
+        // Add point to polygon
+        const newPoint = [point.lng, point.lat];
+        drawingStateRef.current.polygonPoints.push(newPoint);
+        
+        // Update the polygon shape
+        updatePolygonShape();
+        
+        // Change cursor to indicate we're drawing
+        map.getCanvas().style.cursor = "crosshair";
+        
+        if (e.originalEvent && e.originalEvent.preventDefault) {
+          e.originalEvent.preventDefault();
+        }
+        return;
+      }
+      
       // Get current boundary
       const source = map.getSource("drawing");
       if (!source) {
@@ -1694,6 +1881,12 @@ if (trailMode) {
     };
 
     const handleInteractionMove = (e) => {
+      // For polygon mode, just update cursor
+      if (drawingMode === "polygon") {
+        map.getCanvas().style.cursor = "crosshair";
+        return;
+      }
+      
       if (!drawingStateRef.current.isMoving && !drawingStateRef.current.isResizing) {
         // Update cursor based on hover
         if (e.lngLat) {
@@ -1808,6 +2001,32 @@ if (trailMode) {
     };
 
     const handleDoubleClick = (e) => {
+      // For polygon mode, enter edit mode and show resize handles
+      if (drawingMode === "polygon") {
+        const points = drawingStateRef.current.polygonPoints;
+        if (points.length < 3) {
+          // Need at least 3 points to form a polygon
+          return;
+        }
+        
+        // Enter edit mode - this allows resizing by dragging vertices
+        drawingStateRef.current.polygonEditMode = true;
+        
+        // Update polygon shape to ensure it's closed
+        updatePolygonShape();
+        
+        // Show resize handles at vertices
+        updateResizeHandles();
+        
+        // Change cursor back to default since we're now in edit mode
+        map.getCanvas().style.cursor = "default";
+        
+        if (e.originalEvent && e.originalEvent.preventDefault) {
+          e.originalEvent.preventDefault();
+        }
+        return;
+      }
+      
       const source = map.getSource("drawing");
       if (!source) return;
       const data = source.getData ? source.getData() : source._data;
@@ -1877,6 +2096,22 @@ if (trailMode) {
     // Expose function to get current boundary
     if (onGetCurrentBoundary) {
       onGetCurrentBoundary.current = () => {
+        // For polygon, get boundary from polygonPoints
+        if (drawingMode === "polygon") {
+          const points = drawingStateRef.current.polygonPoints;
+          if (points.length < 3) return null;
+          
+          // Create closed boundary
+          const boundary = [...points];
+          boundary.push([points[0][0], points[0][1]]); // Close the polygon
+          
+          return {
+            type: drawingMode,
+            boundary,
+            center: undefined,
+          };
+        }
+        
         const source = map.getSource("drawing");
         if (!source) return null;
         const data = source.getData ? source.getData() : source._data;
@@ -1890,6 +2125,27 @@ if (trailMode) {
           boundary,
           center: centerPoint,
         };
+      };
+      
+      // Also expose a clear function
+      onGetCurrentBoundary.clear = () => {
+        // Clear polygon points
+        drawingStateRef.current.polygonPoints = [];
+        drawingStateRef.current.polygonEditMode = false;
+        drawingStateRef.current.activeVertexIndex = undefined;
+        
+        // Clear drawing source data
+        try {
+          const source = map.getSource("drawing");
+          if (source) {
+            source.setData({
+              type: "FeatureCollection",
+              features: [],
+            });
+          }
+        } catch (error) {
+          console.error("Error clearing drawing source:", error);
+        }
       };
     }
 

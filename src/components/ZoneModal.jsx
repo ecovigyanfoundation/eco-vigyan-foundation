@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { X, MapPin, Square, Circle, Search, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, MapPin, Square, Circle, Search, Loader2, Hexagon, FolderOpen } from "lucide-react";
 import { getCityBoundary } from "@/lib/geocoding";
 import { useAuth } from "@/context/AuthContext";
 
@@ -11,7 +11,10 @@ export default function ZoneModal({ isOpen, onClose, onZoneSelect, onDrawingMode
   const [cityName, setCityName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState("city"); // "city" or "draw"
+  const [activeTab, setActiveTab] = useState("city"); // "city", "draw", or "saved"
+  const [savedZones, setSavedZones] = useState([]);
+  const [loadingZones, setLoadingZones] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState("all"); // "all", "decomposer", "symbiont", "parasitic"
 
   const handleCitySearch = async () => {
     if (!cityName.trim()) {
@@ -46,6 +49,58 @@ export default function ZoneModal({ isOpen, onClose, onZoneSelect, onDrawingMode
 
   const handleDrawCircle = () => {
     onDrawingModeSelect("circle");
+    onClose();
+  };
+
+  const handleDrawPolygon = () => {
+    onDrawingModeSelect("polygon");
+    onClose();
+  };
+
+  // Load saved zones when modal opens
+  useEffect(() => {
+    if (isOpen && activeTab === "saved") {
+      loadSavedZones();
+    }
+  }, [isOpen, activeTab]);
+
+  const loadSavedZones = async () => {
+    setLoadingZones(true);
+    try {
+      const categoryParam = selectedCategory !== "all" ? `?category=${selectedCategory}` : "";
+      const response = await fetch(`/api/zones${categoryParam}`, {
+        credentials: "include",
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setSavedZones(data.zones || []);
+      } else {
+        console.error("Error loading zones:", data.error);
+        setSavedZones([]);
+      }
+    } catch (error) {
+      console.error("Error loading zones:", error);
+      setSavedZones([]);
+    } finally {
+      setLoadingZones(false);
+    }
+  };
+
+  // Reload zones when category changes
+  useEffect(() => {
+    if (activeTab === "saved") {
+      loadSavedZones();
+    }
+  }, [selectedCategory]);
+
+  const handleZoneClick = (zone) => {
+    onZoneSelect({
+      type: zone.shapeType,
+      boundary: zone.location.boundary,
+      center: zone.location.center,
+      name: zone.name,
+      category: zone.category,
+    });
     onClose();
   };
 
@@ -89,6 +144,19 @@ export default function ZoneModal({ isOpen, onClose, onZoneSelect, onDrawingMode
               <span>Search City</span>
             </div>
           </button>
+          <button
+            onClick={() => setActiveTab("saved")}
+            className={`flex-1 py-4 px-6 text-sm font-bold uppercase tracking-wide transition-colors ${
+              activeTab === "saved"
+                ? "text-emerald-700 border-b-2 border-emerald-500 bg-emerald-50/50"
+                : "text-emerald-600/60 hover:text-emerald-700 hover:bg-emerald-50/30"
+            }`}
+          >
+            <div className="flex items-center justify-center gap-2">
+              <FolderOpen size={16} />
+              <span>Saved Zones</span>
+            </div>
+          </button>
           {isAdmin && (
             <button
               onClick={() => setActiveTab("draw")}
@@ -108,7 +176,70 @@ export default function ZoneModal({ isOpen, onClose, onZoneSelect, onDrawingMode
 
         {/* Content */}
         <div className="p-6">
-          {activeTab === "city" ? (
+          {activeTab === "saved" ? (
+            <div className="space-y-4">
+              {/* Category Filter */}
+              <div>
+                <label className="block text-sm font-bold text-emerald-900 mb-2">
+                  Filter by Category
+                </label>
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-emerald-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 text-emerald-900 font-medium bg-white"
+                >
+                  <option value="all">All Categories</option>
+                  <option value="decomposer">Decomposer</option>
+                  <option value="symbiont">Symbiont</option>
+                  <option value="parasitic">Parasitic</option>
+                </select>
+              </div>
+
+              {/* Zones List */}
+              {loadingZones ? (
+                <div className="flex flex-col items-center justify-center py-8">
+                  <Loader2 size={32} className="animate-spin text-emerald-600 mb-2" />
+                  <p className="text-sm text-emerald-600">Loading zones...</p>
+                </div>
+              ) : savedZones.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8">
+                  <FolderOpen size={48} className="text-emerald-300 mb-4" />
+                  <p className="text-sm font-bold text-emerald-900 mb-2">
+                    No Saved Zones
+                  </p>
+                  <p className="text-xs text-emerald-600/70 text-center">
+                    {isAdmin 
+                      ? "Create and save zones to see them here"
+                      : "No zones available in this category"}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {savedZones.map((zone) => (
+                    <button
+                      key={zone._id}
+                      onClick={() => handleZoneClick(zone)}
+                      className="w-full px-4 py-3 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-colors text-left"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1">
+                          <p className="text-sm font-bold text-emerald-900 mb-1">
+                            {zone.name}
+                          </p>
+                          <p className="text-xs text-emerald-600/70 capitalize">
+                            {zone.category} • {zone.shapeType}
+                          </p>
+                        </div>
+                        <span className="text-xs text-emerald-500 font-medium capitalize px-2 py-1 bg-emerald-200 rounded-md">
+                          {zone.category}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : activeTab === "city" ? (
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-bold text-emerald-900 mb-2">
@@ -188,6 +319,20 @@ export default function ZoneModal({ isOpen, onClose, onZoneSelect, onDrawingMode
                   </span>
                   <span className="text-xs text-emerald-600/70 text-center">
                     Click center and drag to set radius
+                  </span>
+                </button>
+                <button
+                  onClick={handleDrawPolygon}
+                  className="flex flex-col items-center gap-3 p-6 border-2 border-emerald-200 rounded-xl hover:border-emerald-500 hover:bg-emerald-50 transition-all group col-span-2"
+                >
+                  <div className="w-12 h-12 flex items-center justify-center bg-emerald-100 rounded-lg group-hover:bg-emerald-200 transition-colors">
+                    <Hexagon size={24} className="text-emerald-600" />
+                  </div>
+                  <span className="text-sm font-bold text-emerald-900 uppercase tracking-wide">
+                    Frequency Polygon
+                  </span>
+                  <span className="text-xs text-emerald-600/70 text-center">
+                    Click multiple points to create a custom polygon shape. Double-click to finish.
                   </span>
                 </button>
               </div>
