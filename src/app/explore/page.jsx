@@ -352,7 +352,6 @@ export default function MapPage() {
         lng: Number(location.currentLocation.lng),
       };
       setTrailCurrentLocation(currentLoc);
-      console.log("Trail current location set:", currentLoc);
     } else {
       console.warn("No current location in location object:", location);
     }
@@ -373,97 +372,134 @@ export default function MapPage() {
     toast.success("Trail mode started! Click mushrooms on the map to add them to your trail.");
   };
 
-  // Handle adding/removing mushroom from trail (toggle behavior)
+  // Handle adding mushroom to trail (ADD ONLY - no toggle/remove)
   const handleTrailMushroomAdd = (mushroom) => {
     // Early return if not in trail mode - don't process at all
     if (!trailMode) {
       return;
     }
     
-    // Get mushroom coordinates for comparison
-    const mushroomLat = Number(mushroom.latitude || mushroom.location?.latitude);
-    const mushroomLng = Number(mushroom.longitude || mushroom.location?.longitude);
-    const mushroomId = mushroom._id || mushroom.id;
+    // Prevent rapid duplicate clicks
+    const now = Date.now();
+    if (handleTrailMushroomAdd.lastClick && (now - handleTrailMushroomAdd.lastClick) < 300) {
+      return; // Ignore clicks within 300ms
+    }
+    handleTrailMushroomAdd.lastClick = now;
     
-    // Helper function to check if two mushrooms are the same
+    // Normalize mushroom data for consistent comparison
+    const normalizeMushroom = (m) => {
+      const id = m._id || m.id;
+      const lat = Number(m.latitude || m.location?.latitude);
+      const lng = Number(m.longitude || m.location?.longitude);
+      return { id, lat, lng };
+    };
+    
+    const normalizedMushroom = normalizeMushroom(mushroom);
+    
+    // Validate coordinates
+    if (isNaN(normalizedMushroom.lat) || isNaN(normalizedMushroom.lng) || 
+        !isFinite(normalizedMushroom.lat) || !isFinite(normalizedMushroom.lng)) {
+      console.warn("Invalid mushroom coordinates:", mushroom);
+      return;
+    }
+    
+    // Helper function to check if two mushrooms are the same (by ID only)
     const isSameMushroom = (m1, m2) => {
-      // Check by ID if available
-      const m1Id = m1._id || m1.id;
-      const m2Id = m2._id || m2.id;
-      if (m1Id && m2Id && m1Id === m2Id) {
-        return true;
-      }
+      const n1 = normalizeMushroom(m1);
+      const n2 = normalizeMushroom(m2);
       
-      // Check by coordinates (with small tolerance for floating point comparison)
-      const m1Lat = Number(m1.latitude || m1.location?.latitude);
-      const m1Lng = Number(m1.longitude || m1.location?.longitude);
-      const m2Lat = Number(m2.latitude || m2.location?.latitude);
-      const m2Lng = Number(m2.longitude || m2.location?.longitude);
-      
-      if (!isNaN(m1Lat) && !isNaN(m1Lng) && !isNaN(m2Lat) && !isNaN(m2Lng)) {
-        const latDiff = Math.abs(m1Lat - m2Lat);
-        const lngDiff = Math.abs(m1Lng - m2Lng);
-        // Consider same if within 0.0001 degrees (~11 meters)
-        if (latDiff < 0.0001 && lngDiff < 0.0001) {
-          return true;
-        }
+      // Only match by ID - both mushrooms must have IDs and they must match exactly
+      if (n1.id && n2.id) {
+        const id1 = String(n1.id).trim();
+        const id2 = String(n2.id).trim();
+        return id1 === id2 && id1 !== '' && id2 !== '';
       }
       
       return false;
     };
     
-    // Create a unique key for this mushroom to prevent duplicate toasts
-    const mushroomKey = mushroomId || `${mushroomLat.toFixed(6)},${mushroomLng.toFixed(6)}`;
+    // Create a unique key for this mushroom
+    const mushroomKey = normalizedMushroom.id || `${normalizedMushroom.lat.toFixed(6)},${normalizedMushroom.lng.toFixed(6)}`;
     
-    // Check if we just processed this mushroom (prevent duplicate toasts)
+    // Check if we just processed this mushroom
     if (lastAddedMushroomRef.current === mushroomKey) {
-      return; // Already processing this mushroom
+      return;
     }
     
     // Use functional update to ensure we're working with latest state
+    let wasAdded = false;
+    let wasAlreadyInTrail = false;
+    
     setTrailMushrooms((prev) => {
+      // Deduplicate trail first
+      const uniqueTrail = [];
+      const seenIds = new Set();
+      for (const m of prev) {
+        const n = normalizeMushroom(m);
+        if (n.id) {
+          const idStr = String(n.id).trim();
+          if (!seenIds.has(idStr)) {
+            seenIds.add(idStr);
+            uniqueTrail.push(m);
+          }
+        } else {
+          uniqueTrail.push(m);
+        }
+      }
+      
       // Check if mushroom is already in trail
-      const existingIndex = prev.findIndex((m) => isSameMushroom(m, mushroom));
+      const existingIndex = uniqueTrail.findIndex((m) => isSameMushroom(m, mushroom));
       
       if (existingIndex >= 0) {
-        // Mushroom is already in trail - remove it
-        lastAddedMushroomRef.current = mushroomKey;
-        
-        setTimeout(() => {
-          if (trailModeRef.current) {
-            toast.success("Mushroom removed from trail", { id: `mushroom-${mushroomKey}` });
-          }
-          setTimeout(() => {
-            lastAddedMushroomRef.current = null;
-          }, 1000);
-        }, 0);
-        
-        return prev.filter((_, index) => index !== existingIndex);
+        // Mushroom is already in trail - do nothing
+        wasAlreadyInTrail = true;
+        return uniqueTrail; // Return unchanged trail
       } else {
         // Mushroom is not in trail - add it
-        lastAddedMushroomRef.current = mushroomKey;
-        
-        setTimeout(() => {
-          if (trailModeRef.current) {
-            toast.success("Mushroom added to trail", { id: `mushroom-${mushroomKey}` });
-          }
-          setTimeout(() => {
-            lastAddedMushroomRef.current = null;
-          }, 1000);
-        }, 0);
-        
-        return [...prev, mushroom];
+        wasAdded = true;
+        return [...uniqueTrail, mushroom];
       }
     });
+    
+    // Show toast outside of setState callback to prevent render warnings
+    lastAddedMushroomRef.current = mushroomKey;
+    setTimeout(() => {
+      if (trailModeRef.current) {
+        if (wasAlreadyInTrail) {
+          toast("Mushroom already in trail", { 
+            id: `mushroom-already-${mushroomKey}`,
+            icon: "ℹ️",
+            duration: 2000
+          });
+        } else if (wasAdded) {
+          toast.success("Mushroom added to trail", { id: `mushroom-${mushroomKey}` });
+        }
+      }
+      setTimeout(() => {
+        lastAddedMushroomRef.current = null;
+      }, 500);
+    }, 0);
   };
 
   // Handle removing mushroom from trail
   const handleTrailMushroomRemove = (mushroomId) => {
-    setTrailMushrooms((prev) => prev.filter((m) => 
-      m._id !== mushroomId && 
-      !(m.latitude === trailMushrooms.find(tm => tm._id === mushroomId)?.latitude && 
-        m.longitude === trailMushrooms.find(tm => tm._id === mushroomId)?.longitude)
-    ));
+    if (!mushroomId) return;
+    
+    const currentTrail = trailMushrooms;
+    const filtered = currentTrail.filter((m) => {
+      const mId = m._id || m.id;
+      return mId && String(mId).trim() !== String(mushroomId).trim();
+    });
+    
+    const wasRemoved = filtered.length < currentTrail.length;
+    
+    if (wasRemoved) {
+      setTrailMushrooms(filtered);
+      // Show toast outside of setState to prevent render warnings
+      setTimeout(() => {
+        toast.success("Mushroom removed from trail");
+      }, 0);
+    }
   };
 
   // Handle loading a saved trail
@@ -1059,7 +1095,7 @@ export default function MapPage() {
                   
                   {/* Trail mode indicator */}
                   {trailMode && (
-                    <div className="p-3 rounded-2xl bg-blue-600/90 backdrop-blur-md border border-blue-500 shadow-2xl pointer-events-auto">
+                    <div className="p-3 rounded-2xl bg-blue-600/90 backdrop-blur-md border border-blue-500 shadow-2xl pointer-events-auto max-w-xs">
                       <div className="flex items-center gap-2 mb-2">
                         <Navigation size={16} className="text-white" />
                         <span className="text-white text-xs font-bold">
@@ -1093,7 +1129,7 @@ export default function MapPage() {
                           }
                           
                           return (
-                            <div className="space-y-1">
+                            <div className="space-y-1 mb-2">
                               <p className="text-white/90 text-[10px] font-semibold">
                                 Distance: {distanceText}
                               </p>
@@ -1104,17 +1140,51 @@ export default function MapPage() {
                           );
                         } else {
                           return (
-                            <p className="text-white/70 text-[9px]">
+                            <p className="text-white/70 text-[9px] mb-2">
                               Calculating distance...
                             </p>
                           );
                         }
                       })()}
                       {!trailCurrentLocation && (
-                        <p className="text-white/70 text-[9px] mb-1">
+                        <p className="text-white/70 text-[9px] mb-2">
                           Location not available
                         </p>
                       )}
+                      
+                      {/* Trail Mushrooms List with Remove Buttons */}
+                      {trailMushrooms.length > 0 && (
+                        <div className="mt-2 mb-2 border-t border-blue-500/50 pt-2">
+                          <p className="text-white/90 text-[10px] font-semibold mb-2">Trail Mushrooms:</p>
+                          <div className="space-y-1 max-h-48 overflow-y-auto">
+                            {trailMushrooms.map((mushroom, index) => {
+                              const mushroomId = mushroom._id || mushroom.id;
+                              const mushroomName = mushroom.commonName || mushroom.name || `Mushroom ${index + 1}`;
+                              return (
+                                <div 
+                                  key={mushroomId || index} 
+                                  className="flex items-center justify-between gap-2 p-1.5 bg-blue-700/50 rounded-lg hover:bg-blue-700/70 transition-colors"
+                                >
+                                  <span className="text-white text-[9px] flex-1 truncate" title={mushroomName}>
+                                    {index + 1}. {mushroomName}
+                                  </span>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleTrailMushroomRemove(mushroomId);
+                                    }}
+                                    className="p-1 text-white/80 hover:text-white hover:bg-red-600/50 rounded transition-colors flex-shrink-0"
+                                    title="Remove from trail"
+                                  >
+                                    <Trash2 size={12} />
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      
                       <p className="text-white/80 text-[10px] mt-1">
                         Click mushrooms on the map to add them to your trail
                       </p>

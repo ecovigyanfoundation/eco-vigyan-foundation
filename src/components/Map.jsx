@@ -13,12 +13,6 @@ if (MAPBOX_TOKEN) {
 }
 
 export default function Map(props) {
-  console.log("🗺️ Map component rendering with props:", { 
-    hasData: !!props?.data, 
-    dataLength: props?.data?.length || 0,
-    view: "map"
-  });
-  
   // Destructure with defaults to handle undefined props
   const {
     data,
@@ -38,10 +32,6 @@ export default function Map(props) {
     onStartTrail,
   } = props || {};
   
-  // Debug: Log when drawingMode prop changes
-  useEffect(() => {
-    console.log("🎨 Map component received drawingMode prop:", drawingMode);
-  }, [drawingMode]);
   
   // Ensure data is always an array
   const safeData = Array.isArray(data) ? data : [];
@@ -83,15 +73,8 @@ export default function Map(props) {
 
   /* ---------------- MAP INIT ---------------- */
   useEffect(() => {
-    console.log("🗺️ Map init useEffect running", { 
-      isTokenMissing, 
-      hasMapRef: !!mapRef.current, 
-      hasContainer: !!mapContainerRef.current 
-    });
-    
     // Always clean up any existing map instance first
     if (mapRef.current) {
-      console.log("🗑️ Cleaning up existing map instance");
       try {
         popupRef.current?.remove();
         popupRef.current = null;
@@ -109,11 +92,8 @@ export default function Map(props) {
     }
     
     if (isTokenMissing || !mapContainerRef.current) {
-      console.log("⏸️ Map init skipped:", { isTokenMissing, hasContainer: !!mapContainerRef.current });
       return;
     }
-    
-    console.log("✅ Initializing new map instance");
 
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
@@ -147,7 +127,6 @@ export default function Map(props) {
     mapRef.current = map;
 
     return () => {
-      console.log("🧹 Map cleanup running - removing map instance");
       popupRef.current?.remove();
       popupRef.current = null;
       userLocationMarkerRef.current?.remove();
@@ -1249,22 +1228,13 @@ if (trailMode) {
 
   /* ---------------- DRAWING MODE ---------------- */
   useEffect(() => {
-    console.log("🔵 DRAWING MODE useEffect triggered:", { 
-      mapLoaded, 
-      hasMap: !!mapRef.current, 
-      isStyleLoaded: mapRef.current?.isStyleLoaded(), 
-      drawingMode 
-    });
-    
     if (!mapLoaded || !mapRef.current) {
-      console.log("❌ Map not loaded or doesn't exist, returning early");
       return;
     }
     
     const map = mapRef.current;
     
     if (!drawingMode) {
-      console.log("❌ No drawing mode, cleaning up");
       // Clean up drawing state
       drawingStateRef.current.isDrawing = false;
       drawingStateRef.current.isMoving = false;
@@ -1311,11 +1281,8 @@ if (trailMode) {
     // Function to set up drawing mode (defined first so it can be called by event handlers)
     const setupDrawingMode = () => {
       if (!map || !map.isStyleLoaded()) {
-        console.log("❌ Map style still not loaded in setupDrawingMode");
         return;
       }
-      
-      console.log("✅ === ENTERING DRAWING MODE ===", { drawingMode, mapReady: map.isStyleLoaded() });
     
     // Reset drawing state first - clear all modes
     drawingStateRef.current.isDrawing = false;
@@ -1377,7 +1344,6 @@ if (trailMode) {
         }
       } catch (error) {
         // Fallback to small fixed sizes if bounds calculation fails
-        console.warn("Could not calculate viewport size, using fallback:", error);
         drawingStateRef.current.currentSize = drawingMode === "rectangle" 
           ? { width: 10, height: 10 } // 10km x 10km rectangle fallback
           : { radius: 5 }; // 5km radius circle fallback
@@ -1549,7 +1515,6 @@ if (trailMode) {
         const source = map.getSource("drawing");
         if (source) {
           source.setData(geojson);
-          console.log("Drawing shape updated:", geojson);
         }
       } catch (error) {
         console.error("Error updating drawing shape:", error);
@@ -1586,7 +1551,6 @@ if (trailMode) {
         );
       }
       
-      console.log("Creating initial shape:", { drawingMode, center, size, boundaryLength: boundary?.length });
       updateDrawingShape(boundary);
       return boundary;
     };
@@ -1720,7 +1684,6 @@ if (trailMode) {
               drawingStateRef.current.initialCenter = { lat: currentCenter.lat, lng: currentCenter.lng };
             } else {
               // Fallback: calculate center from handle positions or shape boundary
-              console.warn("Current center not set, calculating from shape");
               const source = map.getSource("drawing");
               if (source) {
                 const data = source.getData ? source.getData() : source._data;
@@ -1754,7 +1717,6 @@ if (trailMode) {
                 ? { width: currentSize.width || 50, height: currentSize.height || 50 }
                 : { radius: currentSize.radius || 25 };
             } else {
-              console.warn("Current size not set, using defaults");
               drawingStateRef.current.initialSize = drawingMode === "rectangle" 
                 ? { width: 50, height: 50 }
                 : { radius: 25 };
@@ -1768,7 +1730,6 @@ if (trailMode) {
           
           // Safety check: ensure we have valid coordinates
           if (!newLngLat || typeof newLngLat.lat !== 'number' || typeof newLngLat.lng !== 'number') {
-            console.warn("Invalid coordinates from marker, aborting drag");
             return;
           }
           
@@ -1935,22 +1896,9 @@ if (trailMode) {
     // Create initial shape - try multiple approaches to ensure it works
     const createShapeNow = () => {
       try {
-        console.log("=== DRAWING MODE ACTIVATED ===", {
-          drawingMode,
-          center: drawingStateRef.current.currentCenter,
-          size: drawingStateRef.current.currentSize,
-          hasSource: !!map.getSource("drawing"),
-          hasFillLayer: !!map.getLayer("drawing-fill"),
-          hasOutlineLayer: !!map.getLayer("drawing-outline")
-        });
-        
         const boundary = createInitialShape();
         if (boundary) {
-          console.log("Shape created successfully, boundary length:", boundary.length);
           updateResizeHandles();
-          console.log("Resize handles created");
-        } else {
-          console.error("Failed to create shape - createInitialShape returned null");
         }
       } catch (error) {
         console.error("Error in createShapeNow:", error);
@@ -2100,7 +2048,6 @@ if (trailMode) {
           if (minVertexDist < handleThreshold) {
             // This is likely a handle click/drag, let it be handled by the marker drag system
             // Don't process this as a polygon edit action
-            console.log("Click near handle, letting handle system handle it", { minVertexDist, handleThreshold });
             return;
           }
           
@@ -2135,19 +2082,16 @@ if (trailMode) {
       // Get current boundary
       const source = map.getSource("drawing");
       if (!source) {
-        console.log("No drawing source found");
         return;
       }
       const data = source.getData ? source.getData() : source._data;
       if (!data || !data.features || data.features.length === 0) {
-        console.log("No drawing data found");
         return;
       }
       
       // Get coordinates from either mouse or touch event
       const point = e.lngLat;
       if (!point) {
-        console.log("No point in event");
         return;
       }
       
@@ -2166,13 +2110,11 @@ if (trailMode) {
       const threshold = (zoom > 10 ? baseThreshold * 0.3 : zoom > 7 ? baseThreshold * 0.5 : baseThreshold) / 111;
       
       const isInside = isPointInShape(point, boundary);
-      console.log("Click detected:", { edgeDist, threshold, isInside, point, zoom });
       
       // Check edge first, but only if we're actually near the edge
       // If inside and not near edge, allow moving
       if (edgeDist < threshold && isInside) {
         // Near edge and inside - prioritize resize
-        console.log("Starting resize (near edge)");
         drawingStateRef.current.isResizing = true;
         drawingStateRef.current.isMoving = false; // Ensure move is false
         drawingStateRef.current.dragStart = point;
@@ -2193,7 +2135,6 @@ if (trailMode) {
           e.originalEvent.preventDefault();
         }
       } else if (isInside && edgeDist >= threshold) {
-        console.log("Starting move");
         drawingStateRef.current.isMoving = true;
         drawingStateRef.current.isResizing = false; // Ensure resize is false
         drawingStateRef.current.dragStart = point;
@@ -2210,8 +2151,6 @@ if (trailMode) {
         if (e.originalEvent && e.originalEvent.preventDefault) {
           e.originalEvent.preventDefault();
         }
-      } else {
-        console.log("Click outside shape, ignoring");
       }
     };
 
@@ -2338,12 +2277,10 @@ if (trailMode) {
         
         // Safety checks
         if (!initialCenter || typeof initialCenter.lat !== 'number' || typeof initialCenter.lng !== 'number') {
-          console.warn("Initial center not set during move, aborting");
           return;
         }
         
         if (!dragStart || typeof dragStart.lat !== 'number' || typeof dragStart.lng !== 'number') {
-          console.warn("Drag start not set during move, initializing");
           drawingStateRef.current.dragStart = currentPoint;
           return;
         }
@@ -2373,7 +2310,6 @@ if (trailMode) {
         
         // Safety check: ensure initialCenter exists
         if (!initialCenter || !initialCenter.lat || !initialCenter.lng) {
-          console.warn("Initial center not set during resize, aborting");
           return;
         }
         
@@ -2566,6 +2502,12 @@ if (trailMode) {
     // Expose function to get current boundary
     if (onGetCurrentBoundary) {
       onGetCurrentBoundary.current = () => {
+        // Use mapRef.current instead of closure variable to ensure we always have the current map instance
+        const currentMap = mapRef.current;
+        if (!currentMap) {
+          return null;
+        }
+        
         // For polygon, get boundary from polygonPoints
         if (drawingMode === "polygon") {
           const points = drawingStateRef.current.polygonPoints;
@@ -2582,7 +2524,7 @@ if (trailMode) {
           };
         }
         
-        const source = map.getSource("drawing");
+        const source = currentMap.getSource("drawing");
         if (!source) return null;
         const data = source.getData ? source.getData() : source._data;
         if (!data || !data.features || data.features.length === 0) return null;
@@ -2604,9 +2546,14 @@ if (trailMode) {
         drawingStateRef.current.polygonEditMode = false;
         drawingStateRef.current.activeVertexIndex = undefined;
         
-        // Clear drawing source data
+        // Clear drawing source data - use mapRef.current instead of closure variable
+        const currentMap = mapRef.current;
+        if (!currentMap) {
+          return;
+        }
+        
         try {
-          const source = map.getSource("drawing");
+          const source = currentMap.getSource("drawing");
           if (source) {
             source.setData({
               type: "FeatureCollection",
@@ -2630,7 +2577,6 @@ if (trailMode) {
     
     // Wait for style to be loaded if it's not ready yet, then call setupDrawingMode
     if (!map.isStyleLoaded()) {
-      console.log("⏳ Map style not loaded, waiting for style to load...");
       
       let cleanupDone = false;
       let timeoutId = null;
@@ -2646,7 +2592,6 @@ if (trailMode) {
       
       // Try multiple events to catch when style is ready
       const onStyleLoad = () => {
-        console.log("✅ Map style loaded via style.load event");
         if (map.isStyleLoaded() && drawingMode) {
           doCleanup();
           setupDrawingMode();
@@ -2654,7 +2599,6 @@ if (trailMode) {
       };
       
       const onMapLoad = () => {
-        console.log("✅ Map loaded via load event");
         if (map.isStyleLoaded() && drawingMode) {
           doCleanup();
           setupDrawingMode();
@@ -2662,7 +2606,6 @@ if (trailMode) {
       };
       
       const onIdle = () => {
-        console.log("✅ Map idle");
         if (map.isStyleLoaded() && drawingMode) {
           doCleanup();
           setupDrawingMode();
@@ -2676,7 +2619,6 @@ if (trailMode) {
       
       // Also try after a delay as fallback
       timeoutId = setTimeout(() => {
-        console.log("⏰ Timeout fallback - checking if style is loaded");
         if (map.isStyleLoaded() && drawingMode) {
           doCleanup();
           setupDrawingMode();
@@ -2689,7 +2631,6 @@ if (trailMode) {
     }
     
     // If style is already loaded, proceed immediately
-    console.log("✅ Style already loaded, proceeding immediately");
     setupDrawingMode();
     
     // Return cleanup for the useEffect
