@@ -58,6 +58,7 @@ export default function Map(props) {
     polygonEditMode: false, // True after double-click, allows resizing vertices
     activeVertexIndex: undefined, // Index of vertex being dragged
   });
+  const lastZoomedZoneRef = useRef(null); // Track last zoomed zone to prevent re-zooming
 
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapError, setMapError] = useState(null);
@@ -399,7 +400,8 @@ export default function Map(props) {
 
     /* ---------------- ZONE BOUNDARY ---------------- */
     // Handle zone boundary - separate from data/filters updates
-    if (selectedZone && selectedZone.boundary && selectedZone.boundary.length > 0) {
+    // Skip boundary rendering for trails (they don't need a visible boundary)
+    if (selectedZone && selectedZone.boundary && selectedZone.boundary.length > 0 && selectedZone.type !== "trail") {
       const zoneGeoJSON = {
         type: "FeatureCollection",
         features: [
@@ -459,7 +461,17 @@ export default function Map(props) {
                          selectedZone.type === "circle" || 
                          selectedZone.type === "polygon");
       
-      if (shouldZoom && selectedZone.boundary) {
+      // Create a unique key for this zone to track if we've already zoomed
+      const zoneKey = selectedZone.boundary 
+        ? JSON.stringify(selectedZone.boundary) 
+        : selectedZone.center 
+          ? `${selectedZone.type}-${selectedZone.center.lat}-${selectedZone.center.lng}`
+          : null;
+      
+      // Only zoom if this is a new zone (hasn't been zoomed to yet)
+      const needsZoom = shouldZoom && zoneKey && lastZoomedZoneRef.current !== zoneKey;
+      
+      if (needsZoom && selectedZone.boundary) {
         const coordinates = selectedZone.boundary;
         const bounds = coordinates.reduce(
           (bounds, coord) => {
@@ -486,48 +498,84 @@ export default function Map(props) {
         }
 
         // For trail mode, ensure we zoom to at least level 9 so mushrooms are visible
-        if (trailMode) {
-          // Use fitBounds with minZoom option if the calculated zoom would be less than 9
-          // First, let's try to fit bounds and then adjust if needed
+        if (selectedZone.type === "trail" && trailMode) {
+          // Use fitBounds with minZoom to ensure mushrooms are visible
+          // Don't set maxZoom to allow user to zoom in/out freely after
           map.fitBounds(bounds, {
             padding: { top: 100, bottom: 100, left: 100, right: 100 },
             duration: 1000,
-            maxZoom: 15,
+            minZoom: 9,
           });
-          
-          // After animation completes, check and adjust zoom if needed
-          const checkZoom = () => {
-            const currentZoom = map.getZoom();
-            if (currentZoom < 9) {
-              // Zoom to level 9 centered on the city center (use the actual city center)
-              map.flyTo({
-                center: [centerLng, centerLat],
-                zoom: 9,
-                duration: 500,
-              });
-            }
-          };
-          
-          // Use both moveend and a timeout as fallback
-          map.once('moveend', checkZoom);
-          setTimeout(checkZoom, 1200); // Fallback after animation should complete
         } else {
           map.fitBounds(bounds, {
             padding: { top: 100, bottom: 100, left: 100, right: 100 },
             duration: 1000,
           });
         }
-      } else if (selectedZone.type === "trail" && selectedZone.center && !selectedZone.boundary) {
-        // Handle trail with current location (no boundary, just center)
-        const center = selectedZone.center;
-        if (trailMode) {
-          // Zoom to current location at level 9
+        
+        // Mark this zone as zoomed to
+        lastZoomedZoneRef.current = zoneKey;
+      } else if (needsZoom && selectedZone.type === "trail" && selectedZone.center && !selectedZone.boundary) {
+        // Handle trail - zoom to fit all mushrooms in the trail
+        const mushroomsToZoom = selectedZone.trailMushrooms || trailMushrooms;
+        if (trailMode && mushroomsToZoom && mushroomsToZoom.length > 0) {
+          // Calculate bounds from trail mushrooms
+          const validMushrooms = mushroomsToZoom.filter(m => {
+            const lat = m.latitude || m.location?.latitude;
+            const lng = m.longitude || m.location?.longitude;
+            return lat && lng && !isNaN(Number(lat)) && !isNaN(Number(lng));
+          });
+
+          if (validMushrooms.length > 0) {
+            // Calculate bounds from all mushrooms
+            let minLat = Infinity, maxLat = -Infinity;
+            let minLng = Infinity, maxLng = -Infinity;
+
+            validMushrooms.forEach(m => {
+              const lat = Number(m.latitude || m.location?.latitude);
+              const lng = Number(m.longitude || m.location?.longitude);
+              minLat = Math.min(minLat, lat);
+              maxLat = Math.max(maxLat, lat);
+              minLng = Math.min(minLng, lng);
+              maxLng = Math.max(maxLng, lng);
+            });
+
+            // Create bounds array for fitBounds
+            const bounds = [
+              [minLng, minLat],
+              [maxLng, maxLat],
+            ];
+
+            // Zoom to fit all mushrooms with padding
+            map.fitBounds(bounds, {
+              padding: { top: 100, bottom: 100, left: 100, right: 100 },
+              duration: 1000,
+              minZoom: 9,
+            });
+          } else {
+            // Fallback: zoom to center at level 9
+            const center = selectedZone.center;
+            map.flyTo({
+              center: [center.lng, center.lat],
+              zoom: 9,
+              duration: 1000,
+            });
+          }
+        } else if (trailMode) {
+          // Fallback: zoom to center at level 9
+          const center = selectedZone.center;
           map.flyTo({
             center: [center.lng, center.lat],
             zoom: 9,
             duration: 1000,
           });
         }
+        
+        // Mark this zone as zoomed to
+        lastZoomedZoneRef.current = zoneKey;
+      } else if (!selectedZone || !selectedZone.boundary) {
+        // Clear zoom tracking when zone is removed
+        lastZoomedZoneRef.current = null;
       }
     } else {
       // Remove zone if not selected

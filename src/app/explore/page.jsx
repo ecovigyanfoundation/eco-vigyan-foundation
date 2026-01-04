@@ -509,50 +509,117 @@ export default function MapPage() {
       return;
     }
 
-    // Get current location first
-    if (!navigator.geolocation) {
-      toast.error("Geolocation is not supported by your browser.");
+    // Calculate bounds from all mushrooms in the trail for zooming
+    const validMushrooms = trail.mushrooms.filter(m => {
+      const lat = m.latitude || m.location?.latitude;
+      const lng = m.longitude || m.location?.longitude;
+      return lat && lng && !isNaN(Number(lat)) && !isNaN(Number(lng));
+    });
+
+    if (validMushrooms.length === 0) {
+      toast.error("Trail mushrooms have no valid coordinates");
       return;
     }
 
-    toast.loading("Getting your location...", { id: 'loading-trail' });
+    // Calculate center from mushrooms (for display only, no boundary needed)
+    let minLat = Infinity, maxLat = -Infinity;
+    let minLng = Infinity, maxLng = -Infinity;
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        const currentLoc = {
-          lat: Number(latitude),
-          lng: Number(longitude),
-        };
+    validMushrooms.forEach(m => {
+      const lat = Number(m.latitude || m.location?.latitude);
+      const lng = Number(m.longitude || m.location?.longitude);
+      minLat = Math.min(minLat, lat);
+      maxLat = Math.max(maxLat, lat);
+      minLng = Math.min(minLng, lng);
+      maxLng = Math.max(maxLng, lng);
+    });
 
-        setTrailCurrentLocation(currentLoc);
-        setTrailMushrooms(trail.mushrooms);
-        setTrailMode(true);
-        setTrailLocation({
-          type: "trail",
-          currentLocation: currentLoc,
-          center: currentLoc,
-          boundary: null,
-        });
+    // Calculate center from bounds
+    const center = {
+      lat: (minLat + maxLat) / 2,
+      lng: (minLng + maxLng) / 2,
+    };
 
-        // Set the zone to zoom to user's location
-        setSelectedZone({
-          type: "trail",
-          center: currentLoc,
-          boundary: null,
-        });
+    // Try to get current location (optional)
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          const currentLoc = {
+            lat: Number(latitude),
+            lng: Number(longitude),
+          };
 
-        toast.success(`Loaded trail "${trail.name}" with ${trail.mushrooms.length} mushrooms`, { id: 'loading-trail' });
-      },
-      (err) => {
-        toast.error("Failed to get location. Please enable location access and try again.", { id: 'loading-trail' });
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
-      }
-    );
+          setTrailCurrentLocation(currentLoc);
+          setTrailMushrooms(trail.mushrooms);
+          setTrailMode(true);
+          setTrailLocation({
+            type: "trail",
+            currentLocation: currentLoc,
+            center: center,
+            boundary: null,
+          });
+
+          // Set selectedZone without boundary - Map component will zoom to mushrooms directly
+          setSelectedZone({
+            type: "trail",
+            center: center,
+            boundary: null,
+            trailMushrooms: trail.mushrooms, // Pass mushrooms for zoom calculation
+          });
+
+          toast.success(`Loaded trail "${trail.name}" with ${trail.mushrooms.length} mushrooms`, { id: 'loading-trail' });
+        },
+        (err) => {
+          // Location access denied or failed - continue without location
+          setTrailCurrentLocation(null);
+          setTrailMushrooms(trail.mushrooms);
+          setTrailMode(true);
+          setTrailLocation({
+            type: "trail",
+            currentLocation: null,
+            center: center,
+            boundary: null,
+          });
+
+          // Set selectedZone without boundary - Map component will zoom to mushrooms directly
+          setSelectedZone({
+            type: "trail",
+            center: center,
+            boundary: null,
+            trailMushrooms: trail.mushrooms, // Pass mushrooms for zoom calculation
+          });
+
+          toast.success(`Loaded trail "${trail.name}" with ${trail.mushrooms.length} mushrooms`, { id: 'loading-trail' });
+        },
+        {
+          enableHighAccuracy: false,
+          timeout: 5000,
+          maximumAge: 60000,
+        }
+      );
+    } else {
+      // Geolocation not supported - continue without location
+      setTrailCurrentLocation(null);
+      setTrailMushrooms(trail.mushrooms);
+      setTrailMode(true);
+      setTrailLocation({
+        type: "trail",
+        currentLocation: null,
+        center: center,
+        boundary: null,
+      });
+
+      // Set selectedZone without boundary - Map component will zoom to mushrooms directly
+      setSelectedZone({
+        type: "trail",
+        center: center,
+        boundary: null,
+        trailMushrooms: trail.mushrooms, // Pass mushrooms for zoom calculation
+      });
+
+      toast.success(`Loaded trail "${trail.name}" with ${trail.mushrooms.length} mushrooms`);
+    }
   };
 
   // Handle saving current trail
@@ -588,50 +655,89 @@ export default function MapPage() {
 
   // Handle starting trail to a specific mushroom
   const handleStartTrailToMushroom = (mushroom) => {
-    // Get current location first
-    if (!navigator.geolocation) {
-      toast.error("Geolocation is not supported by your browser.");
-      return;
-    }
+    // Get mushroom location for center
+    const mushroomLat = mushroom.latitude || mushroom.location?.latitude;
+    const mushroomLng = mushroom.longitude || mushroom.location?.longitude;
+    const center = mushroomLat && mushroomLng ? { lat: Number(mushroomLat), lng: Number(mushroomLng) } : null;
 
-    toast.loading("Getting your location...", { id: 'starting-trail' });
+    // Try to get current location (optional)
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          const currentLoc = {
+            lat: Number(latitude),
+            lng: Number(longitude),
+          };
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        const currentLoc = {
-          lat: Number(latitude),
-          lng: Number(longitude),
-        };
+          setTrailCurrentLocation(currentLoc);
+          setTrailMushrooms([mushroom]);
+          setTrailMode(true);
+          setTrailLocation({
+            type: "trail",
+            currentLocation: currentLoc,
+            center: center || currentLoc,
+            boundary: null,
+          });
 
-        setTrailCurrentLocation(currentLoc);
-        setTrailMushrooms([mushroom]); // Start with the selected mushroom
-        setTrailMode(true);
-        setTrailLocation({
-          type: "trail",
-          currentLocation: currentLoc,
-          center: currentLoc,
-          boundary: null,
-        });
+          setSelectedZone({
+            type: "trail",
+            center: center || currentLoc,
+            boundary: null,
+          });
 
-        // Set the zone to zoom to user's location
+          toast.success(`Trail started to "${mushroom.name || mushroom.commonName || 'mushroom'}"!`, { id: 'starting-trail' });
+        },
+        (err) => {
+          // Location access denied or failed - continue without location
+          setTrailCurrentLocation(null);
+          setTrailMushrooms([mushroom]);
+          setTrailMode(true);
+          setTrailLocation({
+            type: "trail",
+            currentLocation: null,
+            center: center,
+            boundary: null,
+          });
+
+          if (center) {
+            setSelectedZone({
+              type: "trail",
+              center: center,
+              boundary: null,
+            });
+          }
+
+          toast.success(`Trail started to "${mushroom.name || mushroom.commonName || 'mushroom'}"!`, { id: 'starting-trail' });
+        },
+        {
+          enableHighAccuracy: false,
+          timeout: 5000,
+          maximumAge: 60000,
+        }
+      );
+    } else {
+      // Geolocation not supported - continue without location
+      setTrailCurrentLocation(null);
+      setTrailMushrooms([mushroom]);
+      setTrailMode(true);
+      setTrailLocation({
+        type: "trail",
+        currentLocation: null,
+        center: center,
+        boundary: null,
+      });
+
+      if (center) {
         setSelectedZone({
           type: "trail",
-          center: currentLoc,
+          center: center,
           boundary: null,
         });
-
-        toast.success(`Trail started to "${mushroom.name || mushroom.commonName || 'mushroom'}"!`, { id: 'starting-trail' });
-      },
-      (err) => {
-        toast.error("Failed to get location. Please enable location access and try again.", { id: 'starting-trail' });
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
       }
-    );
+
+      toast.success(`Trail started to "${mushroom.name || mushroom.commonName || 'mushroom'}"!`);
+    }
   };
 
   // Handle ending trail mode
@@ -1344,6 +1450,19 @@ export default function MapPage() {
             <Navigation size={20} strokeWidth={3} />
             <span className="font-bold text-sm whitespace-nowrap">Trails</span>
           </button>
+          
+          {/* Save Trail Button (shown when in trail mode with mushrooms - admin only) */}
+          {trailMode && trailMushrooms.length > 0 && user?.role === "admin" && (
+            <button
+              onClick={handleSaveTrail}
+              className="px-4 py-3 rounded-2xl bg-green-600/90 hover:bg-green-700/90 text-white shadow-2xl transition-all active:scale-95 backdrop-blur-md border border-green-500 flex items-center gap-2"
+              aria-label="Save Trail"
+              title="Save Trail"
+            >
+              <Save size={20} strokeWidth={3} />
+              <span className="font-bold text-sm whitespace-nowrap">Save</span>
+            </button>
+          )}
           
           {/* End Trail Button (shown when in trail mode) */}
           {trailMode && (
