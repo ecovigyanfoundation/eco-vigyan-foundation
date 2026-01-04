@@ -930,7 +930,7 @@ export default function MapPage() {
                   trailMushrooms={trailMushrooms}
                   trailCurrentLocation={trailCurrentLocation}
                   onTrailMushroomAdd={handleTrailMushroomAdd}
-                  onStartTrail={handleStartTrailToMushroom}
+                  onStartTrail={user?.role === "admin" ? handleStartTrailToMushroom : undefined}
                   onMushroomClick={(mushroom) => {
                     if (trailMode) {
                       handleTrailMushroomAdd(mushroom);
@@ -1064,8 +1064,8 @@ export default function MapPage() {
                 <span className="font-bold text-sm whitespace-nowrap">Trails</span>
               </button>
               
-              {/* Save Trail Button (shown when in trail mode with mushrooms) */}
-              {trailMode && trailMushrooms.length > 0 && (
+              {/* Save Trail Button (shown when in trail mode with mushrooms - admin only) */}
+              {trailMode && trailMushrooms.length > 0 && user?.role === "admin" && (
                 <button
                   onClick={handleSaveTrail}
                   className="px-4 py-3 rounded-2xl bg-green-600/90 hover:bg-green-700/90 text-white shadow-2xl transition-all active:scale-95 backdrop-blur-md border border-green-500 flex items-center gap-2 pointer-events-auto"

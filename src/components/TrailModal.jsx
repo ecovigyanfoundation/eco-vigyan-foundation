@@ -4,8 +4,11 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { X, Loader2, Navigation, FolderOpen, Plus } from "lucide-react";
 import toast from "react-hot-toast";
 import { getSavedTrails } from "@/lib/trailStorage";
+import { useAuth } from "@/context/AuthContext";
 
 export default function TrailModal({ isOpen, onClose, onLocationSelect, onLoadTrail }) {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
   const [mode, setMode] = useState("select"); // "select", "create", "load"
   const [gettingLocation, setGettingLocation] = useState(false);
   const [error, setError] = useState(null);
@@ -194,13 +197,15 @@ export default function TrailModal({ isOpen, onClose, onLocationSelect, onLoadTr
           <div className="space-y-4">
             {mode === "select" ? (
               <div className="space-y-3">
-                <button
-                  onClick={() => setMode("create")}
-                  className="w-full px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-3"
-                >
-                  <Plus size={20} />
-                  <span>Create New Trail</span>
-                </button>
+                {isAdmin && (
+                  <button
+                    onClick={() => setMode("create")}
+                    className="w-full px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-3"
+                  >
+                    <Plus size={20} />
+                    <span>Create New Trail</span>
+                  </button>
+                )}
                 <button
                   onClick={() => setMode("load")}
                   className="w-full px-6 py-4 bg-blue-100 hover:bg-blue-200 text-blue-900 font-bold rounded-xl transition-colors flex items-center justify-center gap-3"

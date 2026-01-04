@@ -44,7 +44,9 @@ async function getAuthenticatedUser(req) {
   }
 }
 
-// GET - Get all trails for the authenticated user
+// GET - Get all trails
+// Normal users: only trails created by admins
+// Admins: all trails
 export async function GET(req) {
   try {
     await connectDB();
@@ -54,9 +56,24 @@ export async function GET(req) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const trails = await Trail.find({ user: user._id })
-      .sort({ createdAt: -1 })
-      .lean();
+    let trails;
+    
+    if (user.role === "admin") {
+      // Admins can see all trails
+      trails = await Trail.find()
+        .populate("user", "name username")
+        .sort({ createdAt: -1 })
+        .lean();
+    } else {
+      // Normal users can only see trails created by admins
+      const adminUsers = await User.find({ role: "admin" }).select("_id");
+      const adminIds = adminUsers.map(u => u._id);
+      
+      trails = await Trail.find({ user: { $in: adminIds } })
+        .populate("user", "name username")
+        .sort({ createdAt: -1 })
+        .lean();
+    }
 
     return NextResponse.json({ trails }, { status: 200 });
   } catch (error) {
@@ -68,7 +85,7 @@ export async function GET(req) {
   }
 }
 
-// POST - Create a new trail
+// POST - Create a new trail (admin only)
 export async function POST(req) {
   try {
     await connectDB();
@@ -76,6 +93,14 @@ export async function POST(req) {
     const user = await getAuthenticatedUser(req);
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Only admins can create trails
+    if (user.role !== "admin") {
+      return NextResponse.json(
+        { error: "Only admins can create trails" },
+        { status: 403 }
+      );
     }
 
     const body = await req.json();

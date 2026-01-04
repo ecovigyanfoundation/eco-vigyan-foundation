@@ -24,7 +24,17 @@ export function AuthProvider({ children }) {
       const res = await fetch("/api/auth/current-user", {
         credentials: "include", // Important for cookies
         cache: "no-store", // Don't cache this request
+        headers: {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          "Pragma": "no-cache",
+        },
       });
+      
+      // Check if response is ok
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      
       const data = await res.json();
       
       if (data.user) {
@@ -77,21 +87,29 @@ export function AuthProvider({ children }) {
 
   const logout = async () => {
     try {
-      // Clear localStorage FIRST (before API call)
-      localStorage.removeItem("user");
+      // Clear user state immediately (UI update)
       setUser(null);
-
-      // Call logout API to clear cookie (don't wait for it to complete)
-      fetch("/api/auth/logout", { 
-        method: "POST",
-        credentials: "include",
-        cache: "no-store",
-      }).catch(err => console.error("Logout API error:", err));
-
-      // Force clear any remaining localStorage data
-      localStorage.clear();
       
-      // Clear user state immediately
+      // Clear localStorage
+      localStorage.removeItem("user");
+      localStorage.clear();
+
+      // Call logout API to clear cookie - WAIT for it to complete
+      try {
+        const res = await fetch("/api/auth/logout", { 
+          method: "POST",
+          credentials: "include",
+          cache: "no-store",
+        });
+        
+        if (!res.ok) {
+          console.error("Logout API returned error:", res.status);
+        }
+      } catch (err) {
+        console.error("Logout API error:", err);
+      }
+
+      // Ensure user state is cleared
       setUser(null);
       
       // Force a hard page reload to clear all cached state and cookies
@@ -101,8 +119,8 @@ export function AuthProvider({ children }) {
     } catch (error) {
       console.error("Logout error:", error);
       // Still clear local state even if anything fails
-      localStorage.clear();
       setUser(null);
+      localStorage.clear();
       // Force redirect to home with hard refresh
       window.location.href = "/";
     }

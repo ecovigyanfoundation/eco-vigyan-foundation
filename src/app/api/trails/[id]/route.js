@@ -46,6 +46,8 @@ async function getAuthenticatedUser(req) {
 }
 
 // GET - Get a specific trail
+// Normal users: can view any trail created by an admin
+// Admins: can view any trail
 export async function GET(req, { params }) {
   try {
     await connectDB();
@@ -64,10 +66,28 @@ export async function GET(req, { params }) {
       );
     }
 
-    const trail = await Trail.findOne({ _id: id, user: user._id }).lean();
+    const trail = await Trail.findById(id)
+      .populate("user", "name username role")
+      .lean();
 
     if (!trail) {
       return NextResponse.json({ error: "Trail not found" }, { status: 404 });
+    }
+
+    // Normal users can only view trails created by admins
+    if (user.role !== "admin") {
+      // Check if trail creator is an admin (user is already populated)
+      const trailCreatorId = trail.user._id || trail.user;
+      const trailCreator = trail.user.role 
+        ? trail.user // Already populated with role
+        : await User.findById(trailCreatorId).select("role");
+      
+      if (!trailCreator || trailCreator.role !== "admin") {
+        return NextResponse.json(
+          { error: "Trail not found" },
+          { status: 404 }
+        );
+      }
     }
 
     return NextResponse.json({ trail }, { status: 200 });
@@ -80,7 +100,7 @@ export async function GET(req, { params }) {
   }
 }
 
-// PUT - Update a trail
+// PUT - Update a trail (admin only)
 export async function PUT(req, { params }) {
   try {
     await connectDB();
@@ -88,6 +108,14 @@ export async function PUT(req, { params }) {
     const user = await getAuthenticatedUser(req);
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Only admins can update trails
+    if (user.role !== "admin") {
+      return NextResponse.json(
+        { error: "Only admins can update trails" },
+        { status: 403 }
+      );
     }
 
     const { id } = await params;
@@ -102,7 +130,7 @@ export async function PUT(req, { params }) {
     const body = await req.json();
     const { name, location, mushrooms } = body;
 
-    const trail = await Trail.findOne({ _id: id, user: user._id });
+    const trail = await Trail.findById(id);
 
     if (!trail) {
       return NextResponse.json({ error: "Trail not found" }, { status: 404 });
@@ -152,7 +180,7 @@ export async function PUT(req, { params }) {
   }
 }
 
-// DELETE - Delete a trail
+// DELETE - Delete a trail (admin only)
 export async function DELETE(req, { params }) {
   try {
     await connectDB();
@@ -160,6 +188,14 @@ export async function DELETE(req, { params }) {
     const user = await getAuthenticatedUser(req);
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Only admins can delete trails
+    if (user.role !== "admin") {
+      return NextResponse.json(
+        { error: "Only admins can delete trails" },
+        { status: 403 }
+      );
     }
 
     const { id } = await params;
@@ -171,13 +207,13 @@ export async function DELETE(req, { params }) {
       );
     }
 
-    const trail = await Trail.findOne({ _id: id, user: user._id });
+    const trail = await Trail.findById(id);
 
     if (!trail) {
       return NextResponse.json({ error: "Trail not found" }, { status: 404 });
     }
 
-    await Trail.deleteOne({ _id: id, user: user._id });
+    await Trail.deleteOne({ _id: id });
 
     return NextResponse.json(
       { message: "Trail deleted successfully" },
