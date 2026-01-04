@@ -1333,9 +1333,47 @@ if (trailMode) {
     } else {
       const center = map.getCenter();
       drawingStateRef.current.currentCenter = { lat: center.lat, lng: center.lng };
-      drawingStateRef.current.currentSize = drawingMode === "rectangle" 
-        ? { width: 50, height: 50 } // 50km x 50km rectangle
-        : { radius: 25 }; // 25km radius circle
+      
+      // Calculate initial size based on current viewport (30% of visible area)
+      try {
+        const bounds = map.getBounds();
+        const ne = bounds.getNorthEast();
+        const sw = bounds.getSouthWest();
+        
+        // Calculate distance in kilometers
+        // Latitude: 1 degree ≈ 111 km
+        const latDiff = ne.lat - sw.lat;
+        const latDistKm = latDiff * 111;
+        
+        // Longitude: 1 degree ≈ 111 * cos(latitude) km
+        const avgLat = (ne.lat + sw.lat) / 2;
+        const cosLat = Math.cos(avgLat * Math.PI / 180);
+        const lngDiff = ne.lng - sw.lng;
+        const lngDistKm = lngDiff * 111 * cosLat;
+        
+        // Set size to 30% of viewport dimensions
+        const viewportWidth = lngDistKm;
+        const viewportHeight = latDistKm;
+        
+        if (drawingMode === "rectangle") {
+          drawingStateRef.current.currentSize = { 
+            width: viewportWidth * 0.3, 
+            height: viewportHeight * 0.3 
+          };
+        } else {
+          // For circle, use the smaller dimension to ensure it fits
+          const minDimension = Math.min(viewportWidth, viewportHeight);
+          drawingStateRef.current.currentSize = { 
+            radius: minDimension * 0.3 
+          };
+        }
+      } catch (error) {
+        // Fallback to small fixed sizes if bounds calculation fails
+        console.warn("Could not calculate viewport size, using fallback:", error);
+        drawingStateRef.current.currentSize = drawingMode === "rectangle" 
+          ? { width: 10, height: 10 } // 10km x 10km rectangle fallback
+          : { radius: 5 }; // 5km radius circle fallback
+      }
       drawingStateRef.current.isDrawing = false;
       drawingStateRef.current.isMoving = false;
       drawingStateRef.current.isResizing = false;
@@ -1397,6 +1435,37 @@ if (trailMode) {
       }
     }
 
+
+    // Helper to get maximum allowed size based on viewport
+    const getMaxViewportSize = () => {
+      try {
+        const bounds = map.getBounds();
+        const ne = bounds.getNorthEast();
+        const sw = bounds.getSouthWest();
+        
+        // Calculate viewport dimensions in kilometers
+        const latDiff = ne.lat - sw.lat;
+        const latDistKm = latDiff * 111;
+        
+        const avgLat = (ne.lat + sw.lat) / 2;
+        const cosLat = Math.cos(avgLat * Math.PI / 180);
+        const lngDiff = ne.lng - sw.lng;
+        const lngDistKm = lngDiff * 111 * cosLat;
+        
+        return {
+          maxWidth: lngDistKm * 0.95, // 95% of viewport width
+          maxHeight: latDistKm * 0.95, // 95% of viewport height
+          maxRadius: Math.min(lngDistKm, latDistKm) * 0.95 / 2, // 95% of smaller dimension, divided by 2 for radius
+        };
+      } catch (error) {
+        // Fallback to large values if calculation fails
+        return {
+          maxWidth: 1000,
+          maxHeight: 1000,
+          maxRadius: 500,
+        };
+      }
+    };
 
     const updateDrawingShape = (boundary, updateHandles = false) => {
       if (!boundary || !Array.isArray(boundary) || boundary.length === 0) {
@@ -1643,8 +1712,15 @@ if (trailMode) {
             
             // The size is twice the distance from center to corner
             // Width corresponds to longitude (east-west), height to latitude (north-south)
-            drawingStateRef.current.currentSize.width = Math.max(10, lngDist * 2);
-            drawingStateRef.current.currentSize.height = Math.max(10, latDist * 2);
+            const maxSize = getMaxViewportSize();
+            drawingStateRef.current.currentSize.width = Math.min(
+              maxSize.maxWidth,
+              Math.max(10, lngDist * 2)
+            );
+            drawingStateRef.current.currentSize.height = Math.min(
+              maxSize.maxHeight,
+              Math.max(10, latDist * 2)
+            );
           } else {
             // Circle: radius is distance from initial center to current position
             const R = 6371;
@@ -1655,7 +1731,11 @@ if (trailMode) {
               Math.cos((currentPoint.lat * Math.PI) / 180) *
               Math.sin(dLng / 2) * Math.sin(dLng / 2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            drawingStateRef.current.currentSize.radius = Math.max(5, R * c);
+            const maxSize = getMaxViewportSize();
+            drawingStateRef.current.currentSize.radius = Math.min(
+              maxSize.maxRadius,
+              Math.max(5, R * c)
+            );
           }
           
           // Update the shape immediately - this will redraw the shape
@@ -1931,13 +2011,21 @@ if (trailMode) {
       } else if (drawingStateRef.current.isResizing) {
         // Resize the shape
         const initialCenter = drawingStateRef.current.initialCenter;
+        const maxSize = getMaxViewportSize();
+        
         if (drawingMode === "rectangle") {
           const latDiff = Math.abs(currentPoint.lat - initialCenter.lat);
           const lngDiff = Math.abs(currentPoint.lng - initialCenter.lng);
           const latDist = latDiff * 111;
           const lngDist = lngDiff * 111 * Math.cos(initialCenter.lat * Math.PI / 180);
-          drawingStateRef.current.currentSize.width = Math.max(10, latDist * 2);
-          drawingStateRef.current.currentSize.height = Math.max(10, lngDist * 2);
+          drawingStateRef.current.currentSize.width = Math.min(
+            maxSize.maxWidth,
+            Math.max(10, lngDist * 2)
+          );
+          drawingStateRef.current.currentSize.height = Math.min(
+            maxSize.maxHeight,
+            Math.max(10, latDist * 2)
+          );
           createInitialShape();
           if (!drawingStateRef.current.activeHandle) {
             updateResizeHandles();
@@ -1953,7 +2041,10 @@ if (trailMode) {
               Math.sin(dLng / 2) *
               Math.sin(dLng / 2);
           const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-          drawingStateRef.current.currentSize.radius = Math.max(5, R * c);
+          drawingStateRef.current.currentSize.radius = Math.min(
+            maxSize.maxRadius,
+            Math.max(5, R * c)
+          );
           createInitialShape();
           if (!drawingStateRef.current.activeHandle) {
             updateResizeHandles();
