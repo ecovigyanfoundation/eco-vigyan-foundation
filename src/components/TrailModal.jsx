@@ -21,8 +21,16 @@ export default function TrailModal({ isOpen, onClose, onLocationSelect, onLoadTr
   // Load saved trails when modal opens
   useEffect(() => {
     if (isOpen) {
-      const trails = getSavedTrails();
-      setSavedTrails(trails);
+      const loadTrails = async () => {
+        try {
+          const trails = await getSavedTrails();
+          setSavedTrails(trails);
+        } catch (error) {
+          console.error('Error loading trails:', error);
+          setSavedTrails([]);
+        }
+      };
+      loadTrails();
       setMode("select");
       setError(null);
       setGettingLocation(false);
@@ -236,12 +244,6 @@ export default function TrailModal({ isOpen, onClose, onLocationSelect, onLoadTr
                     ))}
                   </div>
                 )}
-                <button
-                  onClick={() => setMode("select")}
-                  className="w-full px-4 py-2 text-sm font-bold text-blue-700 hover:bg-blue-50 rounded-xl transition-colors"
-                >
-                  Back
-                </button>
               </div>
             ) : gettingLocation ? (
               <div className="flex flex-col items-center justify-center py-8">

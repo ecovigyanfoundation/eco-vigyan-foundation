@@ -1,22 +1,74 @@
 /**
  * Utility functions for saving and loading trails
+ * Uses MongoDB via API with localStorage as fallback
  */
 
 const TRAIL_STORAGE_KEY = 'eco-vigyan-saved-trails';
 
 /**
- * Save a trail to localStorage
+ * Save a trail to MongoDB (or localStorage as fallback)
  * @param {Object} trailData - Trail data to save
- * @returns {string} - Trail ID
+ * @returns {Promise<string|null>} - Trail ID
  */
-export function saveTrail(trailData) {
+export async function saveTrail(trailData) {
   try {
-    const trails = getSavedTrails();
+    // Try to save to MongoDB first
+    try {
+      const isUpdate = trailData.id && trailData.id.startsWith('trail-') === false; // MongoDB ObjectId
+      
+      const url = isUpdate 
+        ? `/api/trails/${trailData.id}`
+        : '/api/trails';
+      
+      const method = isUpdate ? 'PUT' : 'POST';
+      
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          name: trailData.name || `Trail ${new Date().toLocaleDateString()}`,
+          location: trailData.location || {},
+          mushrooms: trailData.mushrooms || [],
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const trailId = data.trail?._id || data.trail?.id;
+        
+        // Also save to localStorage as backup
+        if (trailId) {
+          saveToLocalStorage({
+            id: trailId,
+            name: data.trail.name,
+            location: data.trail.location,
+            mushrooms: data.trail.mushrooms,
+            createdAt: data.trail.createdAt || new Date().toISOString(),
+            updatedAt: data.trail.updatedAt || new Date().toISOString(),
+          });
+        }
+        
+        return trailId;
+      } else if (response.status === 401) {
+        // User not authenticated, fall back to localStorage
+        console.log('User not authenticated, saving to localStorage');
+      } else {
+        throw new Error(`API error: ${response.status}`);
+      }
+    } catch (apiError) {
+      console.log('API save failed, using localStorage fallback:', apiError);
+    }
+
+    // Fallback to localStorage
+    const trails = getSavedTrailsFromLocalStorage();
     const trailId = trailData.id || `trail-${Date.now()}`;
     const trailToSave = {
       id: trailId,
       name: trailData.name || `Trail ${new Date().toLocaleDateString()}`,
-      location: trailData.location,
+      location: trailData.location || {},
       mushrooms: trailData.mushrooms || [],
       createdAt: trailData.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -39,13 +91,50 @@ export function saveTrail(trailData) {
 }
 
 /**
- * Get all saved trails
- * @returns {Array} - Array of saved trails
+ * Get all saved trails from MongoDB (or localStorage as fallback)
+ * @returns {Promise<Array>} - Array of saved trails
  */
-export function getSavedTrails() {
+export async function getSavedTrails() {
   try {
-    const stored = localStorage.getItem(TRAIL_STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
+    // Try to get from MongoDB first
+    try {
+      const response = await fetch('/api/trails', {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const trails = data.trails || [];
+        
+        // Normalize trail data format
+        const normalizedTrails = trails.map(trail => ({
+          id: trail._id || trail.id,
+          name: trail.name,
+          location: trail.location || {},
+          mushrooms: trail.mushrooms || [],
+          createdAt: trail.createdAt || trail.createdAt,
+          updatedAt: trail.updatedAt || trail.updatedAt,
+        }));
+        
+        // Also sync to localStorage
+        if (normalizedTrails.length > 0) {
+          localStorage.setItem(TRAIL_STORAGE_KEY, JSON.stringify(normalizedTrails));
+        }
+        
+        return normalizedTrails;
+      } else if (response.status === 401) {
+        // User not authenticated, fall back to localStorage
+        console.log('User not authenticated, loading from localStorage');
+      } else {
+        throw new Error(`API error: ${response.status}`);
+      }
+    } catch (apiError) {
+      console.log('API load failed, using localStorage fallback:', apiError);
+    }
+
+    // Fallback to localStorage
+    return getSavedTrailsFromLocalStorage();
   } catch (error) {
     console.error('Error loading trails:', error);
     return [];
@@ -53,13 +142,75 @@ export function getSavedTrails() {
 }
 
 /**
+ * Get all saved trails from localStorage only
+ * @returns {Array} - Array of saved trails
+ */
+function getSavedTrailsFromLocalStorage() {
+  try {
+    const stored = localStorage.getItem(TRAIL_STORAGE_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch (error) {
+    console.error('Error loading trails from localStorage:', error);
+    return [];
+  }
+}
+
+/**
+ * Save a trail to localStorage only
+ * @param {Object} trailData - Trail data to save
+ */
+function saveToLocalStorage(trailData) {
+  try {
+    const trails = getSavedTrailsFromLocalStorage();
+    const existingIndex = trails.findIndex(t => t.id === trailData.id);
+    if (existingIndex >= 0) {
+      trails[existingIndex] = trailData;
+    } else {
+      trails.push(trailData);
+    }
+    localStorage.setItem(TRAIL_STORAGE_KEY, JSON.stringify(trails));
+  } catch (error) {
+    console.error('Error saving to localStorage:', error);
+  }
+}
+
+/**
  * Get a specific trail by ID
  * @param {string} trailId - Trail ID
- * @returns {Object|null} - Trail data
+ * @returns {Promise<Object|null>} - Trail data
  */
-export function getTrail(trailId) {
+export async function getTrail(trailId) {
   try {
-    const trails = getSavedTrails();
+    // Try to get from MongoDB first
+    try {
+      const response = await fetch(`/api/trails/${trailId}`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const trail = data.trail;
+        if (trail) {
+          return {
+            id: trail._id || trail.id,
+            name: trail.name,
+            location: trail.location || {},
+            mushrooms: trail.mushrooms || [],
+            createdAt: trail.createdAt,
+            updatedAt: trail.updatedAt,
+          };
+        }
+      } else if (response.status === 401) {
+        // User not authenticated, fall back to localStorage
+        console.log('User not authenticated, loading from localStorage');
+      }
+    } catch (apiError) {
+      console.log('API get failed, using localStorage fallback:', apiError);
+    }
+
+    // Fallback to localStorage
+    const trails = getSavedTrailsFromLocalStorage();
     return trails.find(t => t.id === trailId) || null;
   } catch (error) {
     console.error('Error getting trail:', error);
@@ -70,11 +221,38 @@ export function getTrail(trailId) {
 /**
  * Delete a trail
  * @param {string} trailId - Trail ID to delete
- * @returns {boolean} - Success status
+ * @returns {Promise<boolean>} - Success status
  */
-export function deleteTrail(trailId) {
+export async function deleteTrail(trailId) {
   try {
-    const trails = getSavedTrails();
+    // Try to delete from MongoDB first
+    try {
+      // Check if it's a MongoDB ObjectId (not a localStorage ID)
+      const isMongoId = trailId && !trailId.startsWith('trail-') && trailId.length === 24;
+      
+      if (isMongoId) {
+        const response = await fetch(`/api/trails/${trailId}`, {
+          method: 'DELETE',
+          credentials: 'include',
+        });
+
+        if (response.ok) {
+          // Also remove from localStorage
+          const trails = getSavedTrailsFromLocalStorage();
+          const filtered = trails.filter(t => t.id !== trailId);
+          localStorage.setItem(TRAIL_STORAGE_KEY, JSON.stringify(filtered));
+          return true;
+        } else if (response.status === 401) {
+          // User not authenticated, fall back to localStorage
+          console.log('User not authenticated, deleting from localStorage');
+        }
+      }
+    } catch (apiError) {
+      console.log('API delete failed, using localStorage fallback:', apiError);
+    }
+
+    // Fallback to localStorage
+    const trails = getSavedTrailsFromLocalStorage();
     const filtered = trails.filter(t => t.id !== trailId);
     localStorage.setItem(TRAIL_STORAGE_KEY, JSON.stringify(filtered));
     return true;

@@ -291,7 +291,7 @@ export default function MapPage() {
     toast.success("Trail mode started! Click mushrooms on the map to add them to your trail.");
   };
 
-  // Handle adding mushroom to trail
+  // Handle adding/removing mushroom from trail (toggle behavior)
   const handleTrailMushroomAdd = (mushroom) => {
     // Early return if not in trail mode - don't process at all
     if (!trailMode) {
@@ -303,20 +303,24 @@ export default function MapPage() {
     const mushroomLng = Number(mushroom.longitude || mushroom.location?.longitude);
     const mushroomId = mushroom._id || mushroom.id;
     
-    // Check if mushroom is already in trail using multiple criteria
-    const isAlreadyAdded = trailMushrooms.some((m) => {
+    // Helper function to check if two mushrooms are the same
+    const isSameMushroom = (m1, m2) => {
       // Check by ID if available
-      if (mushroomId && (m._id === mushroomId || m.id === mushroomId)) {
+      const m1Id = m1._id || m1.id;
+      const m2Id = m2._id || m2.id;
+      if (m1Id && m2Id && m1Id === m2Id) {
         return true;
       }
       
       // Check by coordinates (with small tolerance for floating point comparison)
-      const mLat = Number(m.latitude || m.location?.latitude);
-      const mLng = Number(m.longitude || m.location?.longitude);
+      const m1Lat = Number(m1.latitude || m1.location?.latitude);
+      const m1Lng = Number(m1.longitude || m1.location?.longitude);
+      const m2Lat = Number(m2.latitude || m2.location?.latitude);
+      const m2Lng = Number(m2.longitude || m2.location?.longitude);
       
-      if (!isNaN(mLat) && !isNaN(mLng) && !isNaN(mushroomLat) && !isNaN(mushroomLng)) {
-        const latDiff = Math.abs(mLat - mushroomLat);
-        const lngDiff = Math.abs(mLng - mushroomLng);
+      if (!isNaN(m1Lat) && !isNaN(m1Lng) && !isNaN(m2Lat) && !isNaN(m2Lng)) {
+        const latDiff = Math.abs(m1Lat - m2Lat);
+        const lngDiff = Math.abs(m1Lng - m2Lng);
         // Consider same if within 0.0001 degrees (~11 meters)
         if (latDiff < 0.0001 && lngDiff < 0.0001) {
           return true;
@@ -324,60 +328,50 @@ export default function MapPage() {
       }
       
       return false;
-    });
-    
-    if (isAlreadyAdded) {
-      toast.error("This mushroom is already in your trail", { id: 'duplicate-mushroom' });
-      return;
-    }
+    };
     
     // Create a unique key for this mushroom to prevent duplicate toasts
     const mushroomKey = mushroomId || `${mushroomLat.toFixed(6)},${mushroomLng.toFixed(6)}`;
     
-    // Check if we just added this mushroom (prevent duplicate toasts)
+    // Check if we just processed this mushroom (prevent duplicate toasts)
     if (lastAddedMushroomRef.current === mushroomKey) {
       return; // Already processing this mushroom
     }
     
     // Use functional update to ensure we're working with latest state
     setTrailMushrooms((prev) => {
-      // Double-check in the update function to prevent race conditions
-      const alreadyInList = prev.some((m) => {
-        if (mushroomId && (m._id === mushroomId || m.id === mushroomId)) {
-          return true;
-        }
-        const mLat = Number(m.latitude || m.location?.latitude);
-        const mLng = Number(m.longitude || m.location?.longitude);
-        if (!isNaN(mLat) && !isNaN(mLng) && !isNaN(mushroomLat) && !isNaN(mushroomLng)) {
-          const latDiff = Math.abs(mLat - mushroomLat);
-          const lngDiff = Math.abs(mLng - mushroomLng);
-          if (latDiff < 0.0001 && lngDiff < 0.0001) {
-            return true;
-          }
-        }
-        return false;
-      });
+      // Check if mushroom is already in trail
+      const existingIndex = prev.findIndex((m) => isSameMushroom(m, mushroom));
       
-      if (alreadyInList) {
-        return prev; // Don't add if already in list
-      }
-      
-      // Mark this mushroom as being added
-      lastAddedMushroomRef.current = mushroomKey;
-      
-      // Show toast only once - check trail mode is still active using ref
-      setTimeout(() => {
-        // Double-check trail mode is still active before showing toast (use ref to get current value)
-        if (trailModeRef.current) {
-          toast.success("Mushroom added to trail", { id: `mushroom-${mushroomKey}` });
-        }
-        // Clear the ref after a short delay to allow re-adding if needed
+      if (existingIndex >= 0) {
+        // Mushroom is already in trail - remove it
+        lastAddedMushroomRef.current = mushroomKey;
+        
         setTimeout(() => {
-          lastAddedMushroomRef.current = null;
-        }, 1000);
-      }, 0);
-      
-      return [...prev, mushroom];
+          if (trailModeRef.current) {
+            toast.success("Mushroom removed from trail", { id: `mushroom-${mushroomKey}` });
+          }
+          setTimeout(() => {
+            lastAddedMushroomRef.current = null;
+          }, 1000);
+        }, 0);
+        
+        return prev.filter((_, index) => index !== existingIndex);
+      } else {
+        // Mushroom is not in trail - add it
+        lastAddedMushroomRef.current = mushroomKey;
+        
+        setTimeout(() => {
+          if (trailModeRef.current) {
+            toast.success("Mushroom added to trail", { id: `mushroom-${mushroomKey}` });
+          }
+          setTimeout(() => {
+            lastAddedMushroomRef.current = null;
+          }, 1000);
+        }, 0);
+        
+        return [...prev, mushroom];
+      }
     });
   };
 
@@ -453,7 +447,7 @@ export default function MapPage() {
   };
 
   // Handle save trail confirmation
-  const handleSaveTrailConfirm = (trailName) => {
+  const handleSaveTrailConfirm = async (trailName) => {
     const trailData = {
       name: trailName,
       location: trailLocation,
@@ -461,10 +455,15 @@ export default function MapPage() {
       createdAt: new Date().toISOString(),
     };
 
-    const trailId = saveTrail(trailData);
-    if (trailId) {
-      toast.success(`Trail "${trailName}" saved successfully!`);
-    } else {
+    try {
+      const trailId = await saveTrail(trailData);
+      if (trailId) {
+        toast.success(`Trail "${trailName}" saved successfully!`);
+      } else {
+        toast.error("Failed to save trail. Please try again.");
+      }
+    } catch (error) {
+      console.error('Error saving trail:', error);
       toast.error("Failed to save trail. Please try again.");
     }
   };
