@@ -1,12 +1,15 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { X, Loader2, Navigation } from "lucide-react";
+import { X, Loader2, Navigation, FolderOpen, Plus } from "lucide-react";
 import toast from "react-hot-toast";
+import { getSavedTrails } from "@/lib/trailStorage";
 
-export default function TrailModal({ isOpen, onClose, onLocationSelect }) {
+export default function TrailModal({ isOpen, onClose, onLocationSelect, onLoadTrail }) {
+  const [mode, setMode] = useState("select"); // "select", "create", "load"
   const [gettingLocation, setGettingLocation] = useState(false);
   const [error, setError] = useState(null);
+  const [savedTrails, setSavedTrails] = useState([]);
   const locationTimeoutRef = useRef(null);
   const gettingLocationRef = useRef(false);
   
@@ -14,6 +17,17 @@ export default function TrailModal({ isOpen, onClose, onLocationSelect }) {
   useEffect(() => {
     gettingLocationRef.current = gettingLocation;
   }, [gettingLocation]);
+
+  // Load saved trails when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      const trails = getSavedTrails();
+      setSavedTrails(trails);
+      setMode("select");
+      setError(null);
+      setGettingLocation(false);
+    }
+  }, [isOpen]);
 
   const handleGetCurrentLocation = useCallback(() => {
     if (!navigator.geolocation) {
@@ -113,12 +127,12 @@ export default function TrailModal({ isOpen, onClose, onLocationSelect }) {
     );
   }, [onLocationSelect, onClose]);
 
-  // Automatically request location when modal opens
+  // Automatically request location when creating new trail
   useEffect(() => {
-    if (isOpen && !gettingLocation && !error) {
+    if (isOpen && mode === "create" && !gettingLocation && !error) {
       handleGetCurrentLocation();
     }
-  }, [isOpen, handleGetCurrentLocation, gettingLocation, error]);
+  }, [isOpen, mode, handleGetCurrentLocation, gettingLocation, error]);
 
   const handleRetry = useCallback(() => {
     setError(null);
@@ -152,10 +166,15 @@ export default function TrailModal({ isOpen, onClose, onLocationSelect }) {
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-blue-100">
           <h2 className="text-xl font-black text-blue-950 uppercase tracking-wider">
-            Create Trail
+            {mode === "select" ? "Trails" : mode === "load" ? "Load Trail" : "Create Trail"}
           </h2>
           <button
-            onClick={onClose}
+            onClick={() => {
+              setMode("select");
+              setError(null);
+              setGettingLocation(false);
+              onClose();
+            }}
             className="p-2 rounded-lg hover:bg-blue-50 text-blue-700 transition-colors"
           >
             <X size={20} />
@@ -165,7 +184,66 @@ export default function TrailModal({ isOpen, onClose, onLocationSelect }) {
         {/* Content */}
         <div className="p-6">
           <div className="space-y-4">
-            {gettingLocation ? (
+            {mode === "select" ? (
+              <div className="space-y-3">
+                <button
+                  onClick={() => setMode("create")}
+                  className="w-full px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-3"
+                >
+                  <Plus size={20} />
+                  <span>Create New Trail</span>
+                </button>
+                <button
+                  onClick={() => setMode("load")}
+                  className="w-full px-6 py-4 bg-blue-100 hover:bg-blue-200 text-blue-900 font-bold rounded-xl transition-colors flex items-center justify-center gap-3"
+                >
+                  <FolderOpen size={20} />
+                  <span>Load Saved Trail</span>
+                </button>
+              </div>
+            ) : mode === "load" ? (
+              <div className="space-y-3">
+                {savedTrails.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8">
+                    <FolderOpen size={48} className="text-blue-300 mb-4" />
+                    <p className="text-sm font-bold text-blue-900 mb-2">
+                      No Saved Trails
+                    </p>
+                    <p className="text-xs text-blue-600/70 text-center">
+                      Create a new trail to get started
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {savedTrails.map((trail) => (
+                      <button
+                        key={trail.id}
+                        onClick={() => {
+                          if (onLoadTrail) {
+                            onLoadTrail(trail);
+                            onClose();
+                          }
+                        }}
+                        className="w-full px-4 py-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-colors text-left"
+                      >
+                        <p className="text-sm font-bold text-blue-900 mb-1">
+                          {trail.name}
+                        </p>
+                        <p className="text-xs text-blue-600/70">
+                          {trail.mushrooms?.length || 0} mushrooms • {new Date(trail.createdAt).toLocaleDateString()}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <button
+                  onClick={() => setMode("select")}
+                  className="w-full px-4 py-2 text-sm font-bold text-blue-700 hover:bg-blue-50 rounded-xl transition-colors"
+                >
+                  Back
+                </button>
+              </div>
+            ) : gettingLocation ? (
               <div className="flex flex-col items-center justify-center py-8">
                 <Loader2 size={48} className="animate-spin text-blue-600 mb-4" />
                 <p className="text-sm font-bold text-blue-900 mb-2">
@@ -210,14 +288,20 @@ export default function TrailModal({ isOpen, onClose, onLocationSelect }) {
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-blue-100 bg-blue-50/30">
-          <button
-            onClick={onClose}
-            className="w-full px-4 py-2.5 text-sm font-bold text-blue-700 hover:bg-blue-100 rounded-xl transition-colors"
-          >
-            Cancel
-          </button>
-        </div>
+        {mode !== "select" && (
+          <div className="p-6 border-t border-blue-100 bg-blue-50/30">
+            <button
+              onClick={() => {
+                setMode("select");
+                setError(null);
+                setGettingLocation(false);
+              }}
+              className="w-full px-4 py-2.5 text-sm font-bold text-blue-700 hover:bg-blue-100 rounded-xl transition-colors"
+            >
+              {mode === "load" ? "Back" : "Cancel"}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

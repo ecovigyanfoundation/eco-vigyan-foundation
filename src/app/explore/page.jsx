@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import dynamic from "next/dynamic";
-import { Plus, Menu, X, Home, Info, Users, FileText, Image, Calendar, FileCheck, Mail, User, Settings, Navigation, Heart, Layers, MapPin, CheckCircle } from "lucide-react";
+import { Plus, Menu, X, Home, Info, Users, FileText, Image, Calendar, FileCheck, Mail, User, Settings, Navigation, Heart, Layers, MapPin, CheckCircle, Save } from "lucide-react";
 import Link from "next/link";
 import ExploreHeader from "@/components/ExploreHeader";
 import MushroomGrid from "@/components/MushroomGrid";
@@ -11,10 +11,12 @@ import MobileSearchModal from "@/components/MobileSearchModal";
 import Leaderboard from "@/components/Leaderboard";
 import ZoneModal from "@/components/ZoneModal";
 import TrailModal from "@/components/TrailModal";
+import SaveTrailModal from "@/components/SaveTrailModal";
 import MapFilter from "@/components/MapFilter";
 import MushroomDetailModal from "@/components/MushroomDetailModal";
 import { useAuth } from "@/context/AuthContext";
 import { isPointInPolygon, calculateDistance } from "@/lib/geocoding";
+import { saveTrail } from "@/lib/trailStorage";
 import toast from "react-hot-toast";
 
 const Map = dynamic(() => import("@/components/Map"), { ssr: false });
@@ -44,6 +46,7 @@ export default function MapPage() {
   const [showSidebar, setShowSidebar] = useState(false);
   const [showZoneModal, setShowZoneModal] = useState(false);
   const [showTrailModal, setShowTrailModal] = useState(false);
+  const [showSaveTrailModal, setShowSaveTrailModal] = useState(false);
   const [selectedZone, setSelectedZone] = useState(null);
   const [drawingMode, setDrawingMode] = useState(null);
   const [trailMode, setTrailMode] = useState(false);
@@ -385,6 +388,85 @@ export default function MapPage() {
       !(m.latitude === trailMushrooms.find(tm => tm._id === mushroomId)?.latitude && 
         m.longitude === trailMushrooms.find(tm => tm._id === mushroomId)?.longitude)
     ));
+  };
+
+  // Handle loading a saved trail
+  const handleLoadTrail = (trail) => {
+    if (!trail || !trail.mushrooms || trail.mushrooms.length === 0) {
+      toast.error("Trail has no mushrooms to load");
+      return;
+    }
+
+    // Get current location first
+    if (!navigator.geolocation) {
+      toast.error("Geolocation is not supported by your browser.");
+      return;
+    }
+
+    toast.loading("Getting your location...", { id: 'loading-trail' });
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        const currentLoc = {
+          lat: Number(latitude),
+          lng: Number(longitude),
+        };
+
+        setTrailCurrentLocation(currentLoc);
+        setTrailMushrooms(trail.mushrooms);
+        setTrailMode(true);
+        setTrailLocation({
+          type: "trail",
+          currentLocation: currentLoc,
+          center: currentLoc,
+          boundary: null,
+        });
+
+        // Set the zone to zoom to user's location
+        setSelectedZone({
+          type: "trail",
+          center: currentLoc,
+          boundary: null,
+        });
+
+        toast.success(`Loaded trail "${trail.name}" with ${trail.mushrooms.length} mushrooms`, { id: 'loading-trail' });
+      },
+      (err) => {
+        toast.error("Failed to get location. Please enable location access and try again.", { id: 'loading-trail' });
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
+  };
+
+  // Handle saving current trail
+  const handleSaveTrail = () => {
+    if (trailMushrooms.length === 0) {
+      toast.error("Cannot save an empty trail. Add some mushrooms first!");
+      return;
+    }
+    setShowSaveTrailModal(true);
+  };
+
+  // Handle save trail confirmation
+  const handleSaveTrailConfirm = (trailName) => {
+    const trailData = {
+      name: trailName,
+      location: trailLocation,
+      mushrooms: trailMushrooms,
+      createdAt: new Date().toISOString(),
+    };
+
+    const trailId = saveTrail(trailData);
+    if (trailId) {
+      toast.success(`Trail "${trailName}" saved successfully!`);
+    } else {
+      toast.error("Failed to save trail. Please try again.");
+    }
   };
 
   // Handle ending trail mode
@@ -843,6 +925,19 @@ export default function MapPage() {
                 <span className="font-bold text-sm whitespace-nowrap">Trails</span>
               </button>
               
+              {/* Save Trail Button (shown when in trail mode with mushrooms) */}
+              {trailMode && trailMushrooms.length > 0 && (
+                <button
+                  onClick={handleSaveTrail}
+                  className="px-4 py-3 rounded-2xl bg-green-600/90 hover:bg-green-700/90 text-white shadow-2xl transition-all active:scale-95 backdrop-blur-md border border-green-500 flex items-center gap-2"
+                  aria-label="Save Trail"
+                  title="Save Trail"
+                >
+                  <Save size={20} strokeWidth={3} />
+                  <span className="font-bold text-sm whitespace-nowrap">Save Trail</span>
+                </button>
+              )}
+              
               {/* End Trail Button (shown when in trail mode) */}
               {trailMode && (
                 <button
@@ -919,6 +1014,14 @@ export default function MapPage() {
         isOpen={showTrailModal}
         onClose={() => setShowTrailModal(false)}
         onLocationSelect={handleTrailLocationSelect}
+        onLoadTrail={handleLoadTrail}
+      />
+
+      <SaveTrailModal
+        isOpen={showSaveTrailModal}
+        onClose={() => setShowSaveTrailModal(false)}
+        onSave={handleSaveTrailConfirm}
+        mushroomCount={trailMushrooms.length}
       />
 
       {/* MOBILE FLOATING BUTTONS */}

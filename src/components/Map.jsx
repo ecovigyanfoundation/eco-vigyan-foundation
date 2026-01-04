@@ -43,6 +43,7 @@ export default function Map(props) {
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
   const popupRef = useRef(null);
+  const userLocationMarkerRef = useRef(null);
   const resizeHandlesRef = useRef([]);
   const drawingStateRef = useRef({
     isDrawing: false,
@@ -107,6 +108,7 @@ export default function Map(props) {
 
     return () => {
       popupRef.current?.remove();
+      userLocationMarkerRef.current?.remove();
       map.off("zoomend", handleZoomChange);
       map.off("moveend", handleZoomChange);
       map.remove();
@@ -750,6 +752,54 @@ export default function Map(props) {
         }
       } catch (error) {
         // Ignore errors if layers don't exist
+      }
+    }
+
+    // Update user location marker
+    if (trailMode && trailCurrentLocation && trailCurrentLocation.lat && trailCurrentLocation.lng) {
+      // Remove existing marker if it exists
+      if (userLocationMarkerRef.current) {
+        userLocationMarkerRef.current.remove();
+        userLocationMarkerRef.current = null;
+      }
+
+      // Create user location marker element
+      const el = document.createElement("div");
+      el.className = "user-location-marker";
+      el.style.width = "40px";
+      el.style.height = "40px";
+      el.style.borderRadius = "50%";
+      el.style.backgroundColor = "#3b82f6";
+      el.style.border = "3px solid white";
+      el.style.boxShadow = "0 2px 8px rgba(0,0,0,0.3)";
+      el.style.display = "flex";
+      el.style.alignItems = "center";
+      el.style.justifyContent = "center";
+      el.style.cursor = "pointer";
+      el.style.zIndex = "1000";
+      
+      // Add user icon SVG
+      el.innerHTML = `
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 12C14.7614 12 17 9.76142 17 7C17 4.23858 14.7614 2 12 2C9.23858 2 7 4.23858 7 7C7 9.76142 9.23858 12 12 12Z" fill="white"/>
+          <path d="M12 14C7.58172 14 4 17.5817 4 22H20C20 17.5817 16.4183 14 12 14Z" fill="white"/>
+        </svg>
+      `;
+
+      // Create and add marker
+      const marker = new mapboxgl.Marker({
+        element: el,
+        anchor: "center",
+      })
+        .setLngLat([trailCurrentLocation.lng, trailCurrentLocation.lat])
+        .addTo(map);
+
+      userLocationMarkerRef.current = marker;
+    } else {
+      // Remove user location marker if not in trail mode or no location
+      if (userLocationMarkerRef.current) {
+        userLocationMarkerRef.current.remove();
+        userLocationMarkerRef.current = null;
       }
     }
 
