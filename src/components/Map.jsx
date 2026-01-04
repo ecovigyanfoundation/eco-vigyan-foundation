@@ -1780,10 +1780,13 @@ if (trailMode) {
             const points = drawingStateRef.current.polygonPoints;
             
             // Update the vertex position
-            if (points[vertexIndex]) {
+            if (points[vertexIndex] !== undefined) {
               points[vertexIndex] = [currentPoint.lng, currentPoint.lat];
-              // Update the polygon shape
+              // Update the polygon shape immediately
               updatePolygonShape();
+              // Don't update handles during drag - it would interrupt the drag
+              // The handle being dragged will move naturally with the cursor
+              // We'll update all handles after drag ends
             }
             return;
           }
@@ -1872,14 +1875,21 @@ if (trailMode) {
           
           // Update the shape immediately - this will redraw the shape
           createInitialShape();
+          
+          // Don't update handles during drag - it would interrupt the drag
+          // The handle being dragged will move naturally with the cursor
+          // We'll update all handles after drag ends
         });
 
         marker.on('dragend', () => {
           drawingStateRef.current.activeHandle = null;
           if (drawingMode === "polygon") {
             drawingStateRef.current.activeVertexIndex = undefined;
+            // Ensure polygon shape is updated after drag
+            updatePolygonShape();
           }
           map.dragPan.enable();
+          // Update handles to their new positions after drag
           updateResizeHandles();
         });
 
@@ -2065,7 +2075,13 @@ if (trailMode) {
             return;
           }
           
-          // Check if clicking near a vertex (to delete it) - need at least 3 vertices
+          // Check if clicking near a vertex handle first - use larger threshold for handles
+          // Handles are 40px (polygon) which is larger, so we need a larger threshold
+          // Convert pixel size to degrees: 40px at current zoom level
+          const pixelsToDegrees = 360 / (256 * Math.pow(2, zoom)); // Approximate conversion
+          const handleSizeDegrees = (40 * pixelsToDegrees); // Handle is 40px
+          const handleThreshold = Math.max(threshold * 5, handleSizeDegrees * 0.5); // Use larger threshold
+          
           let closestVertexIndex = -1;
           let minVertexDist = Infinity;
           for (let i = 0; i < points.length; i++) {
@@ -2079,7 +2095,16 @@ if (trailMode) {
             }
           }
           
-          // If clicking very close to a vertex and we have more than 3 vertices, delete it
+          // If clicking very close to a vertex handle, don't interfere - let the handle handle it
+          // The handle marker will capture the drag event, so we should not process this click
+          if (minVertexDist < handleThreshold) {
+            // This is likely a handle click/drag, let it be handled by the marker drag system
+            // Don't process this as a polygon edit action
+            console.log("Click near handle, letting handle system handle it", { minVertexDist, handleThreshold });
+            return;
+          }
+          
+          // If clicking near a vertex (but not on handle) and we have more than 3 vertices, delete it
           if (minVertexDist < threshold && closestVertexIndex >= 0 && points.length > 3) {
             points.splice(closestVertexIndex, 1);
             updatePolygonShape();
