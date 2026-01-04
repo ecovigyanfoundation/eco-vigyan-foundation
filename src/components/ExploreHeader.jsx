@@ -142,26 +142,29 @@ export default function ExploreHeader({
       <div className="border-b border-emerald-50/50 overflow-visible">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-10 py-4 sm:py-4 md:py-0 flex items-center justify-between gap-2 sm:gap-3 md:gap-4 lg:gap-5 overflow-visible relative">
           {/* LEFT: BRANDING */}
-            <Link
-              href="/explore"
-              className="flex items-center gap-3 sm:gap-3 md:gap-4 lg:gap-5 shrink-0 hover:opacity-90 transition-opacity group min-w-0 ml-10 md:ml-0 md:mr-8"
-            >
-              <div 
-                className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 lg:w-36 lg:h-36 shrink-0 flex items-center justify-center relative md:-ml-5"
-                style={{
-                  transform: 'scale(2.0)',
-                  transformOrigin: 'center',
-                }}
-              >
-              <div className="md:scale-[0.85]">
-                <img
-                  src="/icons/icon2.png"
-                  alt="Mushroom Mania Logo"
-                  className="w-full h-full object-contain"
-                />
+          <a
+            href="/explore"
+            className="flex items-center gap-3 sm:gap-3 md:gap-4 lg:gap-5 shrink-0 hover:opacity-90 transition-opacity group min-w-0"
+          >
+            <div className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 lg:w-36 lg:h-36 flex items-center justify-center transition-transform group-hover:scale-105 shrink-0">
+              <img
+                src="/icons/icon2.png"
+                alt="Mushroom Mania Logo"
+                className="w-full h-full object-contain"
+              />
+            </div>
+            <div className="hidden sm:block min-w-0">
+              <h2 className="text-xl sm:text-2xl font-black text-emerald-950 leading-none uppercase tracking-tighter">
+                Mushroom <span className="text-emerald-500">Mania</span>
+              </h2>
+              <div className="flex items-center gap-2 mt-2 text-[10px] text-emerald-700/60 font-black uppercase tracking-[0.25em]">
+                <span className="text-emerald-500 italic lowercase font-medium text-[12px] tracking-normal">
+                  An initiative of
+                </span>
+                Eco Vigyan
               </div>
             </div>
-          </Link>
+          </a>
 
           {/* CENTER: SEARCH BAR AND FILTER */}
           <div className="hidden md:flex flex-1 items-center gap-2 min-w-0 max-w-full">
@@ -455,16 +458,16 @@ export default function ExploreHeader({
                 <button
                   key={tab.id}
                   onClick={() => setView(tab.id)}
-                  className={`flex items-center gap-2 sm:gap-2 md:gap-3.5 h-full transition-all text-sm sm:text-sm md:text-[11px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] whitespace-nowrap border-b-4 shrink-0 px-2 sm:px-2 md:px-0 py-2 sm:py-2 md:py-0 rounded-t-lg sm:rounded-t-lg md:rounded-none ${
+                  className={`flex items-center gap-1.5 sm:gap-2 md:gap-3.5 h-full transition-all text-xs sm:text-sm md:text-[11px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] whitespace-nowrap border-b-4 shrink-0 ${
                     view === tab.id
-                      ? "text-emerald-500 border-emerald-500 bg-emerald-50/20 sm:bg-transparent md:bg-transparent"
-                      : "text-emerald-900/60 hover:text-emerald-700 border-transparent hover:bg-emerald-50/10 sm:hover:bg-transparent md:hover:bg-transparent"
+                      ? "text-emerald-700 border-emerald-500"
+                      : "text-emerald-900/40 hover:text-emerald-700 border-transparent"
                   }`}
                 >
                   <tab.icon
-                    size={22}
+                    size={18}
                     className={`sm:w-5 sm:h-5 md:w-5 md:h-5 ${
-                      view === tab.id ? "text-emerald-500" : "text-emerald-400"
+                      view === tab.id ? "text-emerald-500" : "text-emerald-300"
                     }`}
                   />
                   {tab.label}

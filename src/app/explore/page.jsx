@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import dynamic from "next/dynamic";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, Menu, X, Home, Info, Users, FileText, Image, Calendar, FileCheck, Mail, User, Settings, Navigation, Heart, Layers, MapPin, CheckCircle, Save } from "lucide-react";
 import Link from "next/link";
 import ExploreHeader from "@/components/ExploreHeader";
@@ -19,9 +20,24 @@ import { isPointInPolygon, calculateDistance } from "@/lib/geocoding";
 import { saveTrail } from "@/lib/trailStorage";
 import toast from "react-hot-toast";
 
-const Map = dynamic(() => import("@/components/Map"), { ssr: false });
+const Map = dynamic(() => import("@/components/Map"), { 
+  ssr: false,
+  loading: () => (
+    <div className="absolute inset-0 flex items-center justify-center bg-gray-900 text-white">
+      <div className="text-center">
+        <div className="text-lg font-bold mb-2">Loading map...</div>
+        <div className="text-sm text-gray-400">Please wait</div>
+      </div>
+    </div>
+  ),
+  onError: (error) => {
+    console.error("❌ Error loading Map component:", error);
+    return <div className="absolute inset-0 flex items-center justify-center bg-red-900 text-white">Failed to load map</div>;
+  }
+});
 
 export default function MapPage() {
+  const router = useRouter();
   const { user } = useAuth();
   const [data, setData] = useState([]);
   const [allData, setAllData] = useState([]); // Store all data for filtering
@@ -38,9 +54,74 @@ export default function MapPage() {
   const [selectedMushroom, setSelectedMushroom] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [detailMushroom, setDetailMushroom] = useState(null);
-  const [view, setView] = useState("map");
+  const [view, setViewState] = useState("map");
   const [showMobileSearch, setShowMobileSearch] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
+  const [mapKey, setMapKey] = useState(0);
+
+  // Custom setView that increments mapKey when switching to map view
+  const setView = useCallback((newView) => {
+    console.log("🔄 setView called:", newView, "current view:", view);
+    
+    // Update state FIRST, before URL
+    if (newView === "map") {
+      // Always increment mapKey when switching to map view to force remount
+      setMapKey(prev => {
+        const newKey = prev + 1;
+        console.log("🔑 Incrementing mapKey:", prev, "->", newKey);
+        return newKey;
+      });
+    }
+    
+    // Set view state immediately
+    setViewState(newView);
+    console.log("✅ View state set to:", newView);
+    
+    // Update URL using Next.js router (this shouldn't cause a re-render that resets state)
+    const newUrl = `/explore?view=${newView}`;
+    router.replace(newUrl, { scroll: false });
+    console.log("🔗 URL updated via router to:", newUrl);
+  }, [view, router]);
+
+  // Handle URL parameters for view on initial load only
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const viewParam = params.get("view");
+    if (viewParam && ["map", "grid", "leaderboard"].includes(viewParam)) {
+      console.log("🔄 Initial load from URL, setting view to:", viewParam);
+      setViewState(viewParam);
+      if (viewParam === "map") {
+        setMapKey(1);
+      }
+    }
+  }, []); // Only run once on mount
+  
+  // Sync view state with URL when URL changes (e.g., browser back/forward)
+  useEffect(() => {
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const viewParam = params.get("view");
+      const currentView = viewParam && ["map", "grid", "leaderboard"].includes(viewParam) ? viewParam : "map";
+      if (currentView !== view) {
+        console.log("🔄 PopState - updating view from", view, "to", currentView);
+        setViewState(currentView);
+        if (currentView === "map") {
+          setMapKey(prev => prev + 1);
+        }
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [view]);
+
+  // URL is now updated immediately in setView function, so this useEffect is not needed
+
+  // Debug: Log view changes
+  useEffect(() => {
+    console.log("🔍 View changed to:", view, "mapKey:", mapKey);
+    if (view === "map") {
+      console.log("🗺️ Map view active - Map component should render");
+    }
+  }, [view, mapKey]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [showSidebar, setShowSidebar] = useState(false);
@@ -65,7 +146,6 @@ export default function MapPage() {
   }, [trailMode]);
 
   useEffect(() => {
-    setIsMounted(true);
     fetch("/api/mushrooms")
       .then((res) => res.json())
       .then((d) => {
@@ -833,143 +913,146 @@ export default function MapPage() {
       </div>
 
       {/* MAIN CONTENT */}
-      <main className="flex-1 relative overflow-hidden">
-        {view === "map" && isMounted && (
-          <>
-            <Map 
-              data={data} 
-              filters={filters} 
-              mode={mode}
-              selectedZone={selectedZone}
-              drawingMode={drawingMode}
-              onDrawingComplete={handleDrawingComplete}
-              onDrawingCancel={handleDrawingCancel}
-              onGetCurrentBoundary={getCurrentBoundaryRef}
-              trailMode={trailMode}
-              trailMushrooms={trailMushrooms}
-              trailCurrentLocation={trailCurrentLocation}
-              onTrailMushroomAdd={handleTrailMushroomAdd}
-              onStartTrail={handleStartTrailToMushroom}
-              onMushroomClick={(mushroom) => {
-                if (trailMode) {
-                  handleTrailMushroomAdd(mushroom);
-                } else {
-                  setDetailMushroom(mushroom);
-                  setShowDetailModal(true);
-                }
-              }}
-            />
-
-            {/* Map Controls - Top Left */}
-            <div className="absolute top-6 left-6 z-20 flex flex-col gap-3">
-              {/* Filter Button */}
-              <MapFilter
-                onFilterToggle={handleHeaderFilterToggle}
-                onResetFilters={handleResetFilters}
-                selectedFilters={headerFilters}
-              />
-              
-              {/* Apply Zone Button (shown when in drawing mode) */}
-              {drawingMode && (
-                <button
-                  onClick={handleApplyZone}
-                  className="px-4 py-3 rounded-2xl bg-emerald-600/90 hover:bg-emerald-700/90 backdrop-blur-md border border-emerald-500 text-white shadow-2xl transition-all duration-300 hover:shadow-emerald-500/50 flex items-center gap-2 font-bold text-sm"
-                >
-                  <CheckCircle size={18} className="shrink-0" />
-                  Apply Zone
-                </button>
-              )}
-              
-              {/* Zone filter indicator and clear button */}
-              {selectedZone && !drawingMode && !trailMode && (
-                <div className="p-3 rounded-2xl bg-emerald-600/90 backdrop-blur-md border border-emerald-500 shadow-2xl flex items-center gap-3">
-                  <div className="flex items-center gap-2">
-                    <MapPin size={16} className="text-white" />
-                    <span className="text-white text-xs font-bold">
-                      {selectedZone.name || "Zone Selected"}
-                    </span>
-                  </div>
-                  <button
-                    onClick={handleClearZone}
-                    className="p-1.5 rounded-lg bg-emerald-700/50 hover:bg-emerald-700 transition-colors"
-                    title="Clear zone filter"
-                  >
-                    <X size={14} className="text-white" />
-                  </button>
-                </div>
-              )}
-              
-              {/* Trail mode indicator */}
-              {trailMode && (
-                <div className="p-3 rounded-2xl bg-blue-600/90 backdrop-blur-md border border-blue-500 shadow-2xl">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Navigation size={16} className="text-white" />
-                    <span className="text-white text-xs font-bold">
-                      Trail Mode: {trailMushrooms.length} mushroom{trailMushrooms.length !== 1 ? 's' : ''} selected
-                    </span>
-                  </div>
-                  {trailCurrentLocation && (
-                    <p className="text-white/70 text-[9px] mb-1">
-                      Your location: {trailCurrentLocation.lat?.toFixed(4)}, {trailCurrentLocation.lng?.toFixed(4)}
-                    </p>
-                  )}
-                  {trailCurrentLocation && trailMushrooms.length > 0 && (() => {
-                    const result = getDistanceToNextMushroom();
-                    if (result !== null) {
-                      const { distance, estimatedTimeSeconds } = result;
-                      const distanceText = distance < 1 
-                        ? `${(distance * 1000).toFixed(0)} m` 
-                        : `${distance.toFixed(2)} km`;
-                      
-                      // Format estimated time
-                      let timeText = "";
-                      if (estimatedTimeSeconds < 60) {
-                        timeText = `${Math.round(estimatedTimeSeconds)} sec`;
-                      } else if (estimatedTimeSeconds < 3600) {
-                        const minutes = Math.round(estimatedTimeSeconds / 60);
-                        timeText = `${minutes} min`;
-                      } else {
-                        const hours = Math.floor(estimatedTimeSeconds / 3600);
-                        const minutes = Math.round((estimatedTimeSeconds % 3600) / 60);
-                        timeText = minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
-                      }
-                      
-                      return (
-                        <div className="space-y-1">
-                          <p className="text-white/90 text-[10px] font-semibold">
-                            Distance: {distanceText}
-                          </p>
-                          <p className="text-white/80 text-[9px]">
-                            Est. time: {timeText} (walking)
-                          </p>
-                        </div>
-                      );
+      <main className="flex-1 relative overflow-hidden" style={{ minHeight: "400px" }}>
+        {view === "map" ? (
+          <div key={`map-container-${mapKey}`} className="absolute inset-0 w-full h-full">
+            <Map
+              key={`map-${mapKey}`} 
+                  data={data} 
+                  filters={filters} 
+                  mode={mode}
+                  selectedZone={selectedZone}
+                  drawingMode={drawingMode}
+                  onDrawingComplete={handleDrawingComplete}
+                  onDrawingCancel={handleDrawingCancel}
+                  onGetCurrentBoundary={getCurrentBoundaryRef}
+                  trailMode={trailMode}
+                  trailMushrooms={trailMushrooms}
+                  trailCurrentLocation={trailCurrentLocation}
+                  onTrailMushroomAdd={handleTrailMushroomAdd}
+                  onStartTrail={handleStartTrailToMushroom}
+                  onMushroomClick={(mushroom) => {
+                    if (trailMode) {
+                      handleTrailMushroomAdd(mushroom);
                     } else {
-                      return (
-                        <p className="text-white/70 text-[9px]">
-                          Calculating distance...
-                        </p>
-                      );
+                      setDetailMushroom(mushroom);
+                      setShowDetailModal(true);
                     }
-                  })()}
-                  {!trailCurrentLocation && (
-                    <p className="text-white/70 text-[9px] mb-1">
-                      Location not available
-                    </p>
+                  }}
+                />
+
+                {/* Map Controls - Top Left */}
+                <div className="absolute top-6 left-6 z-20 flex flex-col gap-3 pointer-events-none">
+                  {/* Filter Button */}
+                  <div className="pointer-events-auto">
+                    <MapFilter
+                      onFilterToggle={handleHeaderFilterToggle}
+                      onResetFilters={handleResetFilters}
+                      selectedFilters={headerFilters}
+                    />
+                  </div>
+                  
+                  {/* Apply Zone Button (shown when in drawing mode) */}
+                  {drawingMode && (
+                    <button
+                      onClick={handleApplyZone}
+                      className="px-4 py-3 rounded-2xl bg-emerald-600/90 hover:bg-emerald-700/90 backdrop-blur-md border border-emerald-500 text-white shadow-2xl transition-all duration-300 hover:shadow-emerald-500/50 flex items-center gap-2 font-bold text-sm pointer-events-auto"
+                    >
+                      <CheckCircle size={18} className="shrink-0" />
+                      Apply Zone
+                    </button>
                   )}
-                  <p className="text-white/80 text-[10px] mt-1">
-                    Click mushrooms on the map to add them to your trail
-                  </p>
+                  
+                  {/* Zone filter indicator and clear button */}
+                  {selectedZone && !drawingMode && !trailMode && (
+                    <div className="p-3 rounded-2xl bg-emerald-600/90 backdrop-blur-md border border-emerald-500 shadow-2xl flex items-center gap-3 pointer-events-auto">
+                      <div className="flex items-center gap-2">
+                        <MapPin size={16} className="text-white" />
+                        <span className="text-white text-xs font-bold">
+                          {selectedZone.name || "Zone Selected"}
+                        </span>
+                      </div>
+                      <button
+                        onClick={handleClearZone}
+                        className="p-1.5 rounded-lg bg-emerald-700/50 hover:bg-emerald-700 transition-colors"
+                        title="Clear zone filter"
+                      >
+                        <X size={14} className="text-white" />
+                      </button>
+                    </div>
+                  )}
+                  
+                  {/* Trail mode indicator */}
+                  {trailMode && (
+                    <div className="p-3 rounded-2xl bg-blue-600/90 backdrop-blur-md border border-blue-500 shadow-2xl pointer-events-auto">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Navigation size={16} className="text-white" />
+                        <span className="text-white text-xs font-bold">
+                          Trail Mode: {trailMushrooms.length} mushroom{trailMushrooms.length !== 1 ? 's' : ''} selected
+                        </span>
+                      </div>
+                      {trailCurrentLocation && (
+                        <p className="text-white/70 text-[9px] mb-1">
+                          Your location: {trailCurrentLocation.lat?.toFixed(4)}, {trailCurrentLocation.lng?.toFixed(4)}
+                        </p>
+                      )}
+                      {trailCurrentLocation && trailMushrooms.length > 0 && (() => {
+                        const result = getDistanceToNextMushroom();
+                        if (result !== null) {
+                          const { distance, estimatedTimeSeconds } = result;
+                          const distanceText = distance < 1 
+                            ? `${(distance * 1000).toFixed(0)} m` 
+                            : `${distance.toFixed(2)} km`;
+                          
+                          // Format estimated time
+                          let timeText = "";
+                          if (estimatedTimeSeconds < 60) {
+                            timeText = `${Math.round(estimatedTimeSeconds)} sec`;
+                          } else if (estimatedTimeSeconds < 3600) {
+                            const minutes = Math.round(estimatedTimeSeconds / 60);
+                            timeText = `${minutes} min`;
+                          } else {
+                            const hours = Math.floor(estimatedTimeSeconds / 3600);
+                            const minutes = Math.round((estimatedTimeSeconds % 3600) / 60);
+                            timeText = minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+                          }
+                          
+                          return (
+                            <div className="space-y-1">
+                              <p className="text-white/90 text-[10px] font-semibold">
+                                Distance: {distanceText}
+                              </p>
+                              <p className="text-white/80 text-[9px]">
+                                Est. time: {timeText} (walking)
+                              </p>
+                            </div>
+                          );
+                        } else {
+                          return (
+                            <p className="text-white/70 text-[9px]">
+                              Calculating distance...
+                            </p>
+                          );
+                        }
+                      })()}
+                      {!trailCurrentLocation && (
+                        <p className="text-white/70 text-[9px] mb-1">
+                          Location not available
+                        </p>
+                      )}
+                      <p className="text-white/80 text-[10px] mt-1">
+                        Click mushrooms on the map to add them to your trail
+                      </p>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
             {/* Map Controls - Bottom Right (Zones and Trails) - Desktop Only */}
-            <div className="hidden md:flex absolute bottom-6 right-6 z-20 flex-col gap-3">
+            <div className="hidden md:flex absolute bottom-6 right-6 z-20 flex-col gap-3 pointer-events-none">
               {/* Trails Button */}
               <button
                 onClick={() => setShowTrailModal(true)}
-                className={`px-4 py-3 rounded-2xl flex items-center gap-2 shadow-2xl transition-all active:scale-95 backdrop-blur-md border ${
+                className={`px-4 py-3 rounded-2xl flex items-center gap-2 shadow-2xl transition-all active:scale-95 backdrop-blur-md border pointer-events-auto ${
                   trailMode
                     ? "bg-blue-700 hover:bg-blue-800 border-blue-600 text-white"
                     : "bg-blue-600/90 hover:bg-blue-700/90 border-blue-500 text-white"
@@ -985,7 +1068,7 @@ export default function MapPage() {
               {trailMode && trailMushrooms.length > 0 && (
                 <button
                   onClick={handleSaveTrail}
-                  className="px-4 py-3 rounded-2xl bg-green-600/90 hover:bg-green-700/90 text-white shadow-2xl transition-all active:scale-95 backdrop-blur-md border border-green-500 flex items-center gap-2"
+                  className="px-4 py-3 rounded-2xl bg-green-600/90 hover:bg-green-700/90 text-white shadow-2xl transition-all active:scale-95 backdrop-blur-md border border-green-500 flex items-center gap-2 pointer-events-auto"
                   aria-label="Save Trail"
                   title="Save Trail"
                 >
@@ -998,7 +1081,7 @@ export default function MapPage() {
               {trailMode && (
                 <button
                   onClick={handleEndTrail}
-                  className="px-4 py-3 rounded-2xl bg-red-600/90 hover:bg-red-700/90 text-white shadow-2xl transition-all active:scale-95 backdrop-blur-md border border-red-500 flex items-center gap-2"
+                  className="px-4 py-3 rounded-2xl bg-red-600/90 hover:bg-red-700/90 text-white shadow-2xl transition-all active:scale-95 backdrop-blur-md border border-red-500 flex items-center gap-2 pointer-events-auto"
                   aria-label="End Trail"
                   title="End Trail"
                 >
@@ -1010,7 +1093,7 @@ export default function MapPage() {
               {/* Zones Button */}
               <button
                 onClick={() => setShowZoneModal(true)}
-                className="bg-emerald-600/90 hover:bg-emerald-700/90 text-white px-4 py-3 rounded-2xl flex items-center gap-2 shadow-2xl shadow-emerald-900/50 transition-all active:scale-95 backdrop-blur-md border border-emerald-500"
+                className="bg-emerald-600/90 hover:bg-emerald-700/90 text-white px-4 py-3 rounded-2xl flex items-center gap-2 shadow-2xl shadow-emerald-900/50 transition-all active:scale-95 backdrop-blur-md border border-emerald-500 pointer-events-auto"
                 aria-label="Zones"
                 title="Zones"
               >
@@ -1018,8 +1101,8 @@ export default function MapPage() {
                 <span className="font-bold text-sm whitespace-nowrap">Zones</span>
               </button>
             </div>
-          </>
-        )}
+          </div>
+        ) : null}
 
         {view === "grid" && (
           <MushroomGrid

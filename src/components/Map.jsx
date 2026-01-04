@@ -13,6 +13,12 @@ if (MAPBOX_TOKEN) {
 }
 
 export default function Map(props) {
+  console.log("🗺️ Map component rendering with props:", { 
+    hasData: !!props?.data, 
+    dataLength: props?.data?.length || 0,
+    view: "map"
+  });
+  
   // Destructure with defaults to handle undefined props
   const {
     data,
@@ -74,7 +80,37 @@ export default function Map(props) {
 
   /* ---------------- MAP INIT ---------------- */
   useEffect(() => {
-    if (isTokenMissing || mapRef.current || !mapContainerRef.current) return;
+    console.log("🗺️ Map init useEffect running", { 
+      isTokenMissing, 
+      hasMapRef: !!mapRef.current, 
+      hasContainer: !!mapContainerRef.current 
+    });
+    
+    // Always clean up any existing map instance first
+    if (mapRef.current) {
+      console.log("🗑️ Cleaning up existing map instance");
+      try {
+        popupRef.current?.remove();
+        popupRef.current = null;
+        userLocationMarkerRef.current?.remove();
+        userLocationMarkerRef.current = null;
+        const existingMap = mapRef.current;
+        existingMap.remove();
+        mapRef.current = null;
+        setMapLoaded(false);
+        setMapError(null);
+      } catch (e) {
+        console.error("Error removing existing map:", e);
+        mapRef.current = null;
+      }
+    }
+    
+    if (isTokenMissing || !mapContainerRef.current) {
+      console.log("⏸️ Map init skipped:", { isTokenMissing, hasContainer: !!mapContainerRef.current });
+      return;
+    }
+    
+    console.log("✅ Initializing new map instance");
 
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
@@ -108,12 +144,19 @@ export default function Map(props) {
     mapRef.current = map;
 
     return () => {
+      console.log("🧹 Map cleanup running - removing map instance");
       popupRef.current?.remove();
+      popupRef.current = null;
       userLocationMarkerRef.current?.remove();
-      map.off("zoomend", handleZoomChange);
-      map.off("moveend", handleZoomChange);
-      map.remove();
+      userLocationMarkerRef.current = null;
+      if (map) {
+        map.off("zoomend", handleZoomChange);
+        map.off("moveend", handleZoomChange);
+        map.remove();
+      }
       mapRef.current = null;
+      setMapLoaded(false);
+      setMapError(null);
     };
   }, [isTokenMissing]);
 
