@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { X, Loader2, Navigation, FolderOpen, Plus } from "lucide-react";
+import { X, Loader2, Navigation, FolderOpen, Plus, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
-import { getSavedTrails } from "@/lib/trailStorage";
+import { getSavedTrails, deleteTrail } from "@/lib/trailStorage";
 import { useAuth } from "@/context/AuthContext";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 export default function TrailModal({ isOpen, onClose, onLocationSelect, onLoadTrail }) {
   const { user } = useAuth();
@@ -15,6 +16,7 @@ export default function TrailModal({ isOpen, onClose, onLocationSelect, onLoadTr
   const [savedTrails, setSavedTrails] = useState([]);
   const locationTimeoutRef = useRef(null);
   const gettingLocationRef = useRef(false);
+  const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, trailId: null, trailName: null });
   
   // Keep ref in sync with state
   useEffect(() => {
@@ -152,6 +154,33 @@ export default function TrailModal({ isOpen, onClose, onLocationSelect, onLoadTr
       handleGetCurrentLocation();
     }, 300);
   }, [handleGetCurrentLocation]);
+
+  const handleDeleteClick = (e, trailId, trailName) => {
+    e.stopPropagation(); // Prevent triggering the load trail action
+    setDeleteConfirm({ isOpen: true, trailId, trailName });
+  };
+
+  const handleDeleteConfirm = async () => {
+    const { trailId } = deleteConfirm;
+    if (!trailId) return;
+
+    try {
+      const success = await deleteTrail(trailId);
+      if (success) {
+        toast.success("Trail deleted successfully");
+        // Reload trails
+        const trails = await getSavedTrails();
+        setSavedTrails(trails);
+      } else {
+        toast.error("Failed to delete trail");
+      }
+    } catch (error) {
+      console.error("Error deleting trail:", error);
+      toast.error("Failed to delete trail");
+    } finally {
+      setDeleteConfirm({ isOpen: false, trailId: null, trailName: null });
+    }
+  };
   
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -229,23 +258,36 @@ export default function TrailModal({ isOpen, onClose, onLocationSelect, onLoadTr
                 ) : (
                   <div className="space-y-2 max-h-96 overflow-y-auto">
                     {savedTrails.map((trail) => (
-                      <button
+                      <div
                         key={trail.id}
-                        onClick={() => {
-                          if (onLoadTrail) {
-                            onLoadTrail(trail);
-                            onClose();
-                          }
-                        }}
-                        className="w-full px-4 py-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-colors text-left"
+                        className="relative group"
                       >
-                        <p className="text-sm font-bold text-blue-900 mb-1">
-                          {trail.name}
-                        </p>
-                        <p className="text-xs text-blue-600/70">
-                          {trail.mushrooms?.length || 0} mushrooms • {new Date(trail.createdAt).toLocaleDateString()}
-                        </p>
-                      </button>
+                        <button
+                          onClick={() => {
+                            if (onLoadTrail) {
+                              onLoadTrail(trail);
+                              onClose();
+                            }
+                          }}
+                          className="w-full px-4 py-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-colors text-left"
+                        >
+                          <p className="text-sm font-bold text-blue-900 mb-1">
+                            {trail.name}
+                          </p>
+                          <p className="text-xs text-blue-600/70">
+                            {trail.mushrooms?.length || 0} mushrooms • {new Date(trail.createdAt).toLocaleDateString()}
+                          </p>
+                        </button>
+                        {isAdmin && (
+                          <button
+                            onClick={(e) => handleDeleteClick(e, trail.id, trail.name)}
+                            className="absolute top-2 right-2 p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                            title="Delete trail"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </div>
                     ))}
                   </div>
                 )}
@@ -310,6 +352,18 @@ export default function TrailModal({ isOpen, onClose, onLocationSelect, onLoadTr
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={deleteConfirm.isOpen}
+        onClose={() => setDeleteConfirm({ isOpen: false, trailId: null, trailName: null })}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Trail"
+        message={`Are you sure you want to delete "${deleteConfirm.trailName || "this trail"}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        confirmColor="red"
+      />
     </div>
   );
 }

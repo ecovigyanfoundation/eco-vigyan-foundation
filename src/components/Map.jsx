@@ -1277,9 +1277,12 @@ if (trailMode) {
       drawingStateRef.current.initialCenter = null;
       drawingStateRef.current.initialSize = null;
       drawingStateRef.current.activeHandle = null;
-      drawingStateRef.current.polygonPoints = []; // Clear polygon points
-      drawingStateRef.current.polygonEditMode = false;
-      drawingStateRef.current.activeVertexIndex = undefined;
+      // Only clear polygon-specific state if we were in polygon mode
+      if (drawingMode === "polygon") {
+        drawingStateRef.current.polygonPoints = []; // Clear polygon points
+        drawingStateRef.current.polygonEditMode = false;
+        drawingStateRef.current.activeVertexIndex = undefined;
+      }
       
       try {
         // Remove resize handles
@@ -1314,23 +1317,28 @@ if (trailMode) {
       
       console.log("✅ === ENTERING DRAWING MODE ===", { drawingMode, mapReady: map.isStyleLoaded() });
     
-    // Reset drawing state first
+    // Reset drawing state first - clear all modes
+    drawingStateRef.current.isDrawing = false;
+    drawingStateRef.current.isMoving = false;
+    drawingStateRef.current.isResizing = false;
+    drawingStateRef.current.startPoint = null;
+    drawingStateRef.current.dragStart = null;
+    drawingStateRef.current.initialCenter = null;
+    drawingStateRef.current.initialSize = null;
+    drawingStateRef.current.activeHandle = null;
+    
     if (drawingMode === "polygon") {
       // For polygon, initialize with empty points array
       drawingStateRef.current.polygonPoints = [];
       drawingStateRef.current.polygonEditMode = false;
       drawingStateRef.current.activeVertexIndex = undefined;
-      drawingStateRef.current.isDrawing = false;
-      drawingStateRef.current.isMoving = false;
-      drawingStateRef.current.isResizing = false;
-      drawingStateRef.current.startPoint = null;
-      drawingStateRef.current.dragStart = null;
-      drawingStateRef.current.initialCenter = null;
-      drawingStateRef.current.initialSize = null;
-      drawingStateRef.current.activeHandle = null;
       drawingStateRef.current.currentCenter = null;
       drawingStateRef.current.currentSize = null;
-    } else {
+    } else if (drawingMode === "rectangle" || drawingMode === "circle") {
+      // For rectangle/circle, clear polygon-specific state
+      drawingStateRef.current.polygonPoints = [];
+      drawingStateRef.current.polygonEditMode = false;
+      drawingStateRef.current.activeVertexIndex = undefined;
       const center = map.getCenter();
       drawingStateRef.current.currentCenter = { lat: center.lat, lng: center.lng };
       
@@ -1655,13 +1663,50 @@ if (trailMode) {
       handles.forEach((handleData) => {
         const el = document.createElement('div');
         el.className = 'drawing-resize-handle';
-        el.style.cssText = 'width: 32px; height: 32px; background-color: #10b981; border: 3px solid white; border-radius: 50%; cursor: grab; box-shadow: 0 2px 8px rgba(0,0,0,0.4); z-index: 1000; touch-action: none;';
+        
+        // Make polygon handles larger and more visible
+        const isPolygon = drawingMode === "polygon";
+        const size = isPolygon ? 40 : 32;
+        const borderWidth = isPolygon ? 4 : 3;
+        const bgColor = isPolygon ? '#059669' : '#10b981';
+        
+        // Style the element - use anchor: 'center' in marker to center it properly
+        el.style.cssText = `
+          width: ${size}px; 
+          height: ${size}px; 
+          background-color: ${bgColor}; 
+          border: ${borderWidth}px solid white; 
+          border-radius: 50%; 
+          cursor: grab; 
+          box-shadow: 0 2px 12px rgba(0,0,0,0.5); 
+          z-index: 1000; 
+          touch-action: none; 
+          transition: box-shadow 0.2s, border-width 0.2s; 
+          box-sizing: border-box;
+        `;
+        
+        // Add hover effect - change shadow and border instead of scale to prevent shifting
+        el.addEventListener('mouseenter', () => {
+          el.style.cursor = 'grabbing';
+          el.style.boxShadow = '0 4px 16px rgba(0,0,0,0.7)';
+          el.style.borderWidth = `${borderWidth + 2}px`;
+        });
+        el.addEventListener('mouseleave', () => {
+          el.style.cursor = 'grab';
+          el.style.boxShadow = '0 2px 12px rgba(0,0,0,0.5)';
+          el.style.borderWidth = `${borderWidth}px`;
+        });
 
-        const marker = new mapboxgl.Marker({ element: el, draggable: true })
+        // Use anchor: 'center' to center the marker on the point, preventing shift
+        const marker = new mapboxgl.Marker({ 
+          element: el, 
+          draggable: true,
+          anchor: 'center' // This centers the marker on the coordinate point
+        })
           .setLngLat(handleData.position)
           .addTo(map);
 
-        marker.getElement().addEventListener('dragstart', () => {
+        marker.on('dragstart', () => {
           drawingStateRef.current.activeHandle = handleData.type;
           drawingStateRef.current.dragStart = { lat: handleData.position[1], lng: handleData.position[0] };
           
@@ -1669,16 +1714,64 @@ if (trailMode) {
           if (drawingMode === "polygon" && handleData.index !== undefined) {
             drawingStateRef.current.activeVertexIndex = handleData.index;
           } else {
-            drawingStateRef.current.initialCenter = { ...drawingStateRef.current.currentCenter };
-            drawingStateRef.current.initialSize = drawingMode === "rectangle" 
-              ? { width: drawingStateRef.current.currentSize.width, height: drawingStateRef.current.currentSize.height }
-              : { radius: drawingStateRef.current.currentSize.radius };
+            // Ensure currentCenter exists before copying
+            const currentCenter = drawingStateRef.current.currentCenter;
+            if (currentCenter && typeof currentCenter.lat === 'number' && typeof currentCenter.lng === 'number') {
+              drawingStateRef.current.initialCenter = { lat: currentCenter.lat, lng: currentCenter.lng };
+            } else {
+              // Fallback: calculate center from handle positions or shape boundary
+              console.warn("Current center not set, calculating from shape");
+              const source = map.getSource("drawing");
+              if (source) {
+                const data = source.getData ? source.getData() : source._data;
+                if (data && data.features && data.features.length > 0) {
+                  const boundary = data.features[0].geometry.coordinates[0];
+                  if (boundary && boundary.length > 0) {
+                    // Calculate centroid
+                    let sumLat = 0, sumLng = 0;
+                    for (let i = 0; i < boundary.length - 1; i++) {
+                      sumLng += boundary[i][0];
+                      sumLat += boundary[i][1];
+                    }
+                    const count = boundary.length - 1;
+                    drawingStateRef.current.initialCenter = {
+                      lat: sumLat / count,
+                      lng: sumLng / count
+                    };
+                  }
+                }
+              }
+              
+              if (!drawingStateRef.current.initialCenter) {
+                console.error("Cannot determine center, aborting resize");
+                return;
+              }
+            }
+            
+            const currentSize = drawingStateRef.current.currentSize;
+            if (currentSize) {
+              drawingStateRef.current.initialSize = drawingMode === "rectangle" 
+                ? { width: currentSize.width || 50, height: currentSize.height || 50 }
+                : { radius: currentSize.radius || 25 };
+            } else {
+              console.warn("Current size not set, using defaults");
+              drawingStateRef.current.initialSize = drawingMode === "rectangle" 
+                ? { width: 50, height: 50 }
+                : { radius: 25 };
+            }
           }
           map.dragPan.disable();
         });
 
         marker.on('drag', () => {
           const newLngLat = marker.getLngLat();
+          
+          // Safety check: ensure we have valid coordinates
+          if (!newLngLat || typeof newLngLat.lat !== 'number' || typeof newLngLat.lng !== 'number') {
+            console.warn("Invalid coordinates from marker, aborting drag");
+            return;
+          }
+          
           const currentPoint = { lat: newLngLat.lat, lng: newLngLat.lng };
           
           // Handle polygon vertex dragging
@@ -1695,7 +1788,46 @@ if (trailMode) {
             return;
           }
           
-          const initialCenter = drawingStateRef.current.initialCenter;
+          // For rectangle/circle, we need initialCenter to calculate size
+          let initialCenter = drawingStateRef.current.initialCenter;
+          
+          // Safety check: ensure initialCenter exists
+          if (!initialCenter || typeof initialCenter.lat !== 'number' || typeof initialCenter.lng !== 'number') {
+            // Try to get it from currentCenter
+            const currentCenter = drawingStateRef.current.currentCenter;
+            if (currentCenter && typeof currentCenter.lat === 'number' && typeof currentCenter.lng === 'number') {
+              initialCenter = { lat: currentCenter.lat, lng: currentCenter.lng };
+              drawingStateRef.current.initialCenter = initialCenter;
+            } else {
+              // Last resort: calculate center from the shape's boundary
+              const source = map.getSource("drawing");
+              if (source) {
+                const data = source.getData ? source.getData() : source._data;
+                if (data && data.features && data.features.length > 0) {
+                  const boundary = data.features[0].geometry.coordinates[0];
+                  if (boundary && boundary.length > 0) {
+                    // Calculate centroid
+                    let sumLat = 0, sumLng = 0;
+                    for (let i = 0; i < boundary.length - 1; i++) {
+                      sumLng += boundary[i][0];
+                      sumLat += boundary[i][1];
+                    }
+                    const count = boundary.length - 1;
+                    initialCenter = {
+                      lat: sumLat / count,
+                      lng: sumLng / count
+                    };
+                    drawingStateRef.current.initialCenter = initialCenter;
+                  }
+                }
+              }
+              
+              if (!initialCenter || typeof initialCenter.lat !== 'number' || typeof initialCenter.lng !== 'number') {
+                console.error("No valid center available, aborting drag");
+                return;
+              }
+            }
+          }
           
           if (drawingMode === "rectangle") {
             // Calculate the distance from center to the dragged corner
@@ -1855,21 +1987,111 @@ if (trailMode) {
       updateDrawingShape(boundary);
     };
 
-    // Event handlers for moving and resizing the shape
-    const handleInteractionStart = (e) => {
-      // For polygon mode, handle clicks differently
-      if (drawingMode === "polygon") {
-        // If in edit mode (after double-click), don't add new points
-        if (drawingStateRef.current.polygonEditMode) {
-          // Allow moving the entire polygon or other interactions
-          // But don't add new points
-          return;
+    // Helper to find the closest edge segment to a point
+    const findClosestEdgeSegment = (point, boundary) => {
+      let minDist = Infinity;
+      let closestSegmentIndex = -1;
+      let closestPointOnEdge = null;
+      
+      for (let i = 0; i < boundary.length - 1; i++) {
+        const [x1, y1] = boundary[i];
+        const [x2, y2] = boundary[i + 1];
+        
+        // Calculate distance from point to line segment
+        const A = point.lng - x1;
+        const B = point.lat - y1;
+        const C = x2 - x1;
+        const D = y2 - y1;
+        
+        const dot = A * C + B * D;
+        const lenSq = C * C + D * D;
+        let param = -1;
+        
+        if (lenSq !== 0) param = dot / lenSq;
+        
+        let xx, yy;
+        if (param < 0) {
+          xx = x1;
+          yy = y1;
+        } else if (param > 1) {
+          xx = x2;
+          yy = y2;
+        } else {
+          xx = x1 + param * C;
+          yy = y1 + param * D;
         }
         
+        const dx = point.lng - xx;
+        const dy = point.lat - yy;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        
+        if (dist < minDist) {
+          minDist = dist;
+          closestSegmentIndex = i;
+          closestPointOnEdge = [xx, yy];
+        }
+      }
+      
+      return { segmentIndex: closestSegmentIndex, distance: minDist, point: closestPointOnEdge };
+    };
+
+    // Event handlers for moving and resizing the shape
+    const handleInteractionStart = (e) => {
+      // For polygon mode, handle clicks differently - MUST return early
+      if (drawingMode === "polygon") {
         const point = e.lngLat;
         if (!point) return;
         
-        // Add point to polygon
+        // If in edit mode (after double-click), allow adding vertices on edges
+        if (drawingStateRef.current.polygonEditMode) {
+          const points = drawingStateRef.current.polygonPoints;
+          if (points.length < 2) return;
+          
+          // Create closed boundary for checking
+          const boundary = [...points, [points[0][0], points[0][1]]];
+          
+          // Check if clicking near an edge (to add a vertex)
+          const edgeInfo = findClosestEdgeSegment(point, boundary);
+          const zoom = map.getZoom();
+          const threshold = (zoom > 10 ? 0.0005 : zoom > 7 ? 0.001 : 0.002); // Distance threshold
+          
+          if (edgeInfo.distance < threshold && edgeInfo.segmentIndex >= 0) {
+            // Add new vertex at the closest point on the edge
+            const newVertex = edgeInfo.point;
+            const insertIndex = edgeInfo.segmentIndex + 1;
+            points.splice(insertIndex, 0, newVertex);
+            updatePolygonShape();
+            updateResizeHandles();
+            return;
+          }
+          
+          // Check if clicking near a vertex (to delete it) - need at least 3 vertices
+          let closestVertexIndex = -1;
+          let minVertexDist = Infinity;
+          for (let i = 0; i < points.length; i++) {
+            const [vx, vy] = points[i];
+            const dist = Math.sqrt(
+              Math.pow(point.lng - vx, 2) + Math.pow(point.lat - vy, 2)
+            );
+            if (dist < minVertexDist) {
+              minVertexDist = dist;
+              closestVertexIndex = i;
+            }
+          }
+          
+          // If clicking very close to a vertex and we have more than 3 vertices, delete it
+          if (minVertexDist < threshold && closestVertexIndex >= 0 && points.length > 3) {
+            points.splice(closestVertexIndex, 1);
+            updatePolygonShape();
+            updateResizeHandles();
+            return;
+          }
+          
+          // Otherwise, allow moving the entire polygon
+          return;
+        }
+        
+        // Not in edit mode - add point to polygon
         const newPoint = [point.lng, point.lat];
         drawingStateRef.current.polygonPoints.push(newPoint);
         
@@ -1906,36 +2128,58 @@ if (trailMode) {
       
       const boundary = data.features[0].geometry.coordinates[0];
       
-      // Check if clicking near edge (for resizing)
+      // Check if clicking near edge (for resizing) - use zoom-based threshold
       const edgeDist = getDistanceToEdge(point, boundary);
       const isTouch = e.originalEvent && (
         e.originalEvent.type && e.originalEvent.type.startsWith('touch') || 
         e.originalEvent.touches && e.originalEvent.touches.length > 0 ||
         window.matchMedia && window.matchMedia('(pointer: coarse)').matches
       );
-      const threshold = (isTouch ? 10 : 5) / 111; // ~10km for touch, ~5km for mouse
+      const zoom = map.getZoom();
+      // Use smaller threshold at higher zoom levels for better precision
+      const baseThreshold = isTouch ? 10 : 5; // km
+      const threshold = (zoom > 10 ? baseThreshold * 0.3 : zoom > 7 ? baseThreshold * 0.5 : baseThreshold) / 111;
       
       const isInside = isPointInShape(point, boundary);
-      console.log("Click detected:", { edgeDist, threshold, isInside, point });
+      console.log("Click detected:", { edgeDist, threshold, isInside, point, zoom });
       
-      if (edgeDist < threshold) {
-        console.log("Starting resize");
+      // Check edge first, but only if we're actually near the edge
+      // If inside and not near edge, allow moving
+      if (edgeDist < threshold && isInside) {
+        // Near edge and inside - prioritize resize
+        console.log("Starting resize (near edge)");
         drawingStateRef.current.isResizing = true;
+        drawingStateRef.current.isMoving = false; // Ensure move is false
         drawingStateRef.current.dragStart = point;
-        drawingStateRef.current.initialCenter = { ...drawingStateRef.current.currentCenter };
-        drawingStateRef.current.initialSize = drawingMode === "rectangle" 
-          ? { width: drawingStateRef.current.currentSize.width, height: drawingStateRef.current.currentSize.height }
-          : { radius: drawingStateRef.current.currentSize.radius };
+        // Ensure initialCenter and initialSize are properly set
+        const currentCenter = drawingStateRef.current.currentCenter;
+        if (currentCenter && typeof currentCenter.lat === 'number' && typeof currentCenter.lng === 'number') {
+          drawingStateRef.current.initialCenter = { lat: currentCenter.lat, lng: currentCenter.lng };
+        }
+        const currentSize = drawingStateRef.current.currentSize;
+        if (currentSize) {
+          drawingStateRef.current.initialSize = drawingMode === "rectangle" 
+            ? { width: currentSize.width || 50, height: currentSize.height || 50 }
+            : { radius: currentSize.radius || 25 };
+        }
         map.getCanvas().style.cursor = "grabbing";
         map.dragPan.disable();
         if (e.originalEvent && e.originalEvent.preventDefault) {
           e.originalEvent.preventDefault();
         }
-      } else if (isInside) {
+      } else if (isInside && edgeDist >= threshold) {
         console.log("Starting move");
         drawingStateRef.current.isMoving = true;
+        drawingStateRef.current.isResizing = false; // Ensure resize is false
         drawingStateRef.current.dragStart = point;
-        drawingStateRef.current.initialCenter = { ...drawingStateRef.current.currentCenter };
+        // Ensure initialCenter is properly set
+        const currentCenter = drawingStateRef.current.currentCenter;
+        if (currentCenter && currentCenter.lat && currentCenter.lng) {
+          drawingStateRef.current.initialCenter = { lat: currentCenter.lat, lng: currentCenter.lng };
+        } else {
+          console.error("Cannot start move: currentCenter not set");
+          return;
+        }
         map.getCanvas().style.cursor = "grabbing";
         map.dragPan.disable();
         if (e.originalEvent && e.originalEvent.preventDefault) {
@@ -1961,56 +2205,153 @@ if (trailMode) {
     };
 
     const handleInteractionMove = (e) => {
-      // For polygon mode, just update cursor
+      // For polygon mode, update cursor based on context - MUST return early
       if (drawingMode === "polygon") {
-        map.getCanvas().style.cursor = "crosshair";
+        if (drawingStateRef.current.polygonEditMode) {
+          // In edit mode, show different cursors based on hover
+          const point = e.lngLat;
+          if (point) {
+            const points = drawingStateRef.current.polygonPoints;
+            if (points.length < 2) {
+              map.getCanvas().style.cursor = "default";
+              return;
+            }
+            
+            const boundary = [...points, [points[0][0], points[0][1]]];
+            
+            // Check if near edge (to add vertex)
+            const edgeInfo = findClosestEdgeSegment(point, boundary);
+            const zoom = map.getZoom();
+            const threshold = (zoom > 10 ? 0.0005 : zoom > 7 ? 0.001 : 0.002);
+            
+            if (edgeInfo.distance < threshold) {
+              map.getCanvas().style.cursor = "crosshair";
+              return;
+            }
+            
+            // Check if near vertex (to delete)
+            let minVertexDist = Infinity;
+            for (let i = 0; i < points.length; i++) {
+              const [vx, vy] = points[i];
+              const dist = Math.sqrt(
+                Math.pow(point.lng - vx, 2) + Math.pow(point.lat - vy, 2)
+              );
+              if (dist < minVertexDist) {
+                minVertexDist = dist;
+              }
+            }
+            
+            if (minVertexDist < threshold && points.length > 3) {
+              map.getCanvas().style.cursor = "not-allowed";
+              return;
+            }
+            
+            // Check if inside polygon (to move)
+            if (isPointInShape(point, boundary)) {
+              map.getCanvas().style.cursor = "move";
+              return;
+            }
+          }
+          map.getCanvas().style.cursor = "default";
+        } else {
+          map.getCanvas().style.cursor = "crosshair";
+        }
+        return; // CRITICAL: Must return here to prevent rectangle/circle logic
+      }
+      
+      // Rectangle and Circle mode logic - only runs if NOT polygon
+      if (drawingMode !== "rectangle" && drawingMode !== "circle") {
         return;
       }
       
+      // Get current point - try multiple ways to get coordinates
+      let currentPoint = e.lngLat;
+      if (!currentPoint && e.point) {
+        currentPoint = map.unproject(e.point);
+        e.lngLat = currentPoint;
+      }
+      if (!currentPoint) return;
+      
       if (!drawingStateRef.current.isMoving && !drawingStateRef.current.isResizing) {
         // Update cursor based on hover
-        if (e.lngLat) {
-          const source = map.getSource("drawing");
-          if (source) {
-            const data = source.getData ? source.getData() : source._data;
-            if (data && data.features && data.features.length > 0) {
-              const boundary = data.features[0].geometry.coordinates[0];
-              const point = e.lngLat;
-              const edgeDist = getDistanceToEdge(point, boundary);
-              const threshold = 2 / 111;
-              
-              if (edgeDist < threshold) {
-                map.getCanvas().style.cursor = "nwse-resize";
-              } else if (isPointInShape(point, boundary)) {
-                map.getCanvas().style.cursor = "move";
-              } else {
-                map.getCanvas().style.cursor = "default";
-              }
+        const source = map.getSource("drawing");
+        if (source) {
+          const data = source.getData ? source.getData() : source._data;
+          if (data && data.features && data.features.length > 0) {
+            const boundary = data.features[0].geometry.coordinates[0];
+            const point = currentPoint;
+            const edgeDist = getDistanceToEdge(point, boundary);
+            // Use a more lenient threshold based on zoom level
+            const zoom = map.getZoom();
+            const threshold = (zoom > 10 ? 0.5 : zoom > 7 ? 1 : 2) / 111; // Smaller threshold at higher zoom
+            
+            if (edgeDist < threshold) {
+              map.getCanvas().style.cursor = "nwse-resize";
+            } else if (isPointInShape(point, boundary)) {
+              map.getCanvas().style.cursor = "move";
+            } else {
+              map.getCanvas().style.cursor = "default";
             }
           }
         }
         return;
       }
 
-      if (!drawingStateRef.current.dragStart) return;
-
-      const currentPoint = e.lngLat;
-      if (!currentPoint) return;
+      if (!drawingStateRef.current.dragStart) {
+        // If we're in move/resize mode but don't have dragStart, initialize it
+        if (drawingStateRef.current.isMoving || drawingStateRef.current.isResizing) {
+          drawingStateRef.current.dragStart = currentPoint;
+        } else {
+          return;
+        }
+      }
 
       if (drawingStateRef.current.isMoving) {
         // Move the shape
         const initialCenter = drawingStateRef.current.initialCenter;
-        const latDiff = currentPoint.lat - drawingStateRef.current.dragStart.lat;
-        const lngDiff = currentPoint.lng - drawingStateRef.current.dragStart.lng;
+        const dragStart = drawingStateRef.current.dragStart;
+        
+        // Safety checks
+        if (!initialCenter || typeof initialCenter.lat !== 'number' || typeof initialCenter.lng !== 'number') {
+          console.warn("Initial center not set during move, aborting");
+          return;
+        }
+        
+        if (!dragStart || typeof dragStart.lat !== 'number' || typeof dragStart.lng !== 'number') {
+          console.warn("Drag start not set during move, initializing");
+          drawingStateRef.current.dragStart = currentPoint;
+          return;
+        }
+        
+        // Calculate the difference from where drag started
+        const latDiff = currentPoint.lat - dragStart.lat;
+        const lngDiff = currentPoint.lng - dragStart.lng;
+        
+        // Ensure currentCenter exists
+        if (!drawingStateRef.current.currentCenter) {
+          drawingStateRef.current.currentCenter = { lat: initialCenter.lat, lng: initialCenter.lng };
+        }
+        
+        // Update center position
         drawingStateRef.current.currentCenter.lat = initialCenter.lat + latDiff;
         drawingStateRef.current.currentCenter.lng = initialCenter.lng + lngDiff;
+        
+        // Update the shape immediately
         createInitialShape();
+        
         if (e.originalEvent && e.originalEvent.preventDefault) {
           e.originalEvent.preventDefault();
         }
       } else if (drawingStateRef.current.isResizing) {
         // Resize the shape
         const initialCenter = drawingStateRef.current.initialCenter;
+        
+        // Safety check: ensure initialCenter exists
+        if (!initialCenter || !initialCenter.lat || !initialCenter.lng) {
+          console.warn("Initial center not set during resize, aborting");
+          return;
+        }
+        
         const maxSize = getMaxViewportSize();
         
         if (drawingMode === "rectangle") {
@@ -2142,6 +2483,8 @@ if (trailMode) {
       map.off("touchstart", handleTouchStart);
       map.off("touchmove", handleTouchMove);
       map.off("touchend", handleTouchEnd);
+      map.off("zoom", handleZoomOrMove);
+      map.off("move", handleZoomOrMove);
     };
 
     const completeDrawing = (boundary, shapeType, centerPoint, isFinal = false) => {
@@ -2174,6 +2517,17 @@ if (trailMode) {
         isFinal,
       });
     };
+
+    // Update resize handles on zoom/move to keep them in sync
+    const handleZoomOrMove = () => {
+      if (drawingMode && drawingMode !== "polygon" && drawingStateRef.current.currentCenter && drawingStateRef.current.currentSize) {
+        // Update handles position when zoom changes
+        updateResizeHandles();
+      }
+    };
+    
+    map.on("zoom", handleZoomOrMove);
+    map.on("move", handleZoomOrMove);
 
     // Attach event listeners
     map.on("mousedown", handleMouseDown);

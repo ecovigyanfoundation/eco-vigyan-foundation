@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, MapPin, Square, Circle, Search, Loader2, Hexagon, FolderOpen } from "lucide-react";
+import { X, MapPin, Square, Circle, Search, Loader2, Hexagon, FolderOpen, Trash2 } from "lucide-react";
 import { getCityBoundary } from "@/lib/geocoding";
 import { useAuth } from "@/context/AuthContext";
+import toast from "react-hot-toast";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 export default function ZoneModal({ isOpen, onClose, onZoneSelect, onDrawingModeSelect }) {
   const { user } = useAuth();
@@ -15,6 +17,7 @@ export default function ZoneModal({ isOpen, onClose, onZoneSelect, onDrawingMode
   const [savedZones, setSavedZones] = useState([]);
   const [loadingZones, setLoadingZones] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("all"); // "all", "decomposer", "symbiont", "parasitic"
+  const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, zoneId: null, zoneName: null });
 
   const handleCitySearch = async () => {
     if (!cityName.trim()) {
@@ -70,14 +73,27 @@ export default function ZoneModal({ isOpen, onClose, onZoneSelect, onDrawingMode
       const categoryParam = selectedCategory !== "all" ? `?category=${selectedCategory}` : "";
       const response = await fetch(`/api/zones${categoryParam}`, {
         credentials: "include",
+        cache: "no-store",
       });
-      const data = await response.json();
-      if (response.ok) {
-        setSavedZones(data.zones || []);
-      } else {
-        console.error("Error loading zones:", data.error);
+      
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({ error: "Failed to load zones" }));
+        
+        // If unauthorized, user might not be logged in
+        if (response.status === 401) {
+          console.warn("User not authenticated - zones require login");
+          setSavedZones([]);
+          // Don't show error to user, just show empty state
+          return;
+        }
+        
+        console.error("Error loading zones:", data.error || `HTTP ${response.status}`);
         setSavedZones([]);
+        return;
       }
+      
+      const data = await response.json();
+      setSavedZones(data.zones || []);
     } catch (error) {
       console.error("Error loading zones:", error);
       setSavedZones([]);
@@ -102,6 +118,38 @@ export default function ZoneModal({ isOpen, onClose, onZoneSelect, onDrawingMode
       category: zone.category,
     });
     onClose();
+  };
+
+  const handleDeleteClick = (e, zoneId, zoneName) => {
+    e.stopPropagation(); // Prevent triggering the zone selection
+    setDeleteConfirm({ isOpen: true, zoneId, zoneName });
+  };
+
+  const handleDeleteConfirm = async () => {
+    const { zoneId } = deleteConfirm;
+    if (!zoneId) return;
+
+    try {
+      const response = await fetch(`/api/zones/${zoneId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success("Zone deleted successfully");
+        // Reload zones
+        loadSavedZones();
+      } else {
+        toast.error(data.error || "Failed to delete zone");
+      }
+    } catch (error) {
+      console.error("Error deleting zone:", error);
+      toast.error("Failed to delete zone");
+    } finally {
+      setDeleteConfirm({ isOpen: false, zoneId: null, zoneName: null });
+    }
   };
 
   if (!isOpen) return null;
@@ -216,25 +264,38 @@ export default function ZoneModal({ isOpen, onClose, onZoneSelect, onDrawingMode
               ) : (
                 <div className="space-y-2 max-h-96 overflow-y-auto">
                   {savedZones.map((zone) => (
-                    <button
+                    <div
                       key={zone._id}
-                      onClick={() => handleZoneClick(zone)}
-                      className="w-full px-4 py-3 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-colors text-left"
+                      className="relative group"
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1">
-                          <p className="text-sm font-bold text-emerald-900 mb-1">
-                            {zone.name}
-                          </p>
-                          <p className="text-xs text-emerald-600/70 capitalize">
-                            {zone.category} • {zone.shapeType}
-                          </p>
+                      <button
+                        onClick={() => handleZoneClick(zone)}
+                        className="w-full px-4 py-3 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-colors text-left"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1">
+                            <p className="text-sm font-bold text-emerald-900 mb-1">
+                              {zone.name}
+                            </p>
+                            <p className="text-xs text-emerald-600/70 capitalize">
+                              {zone.category} • {zone.shapeType}
+                            </p>
+                          </div>
+                          <span className="text-xs text-emerald-500 font-medium capitalize px-2 py-1 bg-emerald-200 rounded-md">
+                            {zone.category}
+                          </span>
                         </div>
-                        <span className="text-xs text-emerald-500 font-medium capitalize px-2 py-1 bg-emerald-200 rounded-md">
-                          {zone.category}
-                        </span>
-                      </div>
-                    </button>
+                      </button>
+                      {isAdmin && (
+                        <button
+                          onClick={(e) => handleDeleteClick(e, zone._id, zone.name)}
+                          className="absolute top-2 right-2 p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                          title="Delete zone"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
+                    </div>
                   ))}
                 </div>
               )}
@@ -350,6 +411,18 @@ export default function ZoneModal({ isOpen, onClose, onZoneSelect, onDrawingMode
           </button>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={deleteConfirm.isOpen}
+        onClose={() => setDeleteConfirm({ isOpen: false, zoneId: null, zoneName: null })}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Zone"
+        message={`Are you sure you want to delete "${deleteConfirm.zoneName || "this zone"}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        confirmColor="red"
+      />
     </div>
   );
 }
