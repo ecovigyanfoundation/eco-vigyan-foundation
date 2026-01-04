@@ -470,8 +470,16 @@ export default function MapPage() {
 
   // Handle ending trail mode
   const handleEndTrail = () => {
-    // Refresh the page to completely clear all state
-    window.location.reload();
+    // Reset all trail-related state without reloading
+    setTrailMode(false);
+    trailModeRef.current = false;
+    setTrailLocation(null);
+    setTrailCurrentLocation(null);
+    setTrailMushrooms([]);
+    setSelectedZone(null);
+    lastAddedMushroomRef.current = null;
+    
+    toast.success("Trail mode ended", { id: 'trail-ended' });
   };
 
   // Calculate distance and estimated time to next mushroom in trail
