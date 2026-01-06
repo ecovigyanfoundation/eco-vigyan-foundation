@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import { getSavedTrails, deleteTrail } from "@/lib/trailStorage";
 import { useAuth } from "@/context/AuthContext";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { calculateDistance } from "@/lib/geocoding";
 
 export default function TrailModal({ isOpen, onClose, onLocationSelect, onLoadTrail }) {
   const { user } = useAuth();
@@ -13,6 +14,8 @@ export default function TrailModal({ isOpen, onClose, onLocationSelect, onLoadTr
   const [mode, setMode] = useState("select"); // "select", "create", "load"
   const [savedTrails, setSavedTrails] = useState([]);
   const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, trailId: null, trailName: null });
+  const [userLocation, setUserLocation] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
 
   // Load saved trails when modal opens
   useEffect(() => {
@@ -28,6 +31,30 @@ export default function TrailModal({ isOpen, onClose, onLocationSelect, onLoadTr
       };
       loadTrails();
       setMode("select");
+
+      // Detect if mobile
+      setIsMobile(window.innerWidth < 768);
+
+      // Get user location for distance calculation
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            setUserLocation({
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+            });
+          },
+          (error) => {
+            console.log('Location access denied or failed:', error);
+            setUserLocation(null);
+          },
+          {
+            enableHighAccuracy: false,
+            timeout: 5000,
+            maximumAge: 60000,
+          }
+        );
+      }
     }
   }, [isOpen]);
 
@@ -67,6 +94,34 @@ export default function TrailModal({ isOpen, onClose, onLocationSelect, onLoadTr
     } finally {
       setDeleteConfirm({ isOpen: false, trailId: null, trailName: null });
     }
+  };
+
+  // Calculate distance to first mushroom in trail
+  const getTrailDistance = (trail) => {
+    if (!userLocation || !trail.mushrooms || trail.mushrooms.length === 0) {
+      return null;
+    }
+
+    const firstMushroom = trail.mushrooms[0];
+    const mushroomLat = firstMushroom.latitude || firstMushroom.location?.latitude;
+    const mushroomLng = firstMushroom.longitude || firstMushroom.location?.longitude;
+
+    if (!mushroomLat || !mushroomLng) {
+      return null;
+    }
+
+    const distance = calculateDistance(
+      userLocation.lat,
+      userLocation.lng,
+      mushroomLat,
+      mushroomLng
+    );
+
+    // Return distance in km or meters
+    if (distance < 1) {
+      return `${Math.round(distance * 1000)}m`;
+    }
+    return `${distance.toFixed(1)}km`;
   };
 
   if (!isOpen) return null;
@@ -147,12 +202,23 @@ export default function TrailModal({ isOpen, onClose, onLocationSelect, onLoadTr
                           }}
                           className="w-full px-4 py-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-colors text-left"
                         >
-                          <p className="text-sm font-bold text-blue-900 mb-1">
-                            {trail.name}
-                          </p>
-                          <p className="text-xs text-blue-600/70">
-                            {trail.mushrooms?.length || 0} mushrooms • {new Date(trail.createdAt).toLocaleDateString()}
-                          </p>
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <p className="text-sm font-bold text-blue-900 mb-1">
+                                {trail.name}
+                              </p>
+                              <p className="text-xs text-blue-600/70">
+                                {trail.mushrooms?.length || 0} mushrooms • {new Date(trail.createdAt).toLocaleDateString()}
+                              </p>
+                            </div>
+                            {isMobile && userLocation && (
+                              <div className="text-right ml-2">
+                                <p className="text-xs font-semibold text-blue-700">
+                                  {getTrailDistance(trail) || '—'}
+                                </p>
+                              </div>
+                            )}
+                          </div>
                         </button>
                         {isAdmin && (
                           <button
