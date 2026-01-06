@@ -1,21 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { X, FolderOpen, Plus, Trash2 } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { X, Loader2, Navigation, FolderOpen, Plus } from "lucide-react";
 import toast from "react-hot-toast";
-import { getSavedTrails, deleteTrail } from "@/lib/trailStorage";
-import { useAuth } from "@/context/AuthContext";
-import ConfirmDialog from "@/components/ConfirmDialog";
-import { calculateDistance } from "@/lib/geocoding";
+import { getSavedTrails } from "@/lib/trailStorage";
 
 export default function TrailModal({ isOpen, onClose, onLocationSelect, onLoadTrail }) {
-  const { user } = useAuth();
-  const isAdmin = user?.role === "admin";
   const [mode, setMode] = useState("select"); // "select", "create", "load"
+  const [gettingLocation, setGettingLocation] = useState(false);
+  const [error, setError] = useState(null);
   const [savedTrails, setSavedTrails] = useState([]);
-  const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, trailId: null, trailName: null });
-  const [userLocation, setUserLocation] = useState(null);
-  const [isMobile, setIsMobile] = useState(false);
+  const locationTimeoutRef = useRef(null);
+  const gettingLocationRef = useRef(false);
+  
+  // Keep ref in sync with state
+  useEffect(() => {
+    gettingLocationRef.current = gettingLocation;
+  }, [gettingLocation]);
 
   // Load saved trails when modal opens
   useEffect(() => {
@@ -31,98 +32,132 @@ export default function TrailModal({ isOpen, onClose, onLocationSelect, onLoadTr
       };
       loadTrails();
       setMode("select");
-
-      // Detect if mobile
-      setIsMobile(window.innerWidth < 768);
-
-      // Get user location for distance calculation
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            setUserLocation({
-              lat: position.coords.latitude,
-              lng: position.coords.longitude,
-            });
-          },
-          (error) => {
-            console.log('Location access denied or failed:', error);
-            setUserLocation(null);
-          },
-          {
-            enableHighAccuracy: false,
-            timeout: 5000,
-            maximumAge: 60000,
-          }
-        );
-      }
+      setError(null);
+      setGettingLocation(false);
     }
   }, [isOpen]);
 
-  // Handle create trail button click - start trail immediately
-  const handleCreateTrail = () => {
-    onLocationSelect({
-      type: "trail",
-      currentLocation: null,
-      center: null,
-      boundary: null,
-    });
-    onClose();
-  };
+  const handleGetCurrentLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      setError("Geolocation is not supported by your browser.");
+      return;
+    }
 
-  const handleDeleteClick = (e, trailId, trailName) => {
-    e.stopPropagation(); // Prevent triggering the load trail action
-    setDeleteConfirm({ isOpen: true, trailId, trailName });
-  };
-
-  const handleDeleteConfirm = async () => {
-    const { trailId } = deleteConfirm;
-    if (!trailId) return;
-
-    try {
-      const success = await deleteTrail(trailId);
-      if (success) {
-        toast.success("Trail deleted successfully");
-        // Reload trails
-        const trails = await getSavedTrails();
-        setSavedTrails(trails);
-      } else {
-        toast.error("Failed to delete trail");
+    setGettingLocation(true);
+    setError(null);
+    
+    // Clear any existing timeout
+    if (locationTimeoutRef.current) {
+      clearTimeout(locationTimeoutRef.current);
+      locationTimeoutRef.current = null;
+    }
+    
+    // Set a timeout to show toast if location isn't obtained within 8 seconds
+    // (before the geolocation timeout of 10 seconds)
+    locationTimeoutRef.current = setTimeout(() => {
+      // Check if we're still trying to get location
+      if (gettingLocationRef.current) {
+        toast.error("Failed to get location. Please check your settings and try again.", {
+          id: 'location-timeout',
+          duration: 4000,
+        });
+        // Don't set gettingLocation to false here - let the geolocation error handler do it
       }
-    } catch (error) {
-      console.error("Error deleting trail:", error);
-      toast.error("Failed to delete trail");
-    } finally {
-      setDeleteConfirm({ isOpen: false, trailId: null, trailName: null });
-    }
-  };
+    }, 8000);
 
-  // Calculate distance to first mushroom in trail
-  const getTrailDistance = (trail) => {
-    if (!userLocation || !trail.mushrooms || trail.mushrooms.length === 0) {
-      return null;
-    }
-
-    const firstMushroom = trail.mushrooms[0];
-    const mushroomLat = firstMushroom.latitude || firstMushroom.location?.latitude;
-    const mushroomLng = firstMushroom.longitude || firstMushroom.location?.longitude;
-
-    if (!mushroomLat || !mushroomLng) {
-      return null;
-    }
-
-    const distance = calculateDistance(
-      userLocation.lat,
-      userLocation.lng,
-      mushroomLat,
-      mushroomLng
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        // Clear timeout since we got the location
+        if (locationTimeoutRef.current) {
+          clearTimeout(locationTimeoutRef.current);
+          locationTimeoutRef.current = null;
+        }
+        
+        const { latitude, longitude } = position.coords;
+        setGettingLocation(false);
+        // Pass current location - map will zoom to this location
+        onLocationSelect({
+          type: "trail",
+          currentLocation: { lat: latitude, lng: longitude },
+          center: { lat: latitude, lng: longitude },
+          boundary: null,
+        });
+        onClose();
+      },
+      (err) => {
+        // Clear timeout since we got an error response
+        if (locationTimeoutRef.current) {
+          clearTimeout(locationTimeoutRef.current);
+          locationTimeoutRef.current = null;
+        }
+        
+        setGettingLocation(false);
+        let errorMessage = "";
+        
+        // Handle different error codes with user-friendly messages
+        // PositionError codes: 1 = PERMISSION_DENIED, 2 = POSITION_UNAVAILABLE, 3 = TIMEOUT
+        const errorCode = err?.code;
+        if (errorCode === 1) {
+          errorMessage = "Please enable your location to start the trail. Allow location access in your browser settings and try again.";
+          toast.error("Failed to get location. Please enable location access and try again.", {
+            id: 'location-permission-denied',
+            duration: 4000,
+          });
+        } else if (errorCode === 2) {
+          errorMessage = "Location information is unavailable. Please check your device's location settings and try again.";
+          toast.error("Failed to get location. Please check your device settings and try again.", {
+            id: 'location-unavailable',
+            duration: 4000,
+          });
+        } else if (errorCode === 3) {
+          errorMessage = "Location request timed out. Please check your connection and try again.";
+          toast.error("Failed to get location. Request timed out. Please try again.", {
+            id: 'location-timeout-error',
+            duration: 4000,
+          });
+        } else {
+          errorMessage = "Please enable your location to start the trail. Check your browser settings and try again.";
+          toast.error("Failed to get location. Please check your settings and try again.", {
+            id: 'location-error',
+            duration: 4000,
+          });
+        }
+        
+        setError(errorMessage);
+        
+        // Error is handled and displayed to user, no need to log to console
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
     );
+  }, [onLocationSelect, onClose]);
 
-    // Return distance in km or meters
-    if (distance < 1) {
-      return `${Math.round(distance * 1000)}m`;
+  // Automatically request location when creating new trail
+  useEffect(() => {
+    if (isOpen && mode === "create" && !gettingLocation && !error) {
+      handleGetCurrentLocation();
     }
-    return `${distance.toFixed(1)}km`;
-  };
+  }, [isOpen, mode, handleGetCurrentLocation, gettingLocation, error]);
+
+  const handleRetry = useCallback(() => {
+    setError(null);
+    // Wait a moment before retrying to give user time to see the button click
+    setTimeout(() => {
+      handleGetCurrentLocation();
+    }, 300);
+  }, [handleGetCurrentLocation]);
+  
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (locationTimeoutRef.current) {
+        clearTimeout(locationTimeoutRef.current);
+      }
+    };
+  }, []);
 
   if (!isOpen) return null;
 
@@ -144,6 +179,8 @@ export default function TrailModal({ isOpen, onClose, onLocationSelect, onLoadTr
           <button
             onClick={() => {
               setMode("select");
+              setError(null);
+              setGettingLocation(false);
               onClose();
             }}
             className="p-2 rounded-lg hover:bg-blue-50 text-blue-700 transition-colors"
@@ -157,15 +194,13 @@ export default function TrailModal({ isOpen, onClose, onLocationSelect, onLoadTr
           <div className="space-y-4">
             {mode === "select" ? (
               <div className="space-y-3">
-                {isAdmin && (
-                  <button
-                    onClick={handleCreateTrail}
-                    className="w-full px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-3"
-                  >
-                    <Plus size={20} />
-                    <span>Create New Trail</span>
-                  </button>
-                )}
+                <button
+                  onClick={() => setMode("create")}
+                  className="w-full px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-3"
+                >
+                  <Plus size={20} />
+                  <span>Create New Trail</span>
+                </button>
                 <button
                   onClick={() => setMode("load")}
                   className="w-full px-6 py-4 bg-blue-100 hover:bg-blue-200 text-blue-900 font-bold rounded-xl transition-colors flex items-center justify-center gap-3"
@@ -189,52 +224,68 @@ export default function TrailModal({ isOpen, onClose, onLocationSelect, onLoadTr
                 ) : (
                   <div className="space-y-2 max-h-96 overflow-y-auto">
                     {savedTrails.map((trail) => (
-                      <div
+                      <button
                         key={trail.id}
-                        className="relative group"
+                        onClick={() => {
+                          if (onLoadTrail) {
+                            onLoadTrail(trail);
+                            onClose();
+                          }
+                        }}
+                        className="w-full px-4 py-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-colors text-left"
                       >
-                        <button
-                          onClick={() => {
-                            if (onLoadTrail) {
-                              onLoadTrail(trail);
-                              onClose();
-                            }
-                          }}
-                          className="w-full px-4 py-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-colors text-left"
-                        >
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                              <p className="text-sm font-bold text-blue-900 mb-1">
-                                {trail.name}
-                              </p>
-                              <p className="text-xs text-blue-600/70">
-                                {trail.mushrooms?.length || 0} mushrooms • {new Date(trail.createdAt).toLocaleDateString()}
-                              </p>
-                            </div>
-                            {isMobile && userLocation && (
-                              <div className="text-right ml-2">
-                                <p className="text-xs font-semibold text-blue-700">
-                                  {getTrailDistance(trail) || '—'}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        </button>
-                        {isAdmin && (
-                          <button
-                            onClick={(e) => handleDeleteClick(e, trail.id, trail.name)}
-                            className="absolute top-2 right-2 p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                            title="Delete trail"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        )}
-                      </div>
+                        <p className="text-sm font-bold text-blue-900 mb-1">
+                          {trail.name}
+                        </p>
+                        <p className="text-xs text-blue-600/70">
+                          {trail.mushrooms?.length || 0} mushrooms • {new Date(trail.createdAt).toLocaleDateString()}
+                        </p>
+                      </button>
                     ))}
                   </div>
                 )}
               </div>
-            ) : null}
+            ) : gettingLocation ? (
+              <div className="flex flex-col items-center justify-center py-8">
+                <Loader2 size={48} className="animate-spin text-blue-600 mb-4" />
+                <p className="text-sm font-bold text-blue-900 mb-2">
+                  Getting your location...
+                </p>
+                <p className="text-xs text-blue-600/70 text-center">
+                  Please allow location access when prompted
+                </p>
+              </div>
+            ) : error ? (
+              <div className="space-y-4">
+                <div className="flex flex-col items-center justify-center py-6">
+                  <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mb-4">
+                    <Navigation size={32} className="text-blue-600" />
+                  </div>
+                  <p className="text-sm font-bold text-blue-900 mb-2 text-center">
+                    Location Required
+                  </p>
+                  <p className="text-xs text-blue-700/80 text-center mb-4 leading-relaxed">
+                    {error}
+                  </p>
+                  <button
+                    onClick={handleRetry}
+                    className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors flex items-center gap-2"
+                  >
+                    <Navigation size={18} />
+                    <span>Try Again</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8">
+                <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mb-4">
+                  <Navigation size={32} className="text-blue-600" />
+                </div>
+                <p className="text-sm font-bold text-blue-900 mb-2">
+                  Starting Trail...
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -244,6 +295,8 @@ export default function TrailModal({ isOpen, onClose, onLocationSelect, onLoadTr
             <button
               onClick={() => {
                 setMode("select");
+                setError(null);
+                setGettingLocation(false);
               }}
               className="w-full px-4 py-2.5 text-sm font-bold text-blue-700 hover:bg-blue-100 rounded-xl transition-colors"
             >
@@ -252,18 +305,6 @@ export default function TrailModal({ isOpen, onClose, onLocationSelect, onLoadTr
           </div>
         )}
       </div>
-
-      {/* Delete Confirmation Dialog */}
-      <ConfirmDialog
-        isOpen={deleteConfirm.isOpen}
-        onClose={() => setDeleteConfirm({ isOpen: false, trailId: null, trailName: null })}
-        onConfirm={handleDeleteConfirm}
-        title="Delete Trail"
-        message={`Are you sure you want to delete "${deleteConfirm.trailName || "this trail"}"? This action cannot be undone.`}
-        confirmText="Delete"
-        cancelText="Cancel"
-        confirmColor="red"
-      />
     </div>
   );
 }
