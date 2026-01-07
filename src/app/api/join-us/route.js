@@ -6,7 +6,9 @@ if (!process.env.RESEND_API_KEY) {
   console.warn("RESEND_API_KEY is not set in environment variables");
 }
 
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+const resend = process.env.RESEND_API_KEY
+  ? new Resend(process.env.RESEND_API_KEY)
+  : null;
 
 export async function POST(req) {
   try {
@@ -14,9 +16,10 @@ export async function POST(req) {
     if (!resend || !process.env.RESEND_API_KEY) {
       console.error("Resend API key is not configured");
       return NextResponse.json(
-        { 
-          error: "Email service is not configured. Please contact the administrator.",
-          details: "RESEND_API_KEY environment variable is missing"
+        {
+          error:
+            "Email service is not configured. Please contact the administrator.",
+          details: "RESEND_API_KEY environment variable is missing",
         },
         { status: 500 }
       );
@@ -37,7 +40,10 @@ export async function POST(req) {
     // Validate required fields
     if (!name || !email || !phone || !type) {
       return NextResponse.json(
-        { error: "Missing required fields. Please fill in Name, Email, Phone, and select an application type." },
+        {
+          error:
+            "Missing required fields. Please fill in Name, Email, Phone, and select an application type.",
+        },
         { status: 400 }
       );
     }
@@ -52,51 +58,127 @@ export async function POST(req) {
 
     // Create email content
     let emailContent = `
-      <h2 style="color: #059669; font-size: 24px; margin-bottom: 16px;">${subject}</h2>
-      <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-        <h3 style="color: #1f2937; margin-bottom: 12px;">Applicant Information</h3>
-        <p><strong>Name:</strong> ${name}</p>
-        <p><strong>Email:</strong> <a href="mailto:${email}">${email}</a></p>
-        <p><strong>Phone:</strong> ${phone}</p>
+  <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #374151; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden;">
+    
+    <div style="background-color: #059669; padding: 32px 24px; text-align: center;">
+      <h1 style="color: #ffffff; font-size: 24px; font-weight: 700; margin: 0; letter-spacing: -0.025em;">
+        ${subject}
+      </h1>
+    </div>
+
+    <div style="padding: 32px 24px;">
+      <p style="margin-top: 0; color: #6b7280; font-size: 14px; text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em;">
+        Applicant Details
+      </p>
+      
+      <div style="background-color: #f9fafb; border: 1px solid #f3f4f6; border-radius: 8px; padding: 20px;">
+        <table border="0" cellpadding="0" cellspacing="0" width="100%">
+          <tr>
+            <td style="padding-bottom: 12px;">
+              <span style="display: block; font-size: 12px; color: #9ca3af; text-transform: uppercase;">Full Name</span>
+              <span style="font-size: 16px; font-weight: 600; color: #111827;">${name}</span>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding-bottom: 12px; border-top: 1px solid #f3f4f6; padding-top: 12px;">
+              <span style="display: block; font-size: 12px; color: #9ca3af; text-transform: uppercase;">Email Address</span>
+              <a href="mailto:${email}" style="font-size: 16px; color: #059669; text-decoration: none; font-weight: 500;">${email}</a>
+            </td>
+          </tr>
+          <tr>
+            <td style="border-top: 1px solid #f3f4f6; padding-top: 12px;">
+              <span style="display: block; font-size: 12px; color: #9ca3af; text-transform: uppercase;">Phone Number</span>
+              <span style="font-size: 16px; font-weight: 600; color: #111827;">${phone}</span>
+            </td>
+          </tr>
+        </table>
       </div>
-    `;
+    </div>
+
+    <div style="background-color: #f3f4f6; padding: 16px; text-align: center; font-size: 12px; color: #9ca3af;">
+      This is an automated notification from your Application Portal.
+    </div>
+  </div>
+`;
 
     if (type === "intern") {
-      if (currentStatus) {
-        emailContent += `<p><strong>Current Status:</strong> ${currentStatus}</p>`;
-      }
-      if (duration) {
-        emailContent += `<p><strong>Duration (Weeks):</strong> ${duration}</p>`;
-      }
+      emailContent += `
+    <div style="background-color: #f8fafc; border-left: 4px solid #059669; margin-top: 12px; padding: 16px; border-radius: 4px;">
+      <table border="0" cellpadding="0" cellspacing="0" width="100%">
+        ${
+          currentStatus
+            ? `
+        <tr>
+          <td style="padding-bottom: 12px;">
+            <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">Current Status</div>
+            <div style="font-size: 15px; color: #1f2937;">${currentStatus}</div>
+          </td>
+        </tr>`
+            : ""
+        }
+        
+        ${
+          duration
+            ? `
+        <tr>
+          <td style="padding-top: ${currentStatus ? "12px" : "0"}; ${
+                currentStatus ? "border-top: 1px solid #e5e7eb;" : ""
+              }">
+            <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">Duration (Weeks)</div>
+            <div style="font-size: 15px; color: #1f2937;">${duration} weeks</div>
+          </td>
+        </tr>`
+            : ""
+        }
+      </table>
+    </div>
+  `;
     }
 
     if (interest) {
-      emailContent += `<p><strong>Primary Interest/City:</strong> ${interest}</p>`;
-    }
-
-    if (message) {
       emailContent += `
-        <div style="background-color: #ffffff; padding: 16px; border-radius: 8px; margin-top: 16px; border-left: 4px solid #059669;">
-          <h3 style="color: #1f2937; margin-bottom: 8px;">Message/Availability</h3>
-          <p style="color: #4b5563; line-height: 1.6; white-space: pre-wrap;">${message}</p>
-        </div>
-      `;
+    <div style="margin-top: 20px;">
+      <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; margin-bottom: 4px;">Primary Interest / City</div>
+      <div style="font-size: 16px; color: #111827; background: #fdfcfb; border: 1px solid #fed7aa; padding: 12px; border-radius: 8px;">
+        ${interest}
+      </div>
+    </div>
+  `;
     }
 
-    emailContent += `
-      <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
-        <p style="color: #6b7280; font-size: 12px;">
-          This email was sent from the Eco Vigyan Foundation Join Us page.
+   if (message) {
+  emailContent += `
+    <div style="margin-top: 24px;">
+      <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; margin-bottom: 8px;">
+        Message / Availability
+      </div>
+      <div style="background-color: #ffffff; padding: 20px; border-radius: 12px; border: 1px solid #e5e7eb; border-left: 4px solid #059669; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);">
+        <p style="color: #4b5563; line-height: 1.7; font-size: 15px; margin: 0; white-space: pre-wrap; font-style: italic;">
+          "${message}"
         </p>
       </div>
-    `;
+    </div>
+  `;
+}
+    emailContent += `
+    <div style="margin-top: 32px; padding-top: 24px; border-top: 1px dotted #d1d5db; text-align: center;">
+      <p style="color: #6b7280; font-size: 13px; margin: 0; line-height: 1.5;">
+        This submission was received via the 
+        <span style="color: #059669; font-weight: 600;">Eco Vigyan Foundation</span> 
+        Join Us page.
+      </p>
+      <p style="color: #9ca3af; font-size: 11px; margin-top: 8px;">
+        © ${new Date().getFullYear()} Eco Vigyan Foundation. All rights reserved.
+      </p>
+    </div>
+  </div> `;
 
     // Send email using Resend
     // IMPORTANT: For testing, use "onboarding@resend.dev" (no verification needed)
     // For production, verify your domain at https://resend.com/domains and use RESEND_FROM_EMAIL
-    
+
     let fromEmail;
-    
+
     if (process.env.RESEND_FROM_EMAIL) {
       // Custom domain provided - extract email if in "Name <email>" format
       fromEmail = process.env.RESEND_FROM_EMAIL;
@@ -106,17 +188,22 @@ export async function POST(req) {
           fromEmail = emailMatch[1];
         }
       }
-      console.warn("Using custom domain. Ensure it's verified at https://resend.com/domains");
+      console.warn(
+        "Using custom domain. Ensure it's verified at https://resend.com/domains"
+      );
     } else {
       // Use Resend test domain (no verification required)
       fromEmail = "onboarding@resend.dev";
-      console.log("Using Resend test domain (onboarding@resend.dev) - no verification needed");
+      console.log(
+        "Using Resend test domain (onboarding@resend.dev) - no verification needed"
+      );
     }
-    
-    const toEmail = process.env.RESEND_TO_EMAIL || "ecovigyanfoundation@gmail.com";
-    
+
+    const toEmail =
+      process.env.RESEND_TO_EMAIL || "ecovigyanfoundation@gmail.com";
+
     console.log("Sending email from:", fromEmail, "to:", toEmail);
-    
+
     const { data, error } = await resend.emails.send({
       from: fromEmail,
       to: [toEmail],
@@ -128,19 +215,19 @@ export async function POST(req) {
     if (error) {
       console.error("Resend API error:", error);
       console.error("Error details:", JSON.stringify(error, null, 2));
-      
+
       // Provide more helpful error messages
       let errorMessage = "Failed to send email";
       if (error.message) {
         errorMessage = error.message;
-      } else if (typeof error === 'object') {
+      } else if (typeof error === "object") {
         errorMessage = JSON.stringify(error);
       }
-      
+
       return NextResponse.json(
-        { 
+        {
           error: errorMessage,
-          details: "Please check your Resend API key and domain configuration."
+          details: "Please check your Resend API key and domain configuration.",
         },
         { status: 500 }
       );
@@ -156,12 +243,13 @@ export async function POST(req) {
     console.error("Join us API error:", error);
     console.error("Error stack:", error.stack);
     return NextResponse.json(
-      { 
+      {
         error: "Internal server error",
-        details: error.message || "An unexpected error occurred. Please try again later."
+        details:
+          error.message ||
+          "An unexpected error occurred. Please try again later.",
       },
       { status: 500 }
     );
   }
 }
-
