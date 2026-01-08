@@ -224,7 +224,7 @@ export default function MapFilter({
                       </div>
                     )}
                     <span
-                      className={`text-[10px] font-medium text-center leading-tight ${
+                      className={`text-[8px] font-bold text-center leading-tight ${
                         isSelected
                           ? "text-emerald-700 font-bold"
                           : "text-emerald-900"
