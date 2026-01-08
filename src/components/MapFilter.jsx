@@ -133,10 +133,10 @@ export default function MapFilter({
       {filterMenuOpen && (
         <div 
           ref={filterDropdownRef}
-          className="absolute left-0 mt-2 mb-4 w-80 max-w-[min(340px,calc(100vw-2rem))] max-h-[calc(100vh-200px)] bg-white rounded-xl shadow-2xl border border-emerald-100 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200"
+          className="absolute left-0 mt-1 mb-4 w-80 max-w-[min(340px,calc(100vw-2rem))] max-h-[calc(100vh-200px)] bg-white rounded-xl shadow-2xl border border-emerald-100 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="p-2 border-b border-emerald-50 bg-emerald-50/30">
+          <div className="p-1 border-b border-emerald-50 bg-emerald-50/30">
             <h3 className="text-[10px] font-black text-emerald-950 uppercase tracking-wider">
               Filter Options
             </h3>
@@ -151,7 +151,7 @@ export default function MapFilter({
                 setSelectedCategory(e.target.value);
               }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full px-2 py-1 bg-white border border-emerald-200 rounded-md text-[10px] font-medium text-emerald-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              className="w-full px-2 py-1 bg-white border border-emerald-200 rounded-md text-[12px] font-medium text-emerald-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             >
               {filterCategories.map((cat) => (
                 <option key={cat.id} value={cat.id}>
@@ -185,8 +185,8 @@ export default function MapFilter({
           </div>
 
           {/* FILTER OPTIONS GRID */}
-          <div className="p-2 max-h-[280px] overflow-y-auto">
-            <div className="grid grid-cols-2 gap-2">
+          <div className="p-1 max-h-[280px] overflow-y-auto">
+            <div className="grid grid-cols-5 gap-2">
               {currentOptions.map((option) => {
                 const imagePath = getMushroomImage(option);
                 const displayName = getDisplayName(option);
@@ -195,7 +195,7 @@ export default function MapFilter({
                   <button
                     key={option}
                     type="button"
-                    className={`flex flex-col items-center gap-1.5 p-2 rounded-lg border transition-all group ${
+                    className={`flex flex-col items-center gap-1.5  rounded-lg border transition-all group ${
                       isSelected
                         ? "border-emerald-500 bg-emerald-50 shadow-md"
                         : "border-emerald-100 hover:border-emerald-300 hover:bg-emerald-50/50"
@@ -206,7 +206,7 @@ export default function MapFilter({
                     }}
                   >
                     {imagePath && (
-                      <div className="w-10 h-10 flex items-center justify-center relative">
+                      <div className="w-10 h-8 flex items-center justify-center relative">
                         <img
                           src={imagePath}
                           alt={displayName}
