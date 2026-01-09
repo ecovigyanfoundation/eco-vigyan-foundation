@@ -6,6 +6,8 @@ import toast from "react-hot-toast";
 import MushroomSelectField from "./MushroomSelectField";
 import LocationPickerModal from "./LocationPickerModal";
 import { extractExifData } from "@/lib/exifUtils";
+import { uploadToCloudinary } from "@/lib/uploadToCloudinary";
+
 import { geocodeCity } from "@/lib/geocoding";
 import {
   ECOLOGICAL_ROLES,
@@ -298,111 +300,85 @@ export default function MushroomSubmissionForm({
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    const location = getCurrentLocation();
-    if (!location) {
-      toast.error("Please provide a location");
-      return;
-    }
+  const location = getCurrentLocation();
+  if (!location) {
+    toast.error("Please provide a location");
+    return;
+  }
 
-    if (!imageFile) {
-      toast.error("Please upload at least one image");
-      return;
-    }
+  if (!imageFile) {
+    toast.error("Please upload an image");
+    return;
+  }
 
-    setIsSubmitting(true);
+  setIsSubmitting(true);
 
-    try {
-      const fd = new FormData();
-      fd.append("latitude", location.latitude);
-      fd.append("longitude", location.longitude);
-      fd.append("image1", imageFile);
+  try {
+    // 1️⃣ Upload image to Cloudinary
+    const upload = await uploadToCloudinary(imageFile);
 
-      // Add date/time if available (from EXIF or device)
-      if (exifDateTime) {
-        fd.append("photoDateTime", exifDateTime.toISOString());
-      }
+    // 2️⃣ Send coordinates + image URL as JSON
+    const res = await fetch("/api/mushrooms", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({
+        latitude: location.latitude,
+        longitude: location.longitude,
+        imageUrl: upload.secure_url,
+        publicId: upload.public_id,
 
-      // Optional fields - only append if filled
-      if (commonName) fd.append("commonName", commonName);
-      if (ecologicalRole) fd.append("ecologicalRole", ecologicalRole);
-      if (texture) fd.append("texture", texture);
-      if (underside) fd.append("underside", underside);
-      if (fruitingSurface) fd.append("fruitingSurface", fruitingSurface);
-      if (stemPresence) fd.append("stemPresence", stemPresence);
-      commonUses.forEach((use) => fd.append("commonUses", use));
+        // optional
+        photoDateTime: exifDateTime?.toISOString(),
+        commonName,
+        ecologicalRole,
+        texture,
+        underside,
+        fruitingSurface,
+        stemPresence,
+        commonUses,
+      }),
+    });
 
-      const res = await fetch("/api/mushrooms", {
-        method: "POST",
-        body: fd,
-        credentials: "include",
-      });
+    const data = await res.json();
 
-      let data;
-      try {
-        data = await res.json();
-      } catch (parseError) {
-        console.error("Failed to parse response:", parseError);
-        throw new Error(`Server error: ${res.status} ${res.statusText}`);
-      }
+if (!res.ok) {
+  throw new Error(data.error || data.message || "Submission failed");
+}
 
-      if (!res.ok) {
-        throw new Error(
-          data.error ||
-            data.message ||
-            `Submission failed: ${res.status} ${res.statusText}`
-        );
-      }
+toast.success(data.message || "Mushroom submitted successfully!");
 
-      toast.success(
-        "Mushroom submitted successfully! It will be reviewed by an admin."
-      );
 
-      // Reset form
-      setImageFile(null);
-      setImagePreview(null);
-      setCommonName("");
-      setEcologicalRole("");
-      setTexture("");
-      setUnderside("");
-      setFruitingSurface("");
-      setStemPresence("");
-      setCommonUses([]);
-      setExifDateTime(null);
-      setCityName("");
-      setManualLat("");
-      setManualLng("");
-      setHasExifGps(false);
-      setIsFromCamera(false);
-      setLocationInputMethod("map");
-      onLocationSelect?.(null);
+    // Reset form
+    setImageFile(null);
+    setImagePreview(null);
+    setCommonName("");
+    setEcologicalRole("");
+    setTexture("");
+    setUnderside("");
+    setFruitingSurface("");
+    setStemPresence("");
+    setCommonUses([]);
+    setExifDateTime(null);
+    setHasExifGps(false);
+    setIsFromCamera(false);
+    setLocationInputMethod("map");
+    onLocationSelect?.(null);
 
-      onSuccess?.();
-      onClose();
-    } catch (err) {
-      console.error("Submission error:", err);
-      const errorMessage =
-        err.message || "Failed to submit mushroom. Please try again.";
+    onSuccess?.();
+    onClose();
+  } catch (err) {
+    console.error("Submission error:", err);
+    toast.error(err.message || "Failed to submit mushroom");
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
-      if (
-        errorMessage.includes("Unauthorized") ||
-        errorMessage.includes("token")
-      ) {
-        toast.error("Please log in to submit mushrooms");
-      } else if (errorMessage.includes("image")) {
-        toast.error(
-          "Image error: Please ensure image is JPG, PNG, or WEBP and under 10MB"
-        );
-      } else if (errorMessage.includes("Location")) {
-        toast.error("Please provide a valid location");
-      } else {
-        toast.error(errorMessage);
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   const currentLocation = getCurrentLocation();
 

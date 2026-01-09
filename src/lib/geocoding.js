@@ -3,37 +3,21 @@
  * @param {string} cityName - The city name to geocode
  * @returns {Promise<{latitude: number, longitude: number} | null>}
  */
+
 export async function geocodeCity(cityName) {
   try {
     if (!cityName || cityName.trim().length === 0) {
       return null;
     }
 
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-        cityName.trim()
-      )}&limit=1`,
-      {
-        headers: {
-          "User-Agent": "EcoVigyan/1.0", // Required by Nominatim
-        },
-      }
+    const res = await fetch(
+      `/api/geocode?city=${encodeURIComponent(cityName.trim())}`
     );
 
-    if (!response.ok) {
-      throw new Error("Geocoding service unavailable");
-    }
+    if (!res.ok) return null;
 
-    const data = await response.json();
-
-    if (data && data.length > 0 && data[0].lat && data[0].lon) {
-      return {
-        latitude: parseFloat(data[0].lat),
-        longitude: parseFloat(data[0].lon),
-      };
-    }
-
-    return null;
+    const data = await res.json();
+    return data.result || null;
   } catch (error) {
     console.error("Geocoding error:", error);
     return null;
@@ -92,15 +76,15 @@ export async function getCityBoundary(cityName) {
       const aHasGeojson = a.geojson ? 1 : 0;
       const bHasGeojson = b.geojson ? 1 : 0;
       if (aHasGeojson !== bHasGeojson) return bHasGeojson - aHasGeojson;
-      
-      const aIsBoundary = (a.class === "boundary" || a.class === "place") ? 1 : 0;
-      const bIsBoundary = (b.class === "boundary" || b.class === "place") ? 1 : 0;
+
+      const aIsBoundary = a.class === "boundary" || a.class === "place" ? 1 : 0;
+      const bIsBoundary = b.class === "boundary" || b.class === "place" ? 1 : 0;
       if (aIsBoundary !== bIsBoundary) return bIsBoundary - aIsBoundary;
-      
+
       const aIsRelation = a.osm_type === "relation" ? 1 : 0;
       const bIsRelation = b.osm_type === "relation" ? 1 : 0;
       if (aIsRelation !== bIsRelation) return bIsRelation - aIsRelation;
-      
+
       return 0;
     });
 
@@ -109,9 +93,12 @@ export async function getCityBoundary(cityName) {
       if (result.geojson) {
         place = result;
         const geojson = result.geojson;
-        
+
         if (geojson.type === "Polygon") {
-          boundary = geojson.coordinates[0].map((coord) => [coord[0], coord[1]]);
+          boundary = geojson.coordinates[0].map((coord) => [
+            coord[0],
+            coord[1],
+          ]);
           break;
         } else if (geojson.type === "MultiPolygon") {
           // Use the largest polygon from MultiPolygon
@@ -130,7 +117,7 @@ export async function getCityBoundary(cityName) {
         }
       }
     }
-    
+
     // If still no boundary but we have a result, use the first result
     if (!place && searchData.length > 0) {
       place = searchData[0];
@@ -160,7 +147,9 @@ export async function getCityBoundary(cityName) {
               const detailedPlace = lookupData[0];
               if (detailedPlace.geojson) {
                 if (detailedPlace.geojson.type === "Polygon") {
-                  boundary = detailedPlace.geojson.coordinates[0].map((coord) => [coord[0], coord[1]]);
+                  boundary = detailedPlace.geojson.coordinates[0].map(
+                    (coord) => [coord[0], coord[1]]
+                  );
                 } else if (detailedPlace.geojson.type === "MultiPolygon") {
                   // Use the largest polygon from MultiPolygon
                   let largestPolygon = detailedPlace.geojson.coordinates[0][0];
@@ -172,7 +161,10 @@ export async function getCityBoundary(cityName) {
                       largestPolygon = polygon[0];
                     }
                   });
-                  boundary = largestPolygon.map((coord) => [coord[0], coord[1]]);
+                  boundary = largestPolygon.map((coord) => [
+                    coord[0],
+                    coord[1],
+                  ]);
                 }
               }
             }
@@ -215,19 +207,18 @@ export async function getCityBoundary(cityName) {
 export function generateCircleBoundary(centerLat, centerLng, radiusKm) {
   const points = 64; // Number of points to approximate circle
   const boundary = [];
-  
+
   for (let i = 0; i <= points; i++) {
     const angle = (i / points) * 2 * Math.PI;
     // Convert km to degrees (approximate: 1 degree ≈ 111 km)
     const latOffset = (radiusKm / 111) * Math.cos(angle);
-    const lngOffset = (radiusKm / (111 * Math.cos(centerLat * Math.PI / 180))) * Math.sin(angle);
-    
-    boundary.push([
-      centerLng + lngOffset,
-      centerLat + latOffset,
-    ]);
+    const lngOffset =
+      (radiusKm / (111 * Math.cos((centerLat * Math.PI) / 180))) *
+      Math.sin(angle);
+
+    boundary.push([centerLng + lngOffset, centerLat + latOffset]);
   }
-  
+
   return boundary;
 }
 
@@ -239,11 +230,16 @@ export function generateCircleBoundary(centerLat, centerLng, radiusKm) {
  * @param {number} heightKm - Height in kilometers
  * @returns {Array<Array<number>>} Array of [lng, lat] coordinates
  */
-export function generateRectangleBoundary(centerLat, centerLng, widthKm, heightKm) {
+export function generateRectangleBoundary(
+  centerLat,
+  centerLng,
+  widthKm,
+  heightKm
+) {
   // Convert km to degrees
   const latOffset = heightKm / 2 / 111;
-  const lngOffset = widthKm / 2 / (111 * Math.cos(centerLat * Math.PI / 180));
-  
+  const lngOffset = widthKm / 2 / (111 * Math.cos((centerLat * Math.PI) / 180));
+
   return [
     [centerLng - lngOffset, centerLat - latOffset], // Bottom-left
     [centerLng + lngOffset, centerLat - latOffset], // Bottom-right
@@ -299,13 +295,3 @@ export function calculateDistance(lat1, lng1, lat2, lng2) {
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
-
-
-
-
-
-
-
-
-
-
