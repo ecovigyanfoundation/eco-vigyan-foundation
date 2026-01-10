@@ -26,13 +26,13 @@ export default function Footer() {
         whileInView="visible"
         viewport={{ once: true, amount: 0.2 }}
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-3 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
           
           {/* Column 1: Brand & About */}
           <div className="space-y-4">
             <div>
               {/* Increased from text-xl to text-2xl */}
-              <h3 className="text-2xl font-black text-white tracking-tight uppercase">
+              <h3 className="text-xl md:text-2xl font-black text-white tracking-tight uppercase">
                 Eco Vigyan <span className="text-emerald-500">Foundation</span>
               </h3>
               <p className="text-xs font-bold tracking-widest text-emerald-400 mt-1 uppercase">

@@ -1451,7 +1451,7 @@ function MapPageContent() {
           
           {/* Trails Button */}
           <button
-            onClick={() => setShowTrailModal(true)}
+            onClick={handleTrailsClick}
             className={`px-4 py-3 rounded-2xl flex items-center gap-2 shadow-2xl transition-all active:scale-95 backdrop-blur-md border ${
               trailMode
                 ? "bg-blue-700 hover:bg-blue-800 border-blue-600 text-white"
@@ -1492,7 +1492,7 @@ function MapPageContent() {
           
           {/* Zones Button */}
           <button
-            onClick={() => setShowZoneModal(true)}
+            onClick={handleZonesClick}
             className="bg-emerald-600/90 hover:bg-emerald-700/90 text-white px-4 py-3 rounded-2xl flex items-center gap-2 shadow-2xl shadow-emerald-900/50 transition-all active:scale-95 backdrop-blur-md border border-emerald-500"
             aria-label="Zones"
             title="Zones"
