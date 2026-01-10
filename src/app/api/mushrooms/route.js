@@ -123,7 +123,7 @@ export async function POST(req) {
     await Mushroom.create(mushroomData);
 
     return NextResponse.json(
-      { message: "Mushroom submitted succesfully will be reviwed by an Admin" },
+      { message: "Mushroom submitted successfully will be reviewed by an Admin" },
       { status: 201 }
     );
   } catch (err) {
