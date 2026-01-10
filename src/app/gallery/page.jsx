@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";
@@ -26,6 +27,8 @@ const IMAGES_PER_PAGE = 9;
 
 export default function EcoArtGallery() {
   const { user, isWriterOrAdmin } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [currentPage, setCurrentPage] = useState(1);
   const [uploadedImages, setUploadedImages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -49,6 +52,23 @@ export default function EcoArtGallery() {
   const [deletingId, setDeletingId] = useState(null);
   const [editing, setEditing] = useState(false);
   const [viewingImage, setViewingImage] = useState(null);
+
+  // Sync viewing state with URL parameter (handles browser back/forward)
+  useEffect(() => {
+    const imageId = searchParams.get("image");
+    if (imageId && uploadedImages.length > 0) {
+      const image = uploadedImages.find((img) => img.id === imageId);
+      if (image) {
+        setViewingImage(image);
+      } else {
+        // Image not found, clear URL parameter
+        router.push("/gallery", { scroll: false });
+      }
+    } else if (!imageId && viewingImage) {
+      // URL has no parameter but we have a viewing image, clear it
+      setViewingImage(null);
+    }
+  }, [searchParams, uploadedImages]);
 
   // Fetch uploaded images
   useEffect(() => {
@@ -87,6 +107,18 @@ export default function EcoArtGallery() {
   const paginate = (pageNumber) => {
     setCurrentPage(pageNumber);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Handle viewing image with URL update
+  const handleViewImage = (image) => {
+    setViewingImage(image);
+    router.push(`/gallery?image=${image.id}`, { scroll: false });
+  };
+
+  // Handle closing image viewer
+  const handleCloseImage = () => {
+    setViewingImage(null);
+    router.push("/gallery", { scroll: false });
   };
 
   // Check if user can upload (writer or admin)
@@ -369,7 +401,7 @@ export default function EcoArtGallery() {
                     {/* Image Container */}
                     <div 
                       className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-stone-100 mb-4 cursor-pointer"
-                      onClick={() => setViewingImage(painting)}
+                      onClick={() => handleViewImage(painting)}
                     >
                       <img
                         src={painting.src}
@@ -734,7 +766,7 @@ export default function EcoArtGallery() {
         {viewingImage && (
           <div 
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
-            onClick={() => setViewingImage(null)}
+            onClick={handleCloseImage}
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
@@ -748,7 +780,7 @@ export default function EcoArtGallery() {
                 Artwork Details
               </h2>
               <button
-                onClick={() => setViewingImage(null)}
+                onClick={handleCloseImage}
                 className="p-2 hover:bg-stone-100 rounded-full transition"
               >
                 <X className="w-5 h-5 text-stone-600" />

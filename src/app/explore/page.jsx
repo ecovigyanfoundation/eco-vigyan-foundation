@@ -921,6 +921,24 @@ export default function MapPage() {
     initializeFilters(transformedMushrooms, "category");
   };
 
+  // Handle zones button click with authentication check
+  const handleZonesClick = () => {
+    if (!user) {
+      toast.error("Please login to explore");
+      return;
+    }
+    setShowZoneModal(true);
+  };
+
+  // Handle trails button click with authentication check
+  const handleTrailsClick = () => {
+    if (!user) {
+      toast.error("Please login to explore");
+      return;
+    }
+    setShowTrailModal(true);
+  };
+
   return (
     <div className="flex flex-col min-h-dvh w-full bg-gray-950 overflow-x-hidden text-white">
       {/* HEADER */}
@@ -932,8 +950,8 @@ export default function MapPage() {
         onFilterToggle={handleHeaderFilterToggle}
         onResetFilters={handleResetFilters}
         selectedFilters={headerFilters}
-        onZonesClick={() => setShowZoneModal(true)}
-        onTrailsClick={() => setShowTrailModal(true)}
+        onZonesClick={handleZonesClick}
+        onTrailsClick={handleTrailsClick}
         onSpeciesSearch={setSpeciesSearchTerm}
         onLocationSearch={handleZoneSelect}
       />
@@ -1298,60 +1316,6 @@ export default function MapPage() {
                   )}
                 </div>
 
-            {/* Map Controls - Bottom Right (Zones and Trails) - Desktop Only */}
-            <div className="hidden md:flex absolute bottom-6 right-6 z-20 flex-col gap-3 pointer-events-none">
-              {/* Trails Button */}
-              <button
-                onClick={() => setShowTrailModal(true)}
-                className={`px-4 py-3 rounded-2xl flex items-center gap-2 shadow-2xl transition-all active:scale-95 backdrop-blur-md border pointer-events-auto ${
-                  trailMode
-                    ? "bg-blue-700 hover:bg-blue-800 border-blue-600 text-white"
-                    : "bg-blue-600/90 hover:bg-blue-700/90 border-blue-500 text-white"
-                }`}
-                aria-label="Trails"
-                title="Trails"
-              >
-                <Navigation size={20} strokeWidth={3} />
-                <span className="font-bold text-sm whitespace-nowrap">Trails</span>
-              </button>
-              
-              {/* Save Trail Button (shown when in trail mode with mushrooms - admin only) */}
-              {trailMode && trailMushrooms.length > 0 && user?.role === "admin" && (
-                <button
-                  onClick={handleSaveTrail}
-                  className="px-4 py-3 rounded-2xl bg-green-600/90 hover:bg-green-700/90 text-white shadow-2xl transition-all active:scale-95 backdrop-blur-md border border-green-500 flex items-center gap-2 pointer-events-auto"
-                  aria-label="Save Trail"
-                  title="Save Trail"
-                >
-                  <Save size={20} strokeWidth={3} />
-                  <span className="font-bold text-sm whitespace-nowrap">Save Trail</span>
-                </button>
-              )}
-              
-              {/* End Trail Button (shown when in trail mode) */}
-              {trailMode && (
-                <button
-                  onClick={handleEndTrail}
-                  className="px-4 py-3 rounded-2xl bg-red-600/90 hover:bg-red-700/90 text-white shadow-2xl transition-all active:scale-95 backdrop-blur-md border border-red-500 flex items-center gap-2 pointer-events-auto"
-                  aria-label="End Trail"
-                  title="End Trail"
-                >
-                  <X size={20} strokeWidth={3} />
-                  <span className="font-bold text-sm whitespace-nowrap">End Trail</span>
-                </button>
-              )}
-              
-              {/* Zones Button */}
-              <button
-                onClick={() => setShowZoneModal(true)}
-                className="bg-emerald-600/90 hover:bg-emerald-700/90 text-white px-4 py-3 rounded-2xl flex items-center gap-2 shadow-2xl shadow-emerald-900/50 transition-all active:scale-95 backdrop-blur-md border border-emerald-500 pointer-events-auto"
-                aria-label="Zones"
-                title="Zones"
-              >
-                <Layers size={20} strokeWidth={3} />
-                <span className="font-bold text-sm whitespace-nowrap">Zones</span>
-              </button>
-            </div>
           </div>
         ) : null}
 
