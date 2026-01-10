@@ -217,16 +217,33 @@ export default function MushroomDetailModal({ isOpen, onClose, mushroom }) {
               )}
 
               {/* ECOLOGICAL ROLE */}
-              {mushroom.ecologicalRole && (
-                <div>
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">
-                    Ecological Role
-                  </label>
-                  <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold uppercase">
-                    {formatLabel(mushroom.ecologicalRole)}
-                  </span>
-                </div>
-              )}
+              {(() => {
+                // Handle ecologicalRole - could be array, string, or undefined
+                let rolesArray = [];
+                if (Array.isArray(mushroom.ecologicalRole)) {
+                  rolesArray = mushroom.ecologicalRole;
+                } else if (typeof mushroom.ecologicalRole === 'string') {
+                  rolesArray = [mushroom.ecologicalRole];
+                }
+                
+                return rolesArray.length > 0 ? (
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">
+                      Ecological Role
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {rolesArray.map((role, index) => (
+                        <span
+                          key={index}
+                          className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold uppercase"
+                        >
+                          {formatLabel(role)}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null;
+              })()}
 
               {/* TEXTURE */}
               {mushroom.texture && (
