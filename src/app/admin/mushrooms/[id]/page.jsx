@@ -90,10 +90,6 @@ export default function AdminMushroomReviewPage() {
   };
 
   const submit = async (action) => {
-    if (action === "reject" && !form.rejectionReason?.trim()) {
-      toast.error("Please provide a reason for rejection");
-      return;
-    }
     try {
       const res = await fetch(`/api/admin/mushrooms/${id}`, {
         method: "PATCH",
