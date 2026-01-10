@@ -11,6 +11,7 @@ export default function TrailModal({ isOpen, onClose, onLocationSelect, onLoadTr
   const [error, setError] = useState(null);
   const [savedTrails, setSavedTrails] = useState([]);
   const [trailToDelete, setTrailToDelete] = useState(null);
+  const [selectedTrailToLoad, setSelectedTrailToLoad] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const locationTimeoutRef = useRef(null);
   const gettingLocationRef = useRef(false);
@@ -39,6 +40,7 @@ export default function TrailModal({ isOpen, onClose, onLocationSelect, onLoadTr
       setError(null);
       setGettingLocation(false);
       setTrailToDelete(null);
+      setSelectedTrailToLoad(null);
     }
   }, [isOpen, loadTrails]);
 
@@ -100,6 +102,12 @@ export default function TrailModal({ isOpen, onClose, onLocationSelect, onLoadTr
         
         const { latitude, longitude } = position.coords;
         setGettingLocation(false);
+        
+        // If loading a trail, load it with the location
+        if (selectedTrailToLoad && onLoadTrail) {
+          onLoadTrail(selectedTrailToLoad);
+        }
+        
         // Pass current location - map will zoom to this location
         onLocationSelect({
           type: "trail",
@@ -158,14 +166,9 @@ export default function TrailModal({ isOpen, onClose, onLocationSelect, onLoadTr
         maximumAge: 0,
       }
     );
-  }, [onLocationSelect, onClose]);
+  }, [onLocationSelect, onClose, selectedTrailToLoad, onLoadTrail]);
 
-  // Automatically request location when creating new trail
-  useEffect(() => {
-    if (isOpen && mode === "create" && !gettingLocation && !error) {
-      handleGetCurrentLocation();
-    }
-  }, [isOpen, mode, handleGetCurrentLocation, gettingLocation, error]);
+  // Location request is now manual - removed automatic request to make location optional
 
   const handleRetry = useCallback(() => {
     setError(null);
@@ -236,7 +239,43 @@ export default function TrailModal({ isOpen, onClose, onLocationSelect, onLoadTr
               </div>
             ) : mode === "load" ? (
               <div className="space-y-3">
-                {savedTrails.length === 0 ? (
+                {/* Show location options if a trail is selected */}
+                {selectedTrailToLoad ? (
+                  <div className="space-y-3">
+                    <p className="text-sm text-blue-900 font-semibold text-center mb-2">
+                      Loading: {selectedTrailToLoad.name}
+                    </p>
+                    <p className="text-xs text-blue-600/70 text-center mb-4">
+                      Would you like to use your current location?
+                    </p>
+                    <button
+                      onClick={handleGetCurrentLocation}
+                      className="w-full px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-3"
+                    >
+                      <Navigation size={20} />
+                      <span>Use Current Location</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        // Load trail without updating location
+                        if (onLoadTrail) {
+                          onLoadTrail(selectedTrailToLoad);
+                          onClose();
+                        }
+                      }}
+                      className="w-full px-6 py-4 bg-blue-100 hover:bg-blue-200 text-blue-900 font-bold rounded-xl transition-colors flex items-center justify-center gap-3"
+                    >
+                      <Plus size={20} />
+                      <span>Skip Location</span>
+                    </button>
+                    <button
+                      onClick={() => setSelectedTrailToLoad(null)}
+                      className="w-full px-4 py-2.5 text-sm font-bold text-blue-700 hover:bg-blue-50 rounded-xl transition-colors"
+                    >
+                      ← Back to Trail List
+                    </button>
+                  </div>
+                ) : savedTrails.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-8">
                     <FolderOpen size={48} className="text-blue-300 mb-4" />
                     <p className="text-sm font-bold text-blue-900 mb-2">
@@ -255,10 +294,7 @@ export default function TrailModal({ isOpen, onClose, onLocationSelect, onLoadTr
                       >
                         <button
                           onClick={() => {
-                            if (onLoadTrail) {
-                              onLoadTrail(trail);
-                              onClose();
-                            }
+                            setSelectedTrailToLoad(trail);
                           }}
                           className="flex-1 text-left hover:text-blue-700 transition-colors"
                         >
@@ -284,6 +320,35 @@ export default function TrailModal({ isOpen, onClose, onLocationSelect, onLoadTr
                   </div>
                 )}
               </div>
+            ) : mode === "create" && !gettingLocation && !error ? (
+              <div className="space-y-3">
+                <p className="text-sm text-blue-900 font-semibold text-center mb-4">
+                  How would you like to create your trail?
+                </p>
+                <button
+                  onClick={handleGetCurrentLocation}
+                  className="w-full px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-3"
+                >
+                  <Navigation size={20} />
+                  <span>Use Current Location</span>
+                </button>
+                <button
+                  onClick={() => {
+                    // Start trail without location
+                    onLocationSelect({
+                      type: "trail",
+                      currentLocation: null,
+                      center: null,
+                      boundary: null,
+                    });
+                    onClose();
+                  }}
+                  className="w-full px-6 py-4 bg-blue-100 hover:bg-blue-200 text-blue-900 font-bold rounded-xl transition-colors flex items-center justify-center gap-3"
+                >
+                  <Plus size={20} />
+                  <span>Skip Location</span>
+                </button>
+              </div>
             ) : gettingLocation ? (
               <div className="flex flex-col items-center justify-center py-8">
                 <Loader2 size={48} className="animate-spin text-blue-600 mb-4" />
@@ -301,18 +366,42 @@ export default function TrailModal({ isOpen, onClose, onLocationSelect, onLoadTr
                     <Navigation size={32} className="text-blue-600" />
                   </div>
                   <p className="text-sm font-bold text-blue-900 mb-2 text-center">
-                    Location Required
+                    Location Error
                   </p>
                   <p className="text-xs text-blue-700/80 text-center mb-4 leading-relaxed">
                     {error}
                   </p>
-                  <button
-                    onClick={handleRetry}
-                    className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors flex items-center gap-2"
-                  >
-                    <Navigation size={18} />
-                    <span>Try Again</span>
-                  </button>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleRetry}
+                      className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors flex items-center gap-2"
+                    >
+                      <Navigation size={18} />
+                      <span>Try Again</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        // Skip location after error
+                        setError(null);
+                        
+                        // Load trail if one was selected
+                        if (selectedTrailToLoad && onLoadTrail) {
+                          onLoadTrail(selectedTrailToLoad);
+                        }
+                        
+                        onLocationSelect({
+                          type: "trail",
+                          currentLocation: null,
+                          center: null,
+                          boundary: null,
+                        });
+                        onClose();
+                      }}
+                      className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition-colors"
+                    >
+                      Skip Location
+                    </button>
+                  </div>
                 </div>
               </div>
             ) : (
