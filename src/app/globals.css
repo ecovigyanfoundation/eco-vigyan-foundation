@@ -54,3 +54,13 @@
   background: #10b981;
   border-radius: 10px;
 }
+
+/* Shimmer animation for skeleton loaders */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}

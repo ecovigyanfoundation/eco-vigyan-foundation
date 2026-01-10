@@ -321,8 +321,33 @@ export default function EcoArtGallery() {
       {/* --- Gallery Grid --- */}
       <section className="max-w-7xl mx-auto px-4 -mt-10 relative z-20">
         {loading ? (
-          <div className="text-center py-20">
-            <p className="text-stone-500">Loading gallery...</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {/* Generate 9 skeleton cards */}
+            {Array.from({ length: 9 }).map((_, index) => (
+              <div
+                key={index}
+                className="bg-white p-4 rounded-[2rem] shadow-xl"
+              >
+                {/* Image Skeleton with shimmer */}
+                <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-stone-200 mb-4">
+                  <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent" />
+                </div>
+
+                {/* Name Skeleton */}
+                <div className="px-2 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded-full bg-stone-200 animate-pulse" />
+                    <div className="h-4 bg-stone-200 rounded flex-grow max-w-[60%] animate-pulse" />
+                  </div>
+                  
+                  {/* School Skeleton */}
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded-full bg-stone-200 animate-pulse" />
+                    <div className="h-3 bg-stone-200 rounded flex-grow max-w-[50%] animate-pulse" />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
