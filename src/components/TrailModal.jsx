@@ -1,15 +1,17 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { X, Loader2, Navigation, FolderOpen, Plus } from "lucide-react";
+import { X, Loader2, Navigation, FolderOpen, Plus, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
-import { getSavedTrails } from "@/lib/trailStorage";
+import { getSavedTrails, deleteTrail } from "@/lib/trailStorage";
 
 export default function TrailModal({ isOpen, onClose, onLocationSelect, onLoadTrail }) {
   const [mode, setMode] = useState("select"); // "select", "create", "load"
   const [gettingLocation, setGettingLocation] = useState(false);
   const [error, setError] = useState(null);
   const [savedTrails, setSavedTrails] = useState([]);
+  const [trailToDelete, setTrailToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   const locationTimeoutRef = useRef(null);
   const gettingLocationRef = useRef(false);
   
@@ -18,24 +20,47 @@ export default function TrailModal({ isOpen, onClose, onLocationSelect, onLoadTr
     gettingLocationRef.current = gettingLocation;
   }, [gettingLocation]);
 
+  // Load saved trails function
+  const loadTrails = useCallback(async () => {
+    try {
+      const trails = await getSavedTrails();
+      setSavedTrails(trails);
+    } catch (error) {
+      console.error('Error loading trails:', error);
+      setSavedTrails([]);
+    }
+  }, []);
+
   // Load saved trails when modal opens
   useEffect(() => {
     if (isOpen) {
-      const loadTrails = async () => {
-        try {
-          const trails = await getSavedTrails();
-          setSavedTrails(trails);
-        } catch (error) {
-          console.error('Error loading trails:', error);
-          setSavedTrails([]);
-        }
-      };
       loadTrails();
       setMode("select");
       setError(null);
       setGettingLocation(false);
+      setTrailToDelete(null);
     }
-  }, [isOpen]);
+  }, [isOpen, loadTrails]);
+
+  // Delete trail handler
+  const handleDeleteTrail = async (trailId) => {
+    setDeleting(true);
+    try {
+      const success = await deleteTrail(trailId);
+      if (success) {
+        toast.success('Trail deleted successfully');
+        await loadTrails(); // Refresh the list
+        setTrailToDelete(null);
+      } else {
+        toast.error('Failed to delete trail');
+      }
+    } catch (error) {
+      console.error('Error deleting trail:', error);
+      toast.error('Failed to delete trail');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const handleGetCurrentLocation = useCallback(() => {
     if (!navigator.geolocation) {
@@ -224,23 +249,37 @@ export default function TrailModal({ isOpen, onClose, onLocationSelect, onLoadTr
                 ) : (
                   <div className="space-y-2 max-h-96 overflow-y-auto">
                     {savedTrails.map((trail) => (
-                      <button
+                      <div
                         key={trail.id}
-                        onClick={() => {
-                          if (onLoadTrail) {
-                            onLoadTrail(trail);
-                            onClose();
-                          }
-                        }}
-                        className="w-full px-4 py-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-colors text-left"
+                        className="w-full px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl transition-colors flex items-center justify-between gap-3"
                       >
-                        <p className="text-sm font-bold text-blue-900 mb-1">
-                          {trail.name}
-                        </p>
-                        <p className="text-xs text-blue-600/70">
-                          {trail.mushrooms?.length || 0} mushrooms • {new Date(trail.createdAt).toLocaleDateString()}
-                        </p>
-                      </button>
+                        <button
+                          onClick={() => {
+                            if (onLoadTrail) {
+                              onLoadTrail(trail);
+                              onClose();
+                            }
+                          }}
+                          className="flex-1 text-left hover:text-blue-700 transition-colors"
+                        >
+                          <p className="text-sm font-bold text-blue-900 mb-1">
+                            {trail.name}
+                          </p>
+                          <p className="text-xs text-blue-600/70">
+                            {trail.mushrooms?.length || 0} mushrooms • {new Date(trail.createdAt).toLocaleDateString()}
+                          </p>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setTrailToDelete(trail);
+                          }}
+                          className="p-2 hover:bg-red-100 rounded-lg text-red-600 hover:text-red-700 transition-colors flex-shrink-0"
+                          title="Delete trail"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
                     ))}
                   </div>
                 )}
@@ -305,6 +344,46 @@ export default function TrailModal({ isOpen, onClose, onLocationSelect, onLoadTr
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      {trailToDelete && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm rounded-2xl">
+          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full">
+            <h3 className="text-lg font-black text-gray-900 mb-2">
+              Delete Trail?
+            </h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Are you sure you want to delete "{trailToDelete.name}"? This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setTrailToDelete(null)}
+                disabled={deleting}
+                className="flex-1 px-4 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDeleteTrail(trailToDelete.id)}
+                disabled={deleting}
+                className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {deleting ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={16} />
+                    <span>Delete</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
