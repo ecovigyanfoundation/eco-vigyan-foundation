@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, Suspense } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, Menu, X, Home, Info, Users, FileText, Image, Calendar, FileCheck, Mail, User, Settings, Navigation, Heart, Layers, MapPin, CheckCircle, Save, Trash2 } from "lucide-react";
@@ -37,7 +37,7 @@ const Map = dynamic(() => import("@/components/Map"), {
   }
 });
 
-export default function MapPage() {
+function MapPageContent() {
   const router = useRouter();
   const { user } = useAuth();
   const [data, setData] = useState([]);
@@ -57,7 +57,55 @@ export default function MapPage() {
   const [detailMushroom, setDetailMushroom] = useState(null);
   const [view, setViewState] = useState("map");
   const [showMobileSearch, setShowMobileSearch] = useState(false);
+  const searchParams = useSearchParams();
   const [mapKey, setMapKey] = useState(0);
+
+  // Sync mushroom detail state with URL parameter (handles browser back/forward)
+  useEffect(() => {
+    const mushroomId = searchParams.get("mushroom");
+    
+    if (mushroomId) {
+      // If we have data loaded, find the mushroom
+      if (allData.length > 0) {
+        const foundMushroom = allData.find(m => (m._id || m.id) === mushroomId);
+        if (foundMushroom) {
+          setDetailMushroom(foundMushroom);
+          setShowDetailModal(true);
+        }
+      }
+    } else {
+      // No mushroom param, close modal if open
+      if (showDetailModal) {
+        setShowDetailModal(false);
+        setDetailMushroom(null);
+      }
+    }
+  }, [searchParams, allData]);
+
+  // Handle opening mushroom detail with URL update
+  const handleOpenMushroomDetail = (mushroom) => {
+    const mushroomId = mushroom._id || mushroom.id;
+    if (mushroomId) {
+      setDetailMushroom(mushroom);
+      setShowDetailModal(true);
+      
+      // Update URL preserving other params
+      const params = new URLSearchParams(window.location.search);
+      params.set("mushroom", mushroomId);
+      router.push(`/explore?${params.toString()}`, { scroll: false });
+    }
+  };
+
+  // Handle closing mushroom detail with URL update
+  const handleCloseMushroomDetail = () => {
+    setShowDetailModal(false);
+    setDetailMushroom(null);
+    
+    // Update URL removing mushroom param
+    const params = new URLSearchParams(window.location.search);
+    params.delete("mushroom");
+    router.push(`/explore?${params.toString()}`, { scroll: false });
+  };
 
   // Custom setView that increments mapKey when switching to map view
   const setView = useCallback((newView) => {
@@ -1151,8 +1199,7 @@ export default function MapPage() {
                     if (trailMode) {
                       handleTrailMushroomAdd(mushroom);
                     } else {
-                      setDetailMushroom(mushroom);
-                      setShowDetailModal(true);
+                      handleOpenMushroomDetail(mushroom);
                     }
                   }}
                 />
@@ -1330,10 +1377,7 @@ export default function MapPage() {
         {view === "grid" && (
           <MushroomGrid
             data={data}
-            onMushroomClick={(mushroom) => {
-              setDetailMushroom(mushroom);
-              setShowDetailModal(true);
-            }}
+            onMushroomClick={handleOpenMushroomDetail}
           />
         )}
 
@@ -1358,10 +1402,7 @@ export default function MapPage() {
 
       <MushroomDetailModal
         isOpen={showDetailModal}
-        onClose={() => {
-          setShowDetailModal(false);
-          setDetailMushroom(null);
-        }}
+        onClose={handleCloseMushroomDetail}
         mushroom={detailMushroom}
       />
 
@@ -1462,5 +1503,20 @@ export default function MapPage() {
         </div>
       )}
     </div>
+  );
+
+}
+
+export default function MapPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen w-full items-center justify-center bg-gray-950 text-white">
+        <div className="text-center">
+          <div className="text-xl font-bold mb-2">Loading explorer...</div>
+        </div>
+      </div>
+    }>
+      <MapPageContent />
+    </Suspense>
   );
 }
