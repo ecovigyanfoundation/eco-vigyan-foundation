@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
@@ -25,7 +25,7 @@ const IMAGES_PER_PAGE = 9;
 
 // Generate array of static image objects
 
-export default function EcoArtGallery() {
+function EcoArtGalleryContent() {
   const { user, isWriterOrAdmin } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -902,5 +902,13 @@ export default function EcoArtGallery() {
         </div>
       )}
     </main>
+  );
+}
+
+export default function EcoArtGallery() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-stone-50 flex items-center justify-center">Loading...</div>}>
+      <EcoArtGalleryContent />
+    </Suspense>
   );
 }

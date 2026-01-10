@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -44,7 +44,7 @@ const ProgramCard = ({ image, title, delay, onClick }) => {
   );
 };
 
-const SustainabilityPrograms = () => {
+const SustainabilityProgramsContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [selectedProgram, setSelectedProgram] = useState(null);
@@ -181,4 +181,10 @@ const SustainabilityPrograms = () => {
   );
 };
 
-export default SustainabilityPrograms;
+export default function SustainabilityPrograms() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-stone-50 flex items-center justify-center">Loading...</div>}>
+      <SustainabilityProgramsContent />
+    </Suspense>
+  );
+}

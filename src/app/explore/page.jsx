@@ -252,9 +252,12 @@ export default function MapPage() {
 
     // Apply header filters
     if (headerFilters.ecologicalRole.length > 0) {
-      filtered = filtered.filter((item) =>
-        headerFilters.ecologicalRole.includes(item.ecologicalRole)
-      );
+      filtered = filtered.filter((item) => {
+        const itemRoles = Array.isArray(item.ecologicalRole) 
+          ? item.ecologicalRole 
+          : [item.ecologicalRole].filter(Boolean);
+        return headerFilters.ecologicalRole.some((role) => itemRoles.includes(role));
+      });
     }
     if (headerFilters.texture.length > 0) {
       filtered = filtered.filter((item) =>
