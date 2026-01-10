@@ -28,7 +28,7 @@ export default function AdminMushroomReviewPage() {
     commonName: "",
     scientificName: "",
     description: "",
-    ecologicalRole: "",
+    ecologicalRole: [],
     texture: "",
     underside: "",
     fruitingSurface: "",
@@ -52,7 +52,7 @@ export default function AdminMushroomReviewPage() {
           commonName: m.commonName ?? "",
           scientificName: m.scientificName ?? "",
           description: m.description ?? "",
-          ecologicalRole: m.ecologicalRole ?? "",
+          ecologicalRole: Array.isArray(m.ecologicalRole) ? m.ecologicalRole : (m.ecologicalRole ? [m.ecologicalRole] : []),
           texture: m.texture ?? "",
           underside: m.underside ?? "",
           fruitingSurface: m.fruitingSurface ?? "",
@@ -77,6 +77,15 @@ export default function AdminMushroomReviewPage() {
       commonUses: prev.commonUses.includes(use)
         ? prev.commonUses.filter(u => u !== use)
         : [...prev.commonUses, use],
+    }));
+  };
+
+  const toggleRole = (role) => {
+    setForm(prev => ({
+      ...prev,
+      ecologicalRole: prev.ecologicalRole.includes(role)
+        ? prev.ecologicalRole.filter(r => r !== role)
+        : [...prev.ecologicalRole, role],
     }));
   };
 
@@ -249,7 +258,27 @@ export default function AdminMushroomReviewPage() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Select label="Ecological Role" icon={<Sprout className="w-3 h-3" />} value={form.ecologicalRole} set={(v)=>setForm({...form, ecologicalRole:v})} options={ECOLOGICAL_ROLES} />
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-400 uppercase flex items-center gap-1">
+                      <Sprout className="w-3 h-3" /> Ecological Role
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {ECOLOGICAL_ROLES.map((role) => (
+                        <button
+                          key={role}
+                          type="button"
+                          onClick={() => toggleRole(role)}
+                          className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all border-2 ${
+                            form.ecologicalRole.includes(role) 
+                              ? "bg-green-50 border-green-600 text-green-700" 
+                              : "bg-white border-gray-100 text-gray-500 hover:border-gray-300"
+                          }`}
+                        >
+                          {role.replace(/-/g, " ")}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   <Select label="Texture" icon={<Info className="w-3 h-3" />} value={form.texture} set={(v)=>setForm({...form, texture:v})} options={TEXTURES} />
                   <Select label="Underside" icon={<Map className="w-3 h-3" />} value={form.underside} set={(v)=>setForm({...form, underside:v})} options={UNDERSIDES} />
                   <Select label="Fruiting Surface" icon={<Map className="w-3 h-3" />} value={form.fruitingSurface} set={(v)=>setForm({...form, fruitingSurface:v})} options={FRUITING_SURFACES} />

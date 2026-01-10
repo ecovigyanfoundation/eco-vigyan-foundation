@@ -5,9 +5,7 @@ import { connectDB } from "@/lib/mongodb";
 import Mushroom from "@/models/Mushroom";
 import User from "@/models/User";
 
-/* =========================
-   GET – public mushrooms
-========================= */
+
 export async function GET(req) {
   try {
     await connectDB();
@@ -32,9 +30,7 @@ export async function GET(req) {
   }
 }
 
-/* =========================
-   POST – submit mushroom
-========================= */
+
 export async function POST(req) {
   try {
     await connectDB();
@@ -65,6 +61,7 @@ export async function POST(req) {
       publicId,
       photoDateTime,
       commonName,
+      scientificName,
       ecologicalRole,
       texture,
       underside,
@@ -108,7 +105,9 @@ export async function POST(req) {
 
 
     if (commonName) mushroomData.commonName = commonName;
-    if (ecologicalRole) mushroomData.ecologicalRole = ecologicalRole;
+    if (scientificName) mushroomData.scientificName = scientificName;
+    if (Array.isArray(ecologicalRole) && ecologicalRole.length)
+      mushroomData.ecologicalRole = ecologicalRole;
     if (texture) mushroomData.texture = texture;
     if (underside) mushroomData.underside = underside;
     if (fruitingSurface) mushroomData.fruitingSurface = fruitingSurface;
@@ -124,13 +123,17 @@ export async function POST(req) {
     await Mushroom.create(mushroomData);
 
     return NextResponse.json(
-      { message: "Mushroom submitted for review" },
+      { message: "Mushroom submitted succesfully will be reviwed by an Admin" },
       { status: 201 }
     );
   } catch (err) {
     console.error("POST mushrooms error:", err);
     return NextResponse.json(
-      { error: "Failed to submit mushroom" },
+      { 
+        error: "Failed to submit mushroom",
+        message: err.message,
+        details: process.env.NODE_ENV === 'development' ? err.toString() : undefined
+      },
       { status: 500 }
     );
   }

@@ -36,8 +36,9 @@ const MushroomSchema = new mongoose.Schema(
     /* ================= ADMIN CLASSIFICATION ================= */
 
     ecologicalRole: {
-      type: String,
+      type: [String],
       enum: ["decomposer", "symbiont", "parasite"],
+      default: [],
     },
 
     texture: {
@@ -129,5 +130,9 @@ const MushroomSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-export default mongoose.models.Mushroom ||
-  mongoose.model("Mushroom", MushroomSchema);
+// Delete cached model to force reload of updated schema
+if (mongoose.models.Mushroom) {
+  delete mongoose.models.Mushroom;
+}
+
+export default mongoose.model("Mushroom", MushroomSchema);

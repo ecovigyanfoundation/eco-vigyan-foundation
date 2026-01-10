@@ -40,7 +40,8 @@ export default function MushroomSubmissionForm({
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [isFromCamera, setIsFromCamera] = useState(false);
   const [commonName, setCommonName] = useState("");
-  const [ecologicalRole, setEcologicalRole] = useState("");
+  const [scientificName, setScientificName] = useState("");
+  const [ecologicalRole, setEcologicalRole] = useState([]);
   const [texture, setTexture] = useState("");
   const [underside, setUnderside] = useState("");
   const [fruitingSurface, setFruitingSurface] = useState("");
@@ -335,6 +336,7 @@ export default function MushroomSubmissionForm({
         // optional
         photoDateTime: exifDateTime?.toISOString(),
         commonName,
+        scientificName,
         ecologicalRole,
         texture,
         underside,
@@ -347,7 +349,8 @@ export default function MushroomSubmissionForm({
     const data = await res.json();
 
 if (!res.ok) {
-  throw new Error(data.error || data.message || "Submission failed");
+  console.error("Server error response:", data);
+  throw new Error(data.message || data.error || "Submission failed");
 }
 
 toast.success(data.message || "Mushroom submitted successfully!");
@@ -357,7 +360,8 @@ toast.success(data.message || "Mushroom submitted successfully!");
     setImageFile(null);
     setImagePreview(null);
     setCommonName("");
-    setEcologicalRole("");
+    setScientificName("");
+    setEcologicalRole([]);
     setTexture("");
     setUnderside("");
     setFruitingSurface("");
@@ -551,6 +555,14 @@ toast.success(data.message || "Mushroom submitted successfully!");
             className="w-full bg-stone-100 border border-stone-200 rounded-2xl px-4 sm:px-5 py-3 sm:py-4 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white outline-none transition-all font-medium text-stone-800 placeholder:text-stone-400 text-sm sm:text-base"
           />
 
+          {/* SCIENTIFIC NAME - OPTIONAL */}
+          <input
+            value={scientificName}
+            onChange={(e) => setScientificName(e.target.value)}
+            placeholder="Scientific name (optional)"
+            className="w-full bg-stone-100 border border-stone-200 rounded-2xl px-4 sm:px-5 py-3 sm:py-4 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white outline-none transition-all font-medium text-stone-800 placeholder:text-stone-400 text-sm sm:text-base"
+          />
+
           {/* LOCATION INPUT - REQUIRED */}
           <div>
             <label className="block text-xs font-bold text-stone-700 mb-2 uppercase tracking-wider">
@@ -712,12 +724,39 @@ toast.success(data.message || "Mushroom submitted successfully!");
             </p>
 
             <div className="space-y-4">
-              <MushroomSelectField
-                label="Ecological Role"
-                value={ecologicalRole}
-                onChange={setEcologicalRole}
-                options={ECOLOGICAL_ROLES}
-              />
+              {/* ECOLOGICAL ROLE - MULTI-SELECT */}
+              <div>
+                <label className="block text-xs font-bold text-stone-700 mb-2 uppercase tracking-wider">
+                  Ecological Role
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {ECOLOGICAL_ROLES.map((role) => (
+                    <button
+                      key={role}
+                      type="button"
+                      onClick={() => {
+                        setEcologicalRole((prev) =>
+                          prev.includes(role)
+                            ? prev.filter((r) => r !== role)
+                            : [...prev, role]
+                        );
+                      }}
+                      className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all ${
+                        ecologicalRole.includes(role)
+                          ? "bg-emerald-600 text-white"
+                          : "bg-stone-100 text-stone-600 hover:bg-stone-200"
+                      }`}
+                    >
+                      {role
+                        .split("-")
+                        .map(
+                          (word) => word.charAt(0).toUpperCase() + word.slice(1)
+                        )
+                        .join(" ")}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
               <MushroomSelectField
                 label="Texture"
