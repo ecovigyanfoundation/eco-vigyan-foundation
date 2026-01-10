@@ -221,6 +221,11 @@ export default function MapPage() {
       stemPresence: [],
       commonUses: [],
     });
+    // Also clear species search and zone selection
+    setSpeciesSearchTerm("");
+    setSelectedZone(null);
+    // Force map to reset zoom by incrementing mapKey
+    setMapKey(prev => prev + 1);
   };
 
   // Filter data based on header filters, zone, and species search
