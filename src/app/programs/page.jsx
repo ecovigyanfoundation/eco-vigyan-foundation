@@ -3,9 +3,7 @@
 import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Sprout,
-} from "lucide-react";
+import { Sprout } from "lucide-react";
 import GuidedMushroomWalk from "@/components/GuidedMushroomWalk";
 import GrowYourOwnMushrooms from "@/components/GrowYourOwnMushrooms";
 import DemystifyLocalFungi from "@/components/DemystifyLocalFungi";
@@ -21,24 +19,55 @@ const ProgramCard = ({ image, title, delay, onClick }) => {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay }}
+      whileHover={{ y: -8 }} // Lift effect
+      transition={{ duration: 0.2, delay }}
       viewport={{ once: true }}
       onClick={onClick}
-      className="flex flex-col group cursor-pointer"
+      className="group cursor-pointer flex flex-col h-full"
     >
-      <div className="overflow-hidden rounded-3xl aspect-[4/3] shadow-lg relative">
+      {/* Image Container */}
+      <div className="relative overflow-hidden rounded-2xl aspect-[4/3] shadow-sm">
         <img
           src={image}
           alt={title}
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+          className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
         />
-        <div className="absolute inset-0 bg-emerald-900/10 group-hover:bg-transparent transition-colors duration-300" />
+
+        {/* Subtle Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-emerald-900/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+        {/* Hover Badge */}
+        <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
+          <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">
+            View Details
+          </span>
+        </div>
       </div>
 
-      <div className="bg-white border border-emerald-100 py-5 px-4 text-center min-h-[80px] flex items-center justify-center mt-4 rounded-2xl shadow-sm group-hover:shadow-md group-hover:border-emerald-500 transition-all duration-300">
-        <h3 className="text-emerald-900 font-black text-sm md:text-base uppercase tracking-tight leading-tight group-hover:text-emerald-600">
-          {title}
-        </h3>
+      {/* Text Content */}
+      <div className="mt-4 flex flex-col flex-grow px-1">
+        <div className="flex items-start justify-between gap-4">
+          <h3 className="text-lg md:text-xl font-bold text-slate-800 leading-tight group-hover:text-emerald-700 transition-colors duration-300">
+            {title}
+          </h3>
+          <div className="mt-1 flex-shrink-0 bg-emerald-50 p-2 rounded-full group-hover:bg-emerald-600 group-hover:text-white transition-all duration-300">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M5 12h14m-7-7 7 7-7 7" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Decorative Line */}
+        <div className="mt-3 w-8 h-[2px] bg-emerald-200 group-hover:w-full transition-all duration-500 ease-in-out" />
       </div>
     </motion.div>
   );
@@ -72,37 +101,32 @@ const SustainabilityProgramsContent = () => {
     {
       id: "mushroom-walk",
       title: "Guided Mushroom Walk",
-      image: "/gallery/img7.jpeg",
+      image: "/programs/gmw.png",
     },
     {
       id: "grow-mushrooms",
       title: "Grow Your Own Mushrooms",
-      image:
-        "https://images.unsplash.com/photo-1591261730799-ee4e6c2d16d7?auto=format&fit=crop&w=800&q=80",
+      image: "/programs/cyom.png",
     },
     {
       id: "demystify-fungi",
       title: "Demystify Your Local Fungi",
-      image:
-        "https://images.unsplash.com/photo-1473081556163-2a17de81fc97?auto=format&fit=crop&w=800&q=80",
+      image: "/programs/dlf.png",
     },
     {
       id: "wipro-earthian",
       title: "Wipro Earthian Program",
-      image:
-        "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=800&q=80",
+      image: "/programs/wep.png",
     },
     {
       id: "chemical-free",
       title: "Chemical Free Living Series",
-      image:
-        "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=800&q=80",
+      image: "/programs/cfl.png",
     },
     {
       id: "waste-management",
       title: "Mastering Solid Waste Management",
-      image:
-        "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=800&q=80",
+      image: "/programs/swm.png",
     },
   ];
 
@@ -183,7 +207,13 @@ const SustainabilityProgramsContent = () => {
 
 export default function SustainabilityPrograms() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-stone-50 flex items-center justify-center">Loading...</div>}>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-stone-50 flex items-center justify-center">
+          Loading...
+        </div>
+      }
+    >
       <SustainabilityProgramsContent />
     </Suspense>
   );
