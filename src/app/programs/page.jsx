@@ -211,105 +211,104 @@ const SustainabilityProgramsContent = () => {
         </AnimatePresence>
 
         {/* Content Logic */}
-        <AnimatePresence mode="wait">
-          {selectedProgram ? (
-            /* ... existing conditional components (GuidedMushroomWalk, etc.) ... */
-            // Note: Ensure your existing ternary logic handles the 'back' button correctly
-            <div key="detail-view">
-              {selectedProgram === "mushroom-walk" && (
-                <GuidedMushroomWalk onBack={handleBackToPrograms} />
-              )}
-              {/* ... other program components ... */}
-            </div>
-          ) : (
-            <motion.div
-              key="grid-and-table"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              {/* FEATURED PROGRAMS GRID */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 mb-24">
-                {programs.map((program, index) => (
-                  <ProgramCard
-                    key={index}
-                    image={program.image}
-                    title={program.title}
-                    delay={index * 0.1}
-                    onClick={() => handleProgramSelect(program.id)}
-                  />
-                ))}
+        {/* Content Logic */}
+<AnimatePresence mode="wait">
+  {selectedProgram === "mushroom-walk" ? (
+    <GuidedMushroomWalk onBack={handleBackToPrograms} />
+  ) : selectedProgram === "grow-mushrooms" ? (
+    <GrowYourOwnMushrooms onBack={handleBackToPrograms} />
+  ) : selectedProgram === "demystify-fungi" ? (
+    <DemystifyLocalFungi onBack={handleBackToPrograms} />
+  ) : selectedProgram === "wipro-earthian" ? (
+    <WiproEarthianProgram onBack={handleBackToPrograms} />
+  ) : selectedProgram === "chemical-free" ? (
+    <ChemicalFreeLivingSeries onBack={handleBackToPrograms} />
+  ) : selectedProgram === "waste-management" ? (
+    <MasteringSolidWasteManagement onBack={handleBackToPrograms} />
+  ) : (
+    <motion.div
+      key="grid"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      {/* 1. Main Programs Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
+        {programs.map((program, index) => (
+          <ProgramCard
+            key={index}
+            image={program.image}
+            title={program.title}
+            delay={index * 0.1}
+            onClick={() => handleProgramSelect(program.id)}
+          />
+        ))}
+      </div>
+
+      {/* 2. Workshop Table Section */}
+      <div className="mt-32">
+        {/* RESTORED HEADING */}
+        <div className="mb-10">
+          <span className="text-emerald-600 font-bold uppercase tracking-widest text-sm flex items-center gap-2 mb-2">
+            Full Catalog
+          </span>
+          <h2 className="text-3xl md:text-4xl font-black text-slate-900 uppercase tracking-tighter">
+            Workshop <span className="text-emerald-600">Modules</span>
+          </h2>
+          <div className="mt-4 w-12 h-1.5 bg-emerald-600 rounded-full" />
+        </div>
+
+        {/* The Workshop Table */}
+        <div className="border-[1.5px] border-slate-300 rounded-xl overflow-hidden shadow-sm bg-white">
+          <table className="w-full border-collapse">
+            <tbody>
+              {workshopData.map((row, index) => (
+                <tr key={index} className="border-b border-slate-200 last:border-b-0 hover:bg-emerald-50/50 transition-colors">
+                  <td className="w-1/2 p-4 text-sm md:text-base text-slate-700 border-r border-slate-200 text-center font-medium">
+                    {row[0]}
+                  </td>
+                  <td className="w-1/2 p-4 text-sm md:text-base text-slate-700 text-center font-medium">
+                    {row[1]}
+                  </td>
+                </tr>
+              ))}
+              <tr className="bg-emerald-900 text-white">
+                <td colSpan="2" className="p-5 text-center font-bold italic text-sm md:text-lg tracking-wide">
+                  Nature Tours: Guided nature walks with experts (mushrooms, birds, insects & butterfly)
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        {/* 3. SDG Banner */}
+        <div className="mt-12 bg-stone-100 border border-stone-200 rounded-2xl p-8 flex flex-col lg:flex-row items-center justify-between gap-8">
+          <div className="max-w-md text-center lg:text-left">
+            <h4 className="text-xl font-bold text-slate-900 mb-2">Global Impact</h4>
+            <p className="text-slate-600 leading-relaxed">
+              Through these offerings, we aim to meet the following United Nations Sustainable Development Goals (SDGs).
+            </p>
+          </div>
+          
+          <div className="flex flex-wrap justify-center gap-3">
+            {sdgs.map((sdg) => (
+              <div 
+                key={sdg.id} 
+                style={{ backgroundColor: sdg.color }}
+                className="w-20 h-20 md:w-24 md:h-24 flex flex-col items-center justify-center p-2 text-white shadow-lg rounded-sm hover:-translate-y-1 transition-transform"
+              >
+                <span className="text-xl md:text-2xl font-black leading-none">{sdg.id}</span>
+                <span className="text-[7px] md:text-[9px] font-bold text-center uppercase mt-1 leading-tight">
+                  {sdg.label}
+                </span>
               </div>
-
-              {/* NEW WORKSHOP TABLE SECTION */}
-              <div className="mt-32">
-                <div className="mb-10">
-                  <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight mb-2">
-                    Other Workshop{" "}
-                    <span className="text-emerald-600">Modules</span>
-                  </h3>
-                  <div className="w-12 h-1 bg-emerald-600" />
-                </div>
-
-                <div className="border-[1.5px] border-slate-300 rounded-xl overflow-hidden shadow-sm bg-white">
-                  <table className="w-full border-collapse">
-                    <tbody>
-                      {workshopData.map((row, index) => (
-                        <tr
-                          key={index}
-                          className="border-b border-slate-200 last:border-b-0 hover:bg-emerald-50/30 transition-colors"
-                        >
-                          <td className="w-1/2 p-4 text-sm md:text-base text-slate-700 border-r border-slate-200 text-center font-medium">
-                            {row[0]}
-                          </td>
-                          <td className="w-1/2 p-4 text-sm md:text-base text-slate-700 text-center font-medium">
-                            {row[1]}
-                          </td>
-                        </tr>
-                      ))}
-                      <tr className="bg-slate-50 border-t border-slate-300">
-                        <td
-                          colSpan="2"
-                          className="p-5 text-center text-emerald-800 font-bold italic text-sm md:text-lg"
-                        >
-                          Nature Tours: Guided nature walks with experts
-                          (mushrooms, birds, insects & butterfly)
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* SDG BANNER */}
-                <div className="mt-12 bg-white border border-slate-200 rounded-2xl p-6 flex flex-col lg:flex-row items-center justify-between gap-8 shadow-sm">
-                  <div className="max-w-md text-center lg:text-left">
-                    <p className="text-lg font-bold text-slate-800 leading-tight">
-                      Through these offerings, we aim to meet the following UN
-                      Sustainable Development Goals
-                    </p>
-                  </div>
-
-                  <div className="flex flex-wrap justify-center gap-2">
-                    {sdgs.map((sdg) => (
-                      <div
-                        key={sdg.id}
-                        style={{ backgroundColor: sdg.color }}
-                        className="w-20 h-20 md:w-24 md:h-24 flex flex-col items-center justify-center p-2 text-white shadow-md hover:scale-105 transition-transform cursor-default"
-                      >
-                        <span className="text-xl md:text-2xl font-black leading-none">
-                          {sdg.id}
-                        </span>
-                        <span className="text-[7px] md:text-[9px] font-bold text-center uppercase mt-1 leading-tight">
-                          {sdg.label}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            ))}
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  )}
+</AnimatePresence>
       </div>
     </section>
   );
