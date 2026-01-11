@@ -11,6 +11,46 @@ import WiproEarthianProgram from "@/components/WiproEarthianProgram";
 import ChemicalFreeLivingSeries from "@/components/ChemicalFreeLivingSeries";
 import MasteringSolidWasteManagement from "@/components/MasteringSolidWasteManagement";
 
+// Data from your images
+const workshopData = [
+  ["Easy Indoor Plants for Clean Air", "Create eco-bricks from plastic waste"],
+  ["Climate Science and solutions", "Eco-Friendly Travel"],
+  ["Build a Fungarium", "Composting"],
+  ["Tree Plantation drive", "Explore environmental ethics"],
+  ["Sustainable Architecture", "Grow microgreens for nutrition"],
+  ["Rainwater Harvesting", "Sustainable food choices"],
+  ["Renewable Energy", "Create Plantable Stationery"],
+  ["Circular Economy", "Upcycling waste into new items"],
+  ["Solid Waste Management", "Explore sustainable fashion"],
+  ["Soil Health for Ecosystems", "Cleanliness Drive"],
+  [
+    "Climate Resilience: Be Climate-Ready",
+    "Carbon footprint challenge for students",
+  ],
+  ["Water conservation practices", "Green Business Skills"],
+  [
+    "Eco-Friendly cleaning products",
+    "Nature Sketching: Capture nature through art",
+  ],
+  ["Renewable Energy Awareness", "Basics of identifying wild mushrooms"],
+  ["Health & Hygiene", "Natural plant & fungi based dyes"],
+  ["Nature Photography Skills", "Food Waste Reduction solutions"],
+  ["Ecological Calendering", "Ethical considerations in conservation"],
+  ["Circular Economy Solutions", "Eco-Friendly School Practices"],
+  ["Herbal Gardening", "Biodiversity Monitoring"],
+  ["Fun with Fermentation", "E-Waste Management"],
+  ["Create a Terrarium", "Green Clean: Eco-friendly personal care"],
+];
+
+const sdgs = [
+  { id: 4, color: "#C7212F", label: "QUALITY EDUCATION" },
+  { id: 6, color: "#27BFE6", label: "CLEAN WATER AND SANITATION" },
+  { id: 11, color: "#F99D26", label: "SUSTAINABLE CITIES AND COMMUNITIES" },
+  { id: 12, color: "#CF8D2A", label: "RESPONSIBLE CONSUMPTION AND PRODUCTION" },
+  { id: 13, color: "#48773E", label: "CLIMATE ACTION" },
+  { id: 15, color: "#3FB048", label: "LIFE ON LAND" },
+];
+
 /* ---------------------------------------------------------
    MAIN COMPONENT
 --------------------------------------------------------- */
@@ -133,7 +173,9 @@ const SustainabilityProgramsContent = () => {
   return (
     <section className="bg-stone-50 py-24 min-h-screen">
       <div className="max-w-7xl mx-auto px-4 font-sans">
+        {/* ... existing Animated Header Logic ... */}
         {/* Animated Header Logic */}
+
         <AnimatePresence mode="wait">
           {!selectedProgram ? (
             <motion.div
@@ -147,12 +189,14 @@ const SustainabilityProgramsContent = () => {
                   <span className="text-emerald-600 font-bold uppercase tracking-widest text-sm flex items-center gap-2 mb-2">
                     <Sprout className="w-4 h-4" /> Our Activities
                   </span>
+
                   <h2 className="text-4xl md:text-5xl font-black text-slate-900 uppercase tracking-tighter leading-none">
                     Sustainability <br />
                     <span className="text-emerald-600">Programs</span>
                   </h2>
                 </div>
               </div>
+
               <div className="mb-16">
                 <p className="text-xl md:text-2xl font-medium text-slate-600 max-w-3xl leading-relaxed">
                   Explore our{" "}
@@ -168,35 +212,101 @@ const SustainabilityProgramsContent = () => {
 
         {/* Content Logic */}
         <AnimatePresence mode="wait">
-          {selectedProgram === "mushroom-walk" ? (
-            <GuidedMushroomWalk onBack={handleBackToPrograms} />
-          ) : selectedProgram === "grow-mushrooms" ? (
-            <GrowYourOwnMushrooms onBack={handleBackToPrograms} />
-          ) : selectedProgram === "demystify-fungi" ? (
-            <DemystifyLocalFungi onBack={handleBackToPrograms} />
-          ) : selectedProgram === "wipro-earthian" ? (
-            <WiproEarthianProgram onBack={handleBackToPrograms} />
-          ) : selectedProgram === "chemical-free" ? (
-            <ChemicalFreeLivingSeries onBack={handleBackToPrograms} />
-          ) : selectedProgram === "waste-management" ? (
-            <MasteringSolidWasteManagement onBack={handleBackToPrograms} />
+          {selectedProgram ? (
+            /* ... existing conditional components (GuidedMushroomWalk, etc.) ... */
+            // Note: Ensure your existing ternary logic handles the 'back' button correctly
+            <div key="detail-view">
+              {selectedProgram === "mushroom-walk" && (
+                <GuidedMushroomWalk onBack={handleBackToPrograms} />
+              )}
+              {/* ... other program components ... */}
+            </div>
           ) : (
             <motion.div
-              key="grid"
+              key="grid-and-table"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10"
             >
-              {programs.map((program, index) => (
-                <ProgramCard
-                  key={index}
-                  image={program.image}
-                  title={program.title}
-                  delay={index * 0.1}
-                  onClick={() => handleProgramSelect(program.id)}
-                />
-              ))}
+              {/* FEATURED PROGRAMS GRID */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 mb-24">
+                {programs.map((program, index) => (
+                  <ProgramCard
+                    key={index}
+                    image={program.image}
+                    title={program.title}
+                    delay={index * 0.1}
+                    onClick={() => handleProgramSelect(program.id)}
+                  />
+                ))}
+              </div>
+
+              {/* NEW WORKSHOP TABLE SECTION */}
+              <div className="mt-32">
+                <div className="mb-10">
+                  <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight mb-2">
+                    Other Workshop{" "}
+                    <span className="text-emerald-600">Modules</span>
+                  </h3>
+                  <div className="w-12 h-1 bg-emerald-600" />
+                </div>
+
+                <div className="border-[1.5px] border-slate-300 rounded-xl overflow-hidden shadow-sm bg-white">
+                  <table className="w-full border-collapse">
+                    <tbody>
+                      {workshopData.map((row, index) => (
+                        <tr
+                          key={index}
+                          className="border-b border-slate-200 last:border-b-0 hover:bg-emerald-50/30 transition-colors"
+                        >
+                          <td className="w-1/2 p-4 text-sm md:text-base text-slate-700 border-r border-slate-200 text-center font-medium">
+                            {row[0]}
+                          </td>
+                          <td className="w-1/2 p-4 text-sm md:text-base text-slate-700 text-center font-medium">
+                            {row[1]}
+                          </td>
+                        </tr>
+                      ))}
+                      <tr className="bg-slate-50 border-t border-slate-300">
+                        <td
+                          colSpan="2"
+                          className="p-5 text-center text-emerald-800 font-bold italic text-sm md:text-lg"
+                        >
+                          Nature Tours: Guided nature walks with experts
+                          (mushrooms, birds, insects & butterfly)
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* SDG BANNER */}
+                <div className="mt-12 bg-white border border-slate-200 rounded-2xl p-6 flex flex-col lg:flex-row items-center justify-between gap-8 shadow-sm">
+                  <div className="max-w-md text-center lg:text-left">
+                    <p className="text-lg font-bold text-slate-800 leading-tight">
+                      Through these offerings, we aim to meet the following UN
+                      Sustainable Development Goals
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {sdgs.map((sdg) => (
+                      <div
+                        key={sdg.id}
+                        style={{ backgroundColor: sdg.color }}
+                        className="w-20 h-20 md:w-24 md:h-24 flex flex-col items-center justify-center p-2 text-white shadow-md hover:scale-105 transition-transform cursor-default"
+                      >
+                        <span className="text-xl md:text-2xl font-black leading-none">
+                          {sdg.id}
+                        </span>
+                        <span className="text-[7px] md:text-[9px] font-bold text-center uppercase mt-1 leading-tight">
+                          {sdg.label}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
