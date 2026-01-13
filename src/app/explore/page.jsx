@@ -299,23 +299,14 @@ function MapPageContent() {
       });
     }
 
-    // Apply scientific name search filter (searches both common and scientific names)
-    if (scientificNameSearchTerm.trim()) {
-      const searchLower = scientificNameSearchTerm.toLowerCase().trim();
-      filtered = filtered.filter((item) => {
-        const commonName = (item.commonName || item.name || "").toLowerCase();
-        const scientificName = (item.scientificName || "").toLowerCase();
-        return commonName.includes(searchLower) || scientificName.includes(searchLower);
-      });
-    }
-
     // Apply header filters
     if (headerFilters.ecologicalRole.length > 0) {
       filtered = filtered.filter((item) => {
         const itemRoles = Array.isArray(item.ecologicalRole) 
           ? item.ecologicalRole 
           : [item.ecologicalRole].filter(Boolean);
-        return headerFilters.ecologicalRole.some((role) => itemRoles.includes(role));
+        // Check if mushroom has ALL selected roles (AND logic)
+        return headerFilters.ecologicalRole.every((role) => itemRoles.includes(role));
       });
     }
     if (headerFilters.texture.length > 0) {
@@ -341,16 +332,29 @@ function MapPageContent() {
     if (headerFilters.commonUses.length > 0) {
       filtered = filtered.filter((item) => {
         const itemUses = item.commonUses || [];
-        return headerFilters.commonUses.some((use) => itemUses.includes(use));
+        // Check if mushroom has ALL selected uses (AND logic)
+        return headerFilters.commonUses.every((use) => itemUses.includes(use));
       });
     }
 
     // Apply legacy filters (for backward compatibility with existing filter UI)
     if (Object.keys(filters).length > 0 && mode === "category") {
-      filtered = filtered.filter((item) => {
-        const key = item.ecologicalRole || item.category;
-        return filters[key] !== false;
-      });
+      // Check if any filters are explicitly disabled (set to false)
+      const hasDisabledFilters = Object.values(filters).some(val => val === false);
+      
+      // Only apply filtering if some filters are disabled
+      // (If all are true, it's the default state - show everything)
+      if (hasDisabledFilters) {
+        filtered = filtered.filter((item) => {
+          // Handle multiple ecological roles
+          const roles = Array.isArray(item.ecologicalRole) 
+            ? item.ecologicalRole 
+            : [item.ecologicalRole || item.category].filter(Boolean);
+          
+          // Show mushroom if it has at least one role that's not disabled
+          return roles.some(role => filters[role] !== false);
+        });
+      }
     } else if (Object.keys(filters).length > 0 && mode === "use") {
       filtered = filtered.filter((item) => {
         const key = item.commonUses?.[0] || item.use;

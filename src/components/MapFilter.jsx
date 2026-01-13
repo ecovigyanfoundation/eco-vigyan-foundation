@@ -165,13 +165,8 @@ export default function MapFilter({
                   e.stopPropagation();
                   onResetFilters();
                 }}
-                disabled={activeFilterCount === 0}
-                className={`w-full flex items-center justify-center gap-1 px-2 py-1 text-[10px] font-medium rounded-md transition-all ${
-                  activeFilterCount > 0
-                    ? "bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm"
-                    : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                }`}
-                title={activeFilterCount > 0 ? "Reset all filters" : "No filters to reset"}
+                className="w-full flex items-center justify-center gap-1 px-2 py-1 text-[10px] font-medium rounded-md transition-all bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm"
+                title="Reset all filters"
               >
                 <RotateCcw size={10} />
                 <span>Reset All Filters</span>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -9,7 +9,7 @@ import MushroomBadge from "./MushroomBadge";
 
 const ITEMS_PER_PAGE = 30; // 5 rows on XL screens (6 cols × 5 rows)
 
-export default function MushroomGrid({ data, onMushroomClick, onScientificNameSearch }) {
+const MushroomGrid = React.memo(function MushroomGrid({ data, onMushroomClick, onScientificNameSearch }) {
   const router = useRouter();
   const [displayedItems, setDisplayedItems] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -300,10 +300,13 @@ export default function MushroomGrid({ data, onMushroomClick, onScientificNameSe
               }
             }
             
-            // Handle details click - opens detail modal
+            // Handle details click - navigates to dedicated details page
             const handleDetailsClick = (e) => {
               e.stopPropagation();
-              onMushroomClick?.(item);
+              const mushroomId = item._id || item.id;
+              if (mushroomId) {
+                router.push(`/mushroom/${mushroomId}`);
+              }
             };
 
             const cardContent = (
@@ -496,14 +499,6 @@ export default function MushroomGrid({ data, onMushroomClick, onScientificNameSe
       </div>
     </div>
   );
-}
+});
 
-
-
-
-
-
-
-
-
-
+export default MushroomGrid;

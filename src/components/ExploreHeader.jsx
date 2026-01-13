@@ -41,6 +41,7 @@ export default function ExploreHeader({
   const [locationSearch, setLocationSearch] = useState("");
   const [isSearchingLocation, setIsSearchingLocation] = useState(false);
   const userMenuRef = useRef(null);
+  const speciesSearchTimeoutRef = useRef(null);
   const locationSearchTimeoutRef = useRef(null);
   const lastSuccessfulLocationRef = useRef(null);
   const onLocationSearchRef = useRef(onLocationSearch);
@@ -64,12 +65,21 @@ export default function ExploreHeader({
     };
   }, []);
 
-  // Handle species search
+  // Handle species search with debouncing
   const handleSpeciesSearchChange = (value) => {
     setSpeciesSearch(value);
-    if (onSpeciesSearch) {
-      onSpeciesSearch(value);
+
+    // Clear any pending timeout
+    if (speciesSearchTimeoutRef.current) {
+      clearTimeout(speciesSearchTimeoutRef.current);
     }
+
+    // Debounce the actual search call
+    speciesSearchTimeoutRef.current = setTimeout(() => {
+      if (onSpeciesSearch) {
+        onSpeciesSearch(value);
+      }
+    }, 300); // 300ms debounce
   };
 
   // Debounce location search
