@@ -119,6 +119,8 @@ function MapPageContent() {
         console.log("🔑 Incrementing mapKey:", prev, "->", newKey);
         return newKey;
       });
+      // Clear scientific name search when switching to map to avoid filtering the map
+      setScientificNameSearchTerm("");
     }
     
     // Set view state immediately
@@ -296,6 +298,16 @@ function MapPageContent() {
       filtered = filtered.filter((item) => {
         const commonName = (item.commonName || item.name || "").toLowerCase();
         return commonName.includes(searchLower);
+      });
+    }
+
+    // Apply scientific name search filter (from Grid)
+    if (scientificNameSearchTerm.trim()) {
+      const searchLower = scientificNameSearchTerm.toLowerCase().trim();
+      filtered = filtered.filter((item) => {
+        const commonName = (item.commonName || item.name || "").toLowerCase();
+        const scientificName = (item.scientificName || "").toLowerCase();
+        return commonName.includes(searchLower) || scientificName.includes(searchLower);
       });
     }
 
