@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { X, Camera, MapPin, Search, Navigation } from "lucide-react";
 import toast from "react-hot-toast";
 import MushroomSelectField from "./MushroomSelectField";
@@ -47,6 +47,132 @@ export default function MushroomSubmissionForm({
   const [fruitingSurface, setFruitingSurface] = useState("");
   const [stemPresence, setStemPresence] = useState("");
   const [commonUses, setCommonUses] = useState([]);
+  
+  // Autocomplete states
+  const [allMushrooms, setAllMushrooms] = useState([]);
+  const [commonNameSuggestions, setCommonNameSuggestions] = useState([]);
+  const [scientificNameSuggestions, setScientificNameSuggestions] = useState([]);
+  const [showCommonNameSuggestions, setShowCommonNameSuggestions] = useState(false);
+  const [showScientificNameSuggestions, setShowScientificNameSuggestions] = useState(false);
+  const [selectedCommonNameIndex, setSelectedCommonNameIndex] = useState(-1);
+  const [selectedScientificNameIndex, setSelectedScientificNameIndex] = useState(-1);
+  const commonNameInputRef = useRef(null);
+  const scientificNameInputRef = useRef(null);
+  const commonNameSuggestionsRef = useRef(null);
+  const scientificNameSuggestionsRef = useRef(null);
+
+  // Fetch all mushrooms for autocomplete
+  useEffect(() => {
+    const fetchMushrooms = async () => {
+      try {
+        const res = await fetch("/api/mushrooms");
+        if (res.ok) {
+          const data = await res.json();
+          setAllMushrooms(data.mushrooms || []);
+        }
+      } catch (error) {
+        console.error("Error fetching mushrooms:", error);
+      }
+    };
+    
+    if (isOpen) {
+      fetchMushrooms();
+    }
+  }, [isOpen]);
+
+  // Generate common name suggestions
+  useEffect(() => {
+    if (!commonName.trim() || !allMushrooms.length) {
+      setCommonNameSuggestions([]);
+      setShowCommonNameSuggestions(false);
+      return;
+    }
+
+    const searchLower = commonName.toLowerCase().trim();
+    const uniqueMatches = new Map();
+
+    allMushrooms.forEach((item) => {
+      const itemCommonName = (item.commonName || item.name || "").toLowerCase();
+      
+      if (itemCommonName.includes(searchLower)) {
+        const key = item.commonName || item.name;
+        if (!uniqueMatches.has(key)) {
+          uniqueMatches.set(key, {
+            commonName: item.commonName || item.name || "Unknown",
+            scientificName: item.scientificName || "",
+          });
+        }
+      }
+    });
+
+    const matchArray = Array.from(uniqueMatches.values()).slice(0, 8);
+    setCommonNameSuggestions(matchArray);
+    setShowCommonNameSuggestions(matchArray.length > 0);
+  }, [commonName, allMushrooms]);
+
+  // Generate scientific name suggestions
+  useEffect(() => {
+    if (!scientificName.trim() || !allMushrooms.length) {
+      setScientificNameSuggestions([]);
+      setShowScientificNameSuggestions(false);
+      return;
+    }
+
+    const searchLower = scientificName.toLowerCase().trim();
+    const uniqueMatches = new Map();
+
+    allMushrooms.forEach((item) => {
+      const itemScientificName = (item.scientificName || "").toLowerCase();
+      
+      if (itemScientificName.includes(searchLower)) {
+        const key = item.scientificName;
+        if (key && !uniqueMatches.has(key)) {
+          uniqueMatches.set(key, {
+            commonName: item.commonName || item.name || "Unknown",
+            scientificName: item.scientificName,
+          });
+        }
+      }
+    });
+
+    const matchArray = Array.from(uniqueMatches.values()).slice(0, 8);
+    setScientificNameSuggestions(matchArray);
+    setShowScientificNameSuggestions(matchArray.length > 0);
+  }, [scientificName, allMushrooms]);
+
+  // Handle click outside for common name
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        commonNameSuggestionsRef.current &&
+        !commonNameSuggestionsRef.current.contains(event.target) &&
+        commonNameInputRef.current &&
+        !commonNameInputRef.current.contains(event.target)
+      ) {
+        setShowCommonNameSuggestions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Handle click outside for scientific name
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        scientificNameSuggestionsRef.current &&
+        !scientificNameSuggestionsRef.current.contains(event.target) &&
+        scientificNameInputRef.current &&
+        !scientificNameInputRef.current.contains(event.target)
+      ) {
+        setShowScientificNameSuggestions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   if (!isOpen) return null;
 
@@ -547,21 +673,153 @@ toast.success(data.message || "Mushroom submitted successfully!");
             )}
           </div>
 
-          {/* COMMON NAME - OPTIONAL */}
-          <input
-            value={commonName}
-            onChange={(e) => setCommonName(e.target.value)}
-            placeholder="Common name (optional)"
-            className="w-full bg-stone-100 border border-stone-200 rounded-2xl px-4 sm:px-5 py-3 sm:py-4 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white outline-none transition-all font-medium text-stone-800 placeholder:text-stone-400 text-sm sm:text-base"
-          />
+          {/* COMMON NAME - OPTIONAL WITH AUTOCOMPLETE */}
+          <div className="relative">
+            <input
+              ref={commonNameInputRef}
+              value={commonName}
+              onChange={(e) => {
+                setCommonName(e.target.value);
+                setSelectedCommonNameIndex(-1);
+              }}
+              onFocus={() => commonNameSuggestions.length > 0 && setShowCommonNameSuggestions(true)}
+              onKeyDown={(e) => {
+                if (!showCommonNameSuggestions || commonNameSuggestions.length === 0) return;
+                
+                if (e.key === "ArrowDown") {
+                  e.preventDefault();
+                  setSelectedCommonNameIndex((prev) =>
+                    prev < commonNameSuggestions.length - 1 ? prev + 1 : prev
+                  );
+                } else if (e.key === "ArrowUp") {
+                  e.preventDefault();
+                  setSelectedCommonNameIndex((prev) => (prev > 0 ? prev - 1 : -1));
+                } else if (e.key === "Enter" && selectedCommonNameIndex >= 0) {
+                  e.preventDefault();
+                  const suggestion = commonNameSuggestions[selectedCommonNameIndex];
+                  setCommonName(suggestion.commonName);
+                  if (suggestion.scientificName) {
+                    setScientificName(suggestion.scientificName);
+                  }
+                  setShowCommonNameSuggestions(false);
+                } else if (e.key === "Escape") {
+                  setShowCommonNameSuggestions(false);
+                }
+              }}
+              placeholder="Common name (optional)"
+              className="w-full bg-stone-100 border border-stone-200 rounded-2xl px-4 sm:px-5 py-3 sm:py-4 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white outline-none transition-all font-medium text-stone-800 placeholder:text-stone-400 text-sm sm:text-base"
+            />
+            
+            {/* Common Name Suggestions Dropdown */}
+            {showCommonNameSuggestions && commonNameSuggestions.length > 0 && (
+              <div
+                ref={commonNameSuggestionsRef}
+                className="absolute top-full left-0 right-0 mt-2 bg-white border border-stone-200 rounded-2xl shadow-2xl max-h-60 overflow-y-auto z-50 py-2"
+              >
+                {commonNameSuggestions.map((suggestion, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => {
+                      setCommonName(suggestion.commonName);
+                      if (suggestion.scientificName) {
+                        setScientificName(suggestion.scientificName);
+                      }
+                      setShowCommonNameSuggestions(false);
+                    }}
+                    className={`w-full px-4 py-2.5 text-left hover:bg-emerald-50 transition-colors border-b border-stone-100 last:border-b-0 ${
+                      index === selectedCommonNameIndex ? "bg-emerald-50" : ""
+                    }`}
+                  >
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-sm font-bold text-slate-800">
+                        {suggestion.commonName}
+                      </span>
+                      {suggestion.scientificName && (
+                        <span className="text-xs italic text-emerald-600">
+                          {suggestion.scientificName}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
-          {/* SCIENTIFIC NAME - OPTIONAL */}
-          <input
-            value={scientificName}
-            onChange={(e) => setScientificName(e.target.value)}
-            placeholder="Scientific name (optional)"
-            className="w-full bg-stone-100 border border-stone-200 rounded-2xl px-4 sm:px-5 py-3 sm:py-4 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white outline-none transition-all font-medium text-stone-800 placeholder:text-stone-400 text-sm sm:text-base"
-          />
+          {/* SCIENTIFIC NAME - OPTIONAL WITH AUTOCOMPLETE */}
+          <div className="relative">
+            <input
+              ref={scientificNameInputRef}
+              value={scientificName}
+              onChange={(e) => {
+                setScientificName(e.target.value);
+                setSelectedScientificNameIndex(-1);
+              }}
+              onFocus={() => scientificNameSuggestions.length > 0 && setShowScientificNameSuggestions(true)}
+              onKeyDown={(e) => {
+                if (!showScientificNameSuggestions || scientificNameSuggestions.length === 0) return;
+                
+                if (e.key === "ArrowDown") {
+                  e.preventDefault();
+                  setSelectedScientificNameIndex((prev) =>
+                    prev < scientificNameSuggestions.length - 1 ? prev + 1 : prev
+                  );
+                } else if (e.key === "ArrowUp") {
+                  e.preventDefault();
+                  setSelectedScientificNameIndex((prev) => (prev > 0 ? prev - 1 : -1));
+                } else if (e.key === "Enter" && selectedScientificNameIndex >= 0) {
+                  e.preventDefault();
+                  const suggestion = scientificNameSuggestions[selectedScientificNameIndex];
+                  setScientificName(suggestion.scientificName);
+                  if (suggestion.commonName) {
+                    setCommonName(suggestion.commonName);
+                  }
+                  setShowScientificNameSuggestions(false);
+                } else if (e.key === "Escape") {
+                  setShowScientificNameSuggestions(false);
+                }
+              }}
+              placeholder="Scientific name (optional)"
+              className="w-full bg-stone-100 border border-stone-200 rounded-2xl px-4 sm:px-5 py-3 sm:py-4 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white outline-none transition-all font-medium text-stone-800 placeholder:text-stone-400 text-sm sm:text-base italic"
+            />
+            
+            {/* Scientific Name Suggestions Dropdown */}
+            {showScientificNameSuggestions && scientificNameSuggestions.length > 0 && (
+              <div
+                ref={scientificNameSuggestionsRef}
+                className="absolute top-full left-0 right-0 mt-2 bg-white border border-stone-200 rounded-2xl shadow-2xl max-h-60 overflow-y-auto z-50 py-2"
+              >
+                {scientificNameSuggestions.map((suggestion, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => {
+                      setScientificName(suggestion.scientificName);
+                      if (suggestion.commonName) {
+                        setCommonName(suggestion.commonName);
+                      }
+                      setShowScientificNameSuggestions(false);
+                    }}
+                    className={`w-full px-4 py-2.5 text-left hover:bg-emerald-50 transition-colors border-b border-stone-100 last:border-b-0 ${
+                      index === selectedScientificNameIndex ? "bg-emerald-50" : ""
+                    }`}
+                  >
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-sm italic font-bold text-emerald-600">
+                        {suggestion.scientificName}
+                      </span>
+                      {suggestion.commonName && (
+                        <span className="text-xs text-slate-700">
+                          {suggestion.commonName}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* LOCATION INPUT - REQUIRED */}
           <div>
