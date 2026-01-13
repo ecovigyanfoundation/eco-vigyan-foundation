@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { 
   CheckCircle, XCircle, Clock, Save, 
-  ChevronLeft, Info, FlaskConical, Map, Sprout, Trash2
+  ChevronLeft, Info, FlaskConical, Map as MapIcon, Sprout, Trash2
 } from "lucide-react";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
@@ -39,6 +39,17 @@ export default function AdminMushroomReviewPage() {
     status: "",
   });
 
+  // Autocomplete states
+  const [allMushrooms, setAllMushrooms] = useState([]);
+  const [commonNameSuggestions, setCommonNameSuggestions] = useState([]);
+  const [scientificNameSuggestions, setScientificNameSuggestions] = useState([]);
+  const [showCommonNameSuggestions, setShowCommonNameSuggestions] = useState(false);
+  const [showScientificNameSuggestions, setShowScientificNameSuggestions] = useState(false);
+  const commonNameInputRef = useRef(null);
+  const scientificNameInputRef = useRef(null);
+  const commonNameSuggestionsRef = useRef(null);
+  const scientificNameSuggestionsRef = useRef(null);
+
   useEffect(() => {
     const fetchMushroom = async () => {
       try {
@@ -71,6 +82,128 @@ export default function AdminMushroomReviewPage() {
     if (id) fetchMushroom();
   }, [id]);
 
+  // Fetch all mushrooms for autocomplete
+  useEffect(() => {
+    const fetchMushrooms = async () => {
+      try {
+        const res = await fetch("/api/mushrooms");
+        if (res.ok) {
+          const data = await res.json();
+          setAllMushrooms(data.mushrooms || []);
+        }
+      } catch (error) {
+        console.error("Error fetching mushrooms:", error);
+      }
+    };
+    fetchMushrooms();
+  }, []);
+
+  // Generate common name suggestions
+  useEffect(() => {
+    if (!form.commonName.trim() || !allMushrooms.length) {
+      setCommonNameSuggestions([]);
+      setShowCommonNameSuggestions(false);
+      return;
+    }
+
+    const searchLower = form.commonName.toLowerCase().trim();
+    const uniqueMatches = new Map();
+
+    allMushrooms.forEach((item) => {
+      const itemCommonName = (item.commonName || item.name || "").toLowerCase();
+      
+      if (itemCommonName.includes(searchLower)) {
+        const key = item.commonName || item.name;
+        if (!uniqueMatches.has(key)) {
+          uniqueMatches.set(key, {
+            commonName: item.commonName || item.name || "Unknown",
+            scientificName: item.scientificName || "",
+            ecologicalRole: item.ecologicalRole || [],
+            texture: item.texture || "",
+            underside: item.underside || "",
+            fruitingSurface: item.fruitingSurface || "",
+            stemPresence: item.stemPresence || "",
+            commonUses: item.commonUses || [],
+          });
+        }
+      }
+    });
+
+    const matchArray = Array.from(uniqueMatches.values()).slice(0, 8);
+    setCommonNameSuggestions(matchArray);
+    setShowCommonNameSuggestions(matchArray.length > 0);
+  }, [form.commonName, allMushrooms]);
+
+  // Generate scientific name suggestions
+  useEffect(() => {
+    if (!form.scientificName.trim() || !allMushrooms.length) {
+      setScientificNameSuggestions([]);
+      setShowScientificNameSuggestions(false);
+      return;
+    }
+
+    const searchLower = form.scientificName.toLowerCase().trim();
+    const uniqueMatches = new Map();
+
+    allMushrooms.forEach((item) => {
+      const itemScientificName = (item.scientificName || "").toLowerCase();
+      
+      if (itemScientificName.includes(searchLower)) {
+        const key = item.scientificName;
+        if (key && !uniqueMatches.has(key)) {
+          uniqueMatches.set(key, {
+            commonName: item.commonName || item.name || "Unknown",
+            scientificName: item.scientificName,
+            ecologicalRole: item.ecologicalRole || [],
+            texture: item.texture || "",
+            underside: item.underside || "",
+            fruitingSurface: item.fruitingSurface || "",
+            stemPresence: item.stemPresence || "",
+            commonUses: item.commonUses || [],
+          });
+        }
+      }
+    });
+
+    const matchArray = Array.from(uniqueMatches.values()).slice(0, 8);
+    setScientificNameSuggestions(matchArray);
+    setShowScientificNameSuggestions(matchArray.length > 0);
+  }, [form.scientificName, allMushrooms]);
+
+  // Handle click outside for common name
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        commonNameSuggestionsRef.current &&
+        !commonNameSuggestionsRef.current.contains(event.target) &&
+        commonNameInputRef.current &&
+        !commonNameInputRef.current.contains(event.target)
+      ) {
+        setShowCommonNameSuggestions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Handle click outside for scientific name
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        scientificNameSuggestionsRef.current &&
+        !scientificNameSuggestionsRef.current.contains(event.target) &&
+        scientificNameInputRef.current &&
+        !scientificNameInputRef.current.contains(event.target)
+      ) {
+        setShowScientificNameSuggestions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const toggleUse = (use) => {
     setForm(prev => ({
       ...prev,
@@ -87,6 +220,36 @@ export default function AdminMushroomReviewPage() {
         ? prev.ecologicalRole.filter(r => r !== role)
         : [...prev.ecologicalRole, role],
     }));
+  };
+
+  const handleCommonNameSelect = (suggestion) => {
+    setForm({ 
+      ...form, 
+      commonName: suggestion.commonName,
+      scientificName: suggestion.scientificName || form.scientificName,
+      ecologicalRole: suggestion.ecologicalRole && suggestion.ecologicalRole.length > 0 ? suggestion.ecologicalRole : form.ecologicalRole,
+      texture: suggestion.texture || form.texture,
+      underside: suggestion.underside || form.underside,
+      fruitingSurface: suggestion.fruitingSurface || form.fruitingSurface,
+      stemPresence: suggestion.stemPresence || form.stemPresence,
+      commonUses: suggestion.commonUses && suggestion.commonUses.length > 0 ? suggestion.commonUses : form.commonUses,
+    });
+    setShowCommonNameSuggestions(false);
+  };
+
+  const handleScientificNameSelect = (suggestion) => {
+    setForm({ 
+      ...form, 
+      scientificName: suggestion.scientificName,
+      commonName: suggestion.commonName || form.commonName,
+      ecologicalRole: suggestion.ecologicalRole && suggestion.ecologicalRole.length > 0 ? suggestion.ecologicalRole : form.ecologicalRole,
+      texture: suggestion.texture || form.texture,
+      underside: suggestion.underside || form.underside,
+      fruitingSurface: suggestion.fruitingSurface || form.fruitingSurface,
+      stemPresence: suggestion.stemPresence || form.stemPresence,
+      commonUses: suggestion.commonUses && suggestion.commonUses.length > 0 ? suggestion.commonUses : form.commonUses,
+    });
+    setShowScientificNameSuggestions(false);
   };
 
   const submit = async (action) => {
@@ -223,24 +386,84 @@ export default function AdminMushroomReviewPage() {
                 <h2 className="font-bold text-gray-800">Taxonomy & Description</h2>
               </div>
               <div className="p-6 space-y-6">
-                <div className="space-y-1">
+                <div className="space-y-1 relative">
                   <label className="text-xs font-bold text-gray-400 uppercase">Common Name</label>
                   <input
+                    ref={commonNameInputRef}
                     value={form.commonName}
                     onChange={(e) => setForm({ ...form, commonName: e.target.value })}
+                    onFocus={() => commonNameSuggestions.length > 0 && setShowCommonNameSuggestions(true)}
                     className="w-full text-lg font-medium bg-transparent border-b border-gray-200 py-2 focus:border-green-500 outline-none transition-colors"
                     placeholder="e.g. Fly Agaric"
                   />
+                  
+                  {/* Common Name Suggestions Dropdown */}
+                  {showCommonNameSuggestions && commonNameSuggestions.length > 0 && (
+                    <div
+                      ref={commonNameSuggestionsRef}
+                      className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-2xl max-h-60 overflow-y-auto z-50 py-2"
+                    >
+                      {commonNameSuggestions.map((suggestion, index) => (
+                        <button
+                          key={index}
+                          type="button"
+                          onClick={() => handleCommonNameSelect(suggestion)}
+                          className="w-full px-4 py-2.5 text-left hover:bg-green-50 transition-colors border-b border-gray-100 last:border-b-0"
+                        >
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-sm font-bold text-slate-800">
+                              {suggestion.commonName}
+                            </span>
+                            {suggestion.scientificName && (
+                              <span className="text-xs italic text-green-600">
+                                {suggestion.scientificName}
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                <div className="space-y-1">
+                <div className="space-y-1 relative">
                   <label className="text-xs font-bold text-gray-400 uppercase">Scientific Name</label>
                   <input
+                    ref={scientificNameInputRef}
                     value={form.scientificName}
                     onChange={(e) => setForm({ ...form, scientificName: e.target.value })}
-                    className="w-full text-lg font-medium bg-transparent border-b border-gray-200 py-2 focus:border-green-500 outline-none transition-colors"
+                    onFocus={() => scientificNameSuggestions.length > 0 && setShowScientificNameSuggestions(true)}
+                    className="w-full text-lg font-medium bg-transparent border-b border-gray-200 py-2 focus:border-green-500 outline-none transition-colors italic"
                     placeholder="e.g. Amanita muscaria"
                   />
+                  
+                  {/* Scientific Name Suggestions Dropdown */}
+                  {showScientificNameSuggestions && scientificNameSuggestions.length > 0 && (
+                    <div
+                      ref={scientificNameSuggestionsRef}
+                      className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-2xl max-h-60 overflow-y-auto z-50 py-2"
+                    >
+                      {scientificNameSuggestions.map((suggestion, index) => (
+                        <button
+                          key={index}
+                          type="button"
+                          onClick={() => handleScientificNameSelect(suggestion)}
+                          className="w-full px-4 py-2.5 text-left hover:bg-green-50 transition-colors border-b border-gray-100 last:border-b-0"
+                        >
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-sm italic font-bold text-green-600">
+                              {suggestion.scientificName}
+                            </span>
+                            {suggestion.commonName && (
+                              <span className="text-xs text-slate-700">
+                                {suggestion.commonName}
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-1">
@@ -276,8 +499,8 @@ export default function AdminMushroomReviewPage() {
                     </div>
                   </div>
                   <Select label="Texture" icon={<Info className="w-3 h-3" />} value={form.texture} set={(v)=>setForm({...form, texture:v})} options={TEXTURES} />
-                  <Select label="Underside" icon={<Map className="w-3 h-3" />} value={form.underside} set={(v)=>setForm({...form, underside:v})} options={UNDERSIDES} />
-                  <Select label="Fruiting Surface" icon={<Map className="w-3 h-3" />} value={form.fruitingSurface} set={(v)=>setForm({...form, fruitingSurface:v})} options={FRUITING_SURFACES} />
+                  <Select label="Underside" icon={<MapIcon className="w-3 h-3" />} value={form.underside} set={(v)=>setForm({...form, underside:v})} options={UNDERSIDES} />
+                  <Select label="Fruiting Surface" icon={<MapIcon className="w-3 h-3" />} value={form.fruitingSurface} set={(v)=>setForm({...form, fruitingSurface:v})} options={FRUITING_SURFACES} />
                   <Select label="Stem Presence" icon={<Info className="w-3 h-3" />} value={form.stemPresence} set={(v)=>setForm({...form, stemPresence:v})} options={STEM_PRESENCE} />
                 </div>
               </div>
