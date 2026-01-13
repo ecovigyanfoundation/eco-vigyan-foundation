@@ -4,266 +4,211 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { ArrowLeft, MapPin, Calendar, User, Loader2 } from "lucide-react";
+import { ArrowLeft, MapPin, Calendar, User, Loader2, Globe, Info } from "lucide-react";
 import MushroomBadge from "@/components/MushroomBadge";
 
 const MiniMap = dynamic(() => import("@/components/MiniMap"), {
   ssr: false,
-  loading: () => (
-    <div className="w-full h-full flex items-center justify-center bg-stone-100">
-      <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
-    </div>
-  ),
+  loading: () => <div className="w-full h-full bg-stone-100 animate-pulse rounded-[2.5rem]" />,
 });
 
 export default function MushroomDetailPage() {
   const params = useParams();
   const router = useRouter();
   const [mushroom, setMushroom] = useState(null);
+  const [allMushrooms, setAllMushrooms] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchMushroom = async () => {
       try {
         const res = await fetch("/api/mushrooms");
-        if (!res.ok) throw new Error("Failed to fetch mushrooms");
-        
         const data = await res.json();
-        const foundMushroom = data.mushrooms?.find(
-          (m) => (m._id || m.id) === params.id
-        );
-
-        if (!foundMushroom) {
-          setError("Mushroom not found");
-        } else {
-          setMushroom(foundMushroom);
-        }
+        const found = data.mushrooms?.find((m) => (m._id || m.id) === params.id);
+        setMushroom(found);
+        setAllMushrooms(data.mushrooms);
       } catch (err) {
-        console.error("Error fetching mushroom:", err);
-        setError(err.message);
+        console.error(err);
       } finally {
         setLoading(false);
       }
     };
-
-    if (params.id) {
-      fetchMushroom();
-    }
+    if (params.id) fetchMushroom();
   }, [params.id]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-stone-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 text-emerald-600 animate-spin mx-auto mb-4" />
-          <p className="text-stone-600 font-medium">Loading mushroom details...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !mushroom) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-stone-50 flex items-center justify-center p-4">
-        <div className="text-center max-w-md">
-          <h1 className="text-2xl font-black text-stone-800 mb-2">
-            {error || "Mushroom Not Found"}
-          </h1>
-          <p className="text-stone-600 mb-6">
-            The mushroom you're looking for doesn't exist or has been removed.
-          </p>
-          <button
-            onClick={() => router.push("/explore?view=grid")}
-            className="px-6 py-3 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 transition-all"
-          >
-            Back to Explore
-          </button>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <LoadingState />;
+  if (!mushroom) return <NotFoundState router={router} />;
 
   const mushroomData = {
-    latitude: mushroom.location?.latitude || mushroom.latitude,
-    longitude: mushroom.location?.longitude || mushroom.longitude,
-    name: mushroom.commonName || mushroom.name || "Unknown Mushroom",
+    lat: mushroom.location?.latitude || mushroom.latitude,
+    lng: mushroom.location?.longitude || mushroom.longitude,
+    name: mushroom.commonName || mushroom.name || "Unknown Species",
     image: mushroom.images?.[0]?.url || mushroom.image,
-    category: mushroom.ecologicalRole || mushroom.category || "Unknown",
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-stone-50">
-      {/* HEADER */}
-      <header className="bg-white border-b border-stone-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <button
+    <div className="min-h-screen bg-[#faf9f6] text-stone-900 selection:bg-emerald-100">
+      <nav className="sticky top-0 z-50 bg-white/70 backdrop-blur-md border-b border-stone-200/50">
+        <div className="max-w-6xl mx-auto px-6 py-4">
+          <button 
             onClick={() => router.back()}
-            className="flex items-center gap-2 text-emerald-600 hover:text-emerald-700 font-bold text-sm transition-colors"
+            className="group flex items-center gap-2 text-stone-500 hover:text-emerald-700 transition-colors"
           >
-            <ArrowLeft size={20} />
-            <span>Back</span>
+            <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
+            <span className="text-sm font-semibold tracking-tight">Back to gallery</span>
           </button>
         </div>
-      </header>
+      </nav>
 
-      {/* MAIN CONTENT */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* LEFT COLUMN - Image and Basic Info */}
-          <div className="space-y-6">
-            {/* Image */}
-            <div className="aspect-square bg-stone-100 rounded-3xl overflow-hidden shadow-2xl border-4 border-white relative">
+      <main className="max-w-6xl mx-auto px-6 py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+          
+          {/* Left Side: Image & Basic Info */}
+          <div className="lg:col-span-5 space-y-8">
+            <div className="relative aspect-[4/5] rounded-[3rem] overflow-hidden shadow-2xl shadow-stone-200 border-[12px] border-white">
               {mushroomData.image ? (
-                <img
-                  src={mushroomData.image}
-                  alt={mushroomData.name}
-                  className="w-full h-full object-cover"
-                  loading="eager"
-                />
+                <img src={mushroomData.image} alt={mushroomData.name} className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center text-stone-300">
-                  <MapPin size={60} strokeWidth={1} />
-                  <span className="text-sm font-black uppercase tracking-wider mt-4">
-                    No Photo Available
-                  </span>
+                <div className="w-full h-full bg-stone-100 flex items-center justify-center text-stone-300">
+                  <MapPin size={48} />
                 </div>
               )}
-              
-              {/* Category Badge */}
-              <div className="absolute top-4 left-4">
-                <MushroomBadge
-                  category={mushroomData.category}
-                  use={mushroom.use || mushroom.commonUses?.[0] || "Unknown"}
-                />
+              <div className="absolute top-8 left-8 scale-110">
+                <MushroomBadge category={mushroom.ecologicalRole} use={mushroom.commonUses?.[0]} />
               </div>
             </div>
 
-            {/* Contributor Info */}
-            <div className="bg-white rounded-3xl p-6 shadow-lg border border-stone-200">
-              <h3 className="text-xs font-black uppercase tracking-widest text-stone-500 mb-4">
-                Contributed By
-              </h3>
-              <Link
-                href={`/user/${mushroom.submittedBy?._id || mushroom.submittedBy?.id || ""}`}
-                className="flex items-center gap-4 hover:bg-emerald-50 -m-2 p-2 rounded-2xl transition-colors"
-              >
-                <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-emerald-500 shadow-md flex-shrink-0">
+            <div className="bg-white p-6 rounded-[2rem] border border-stone-200/60 shadow-sm">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-stone-400 mb-4 px-1">Discovered By</p>
+              <Link href={`/user/${mushroom.submittedBy?.id}`} className="flex items-center gap-4 group">
+                <div className="w-14 h-14 rounded-2xl bg-emerald-600 flex-shrink-0 flex items-center justify-center overflow-hidden ring-4 ring-emerald-50">
                   {mushroom.submittedBy?.dp?.url ? (
-                    <img
-                      src={mushroom.submittedBy.dp.url}
-                      alt={mushroom.submittedBy.name || "Contributor"}
-                      className="w-full h-full object-cover"
-                    />
+                    <img src={mushroom.submittedBy.dp.url} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full bg-emerald-600 flex items-center justify-center">
-                      <User className="w-8 h-8 text-white" />
-                    </div>
+                    <User className="text-white" size={24} />
                   )}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-lg font-black text-stone-800 truncate">
-                    {mushroom.submittedBy?.name || mushroom.submittedBy?.username || "Anonymous"}
-                  </p>
-                  <p className="text-xs text-stone-500 font-medium">
-                    ID: {mushroom.submittedBy?._id?.slice(-8) || "Unknown"}
-                  </p>
+                <div>
+                  <h4 className="font-bold text-stone-800 group-hover:text-emerald-700 transition-colors leading-tight">
+                    {mushroom.submittedBy?.name || "Anonymous Forager"}
+                  </h4>
+                  <p className="text-xs text-stone-400 font-medium mt-1">Certified Explorer</p>
                 </div>
               </Link>
             </div>
           </div>
 
-          {/* RIGHT COLUMN - Details */}
-          <div className="space-y-6">
-            {/* Title */}
-            <div>
-              <h1 className="text-4xl font-black text-emerald-900 mb-2 uppercase tracking-tight">
-                {mushroom.commonName || mushroom.name || "Unknown Species"}
+          {/* Right Side: Taxonomy & Expanded Map */}
+          <div className="lg:col-span-7 space-y-10">
+            <header>
+              <div className="flex items-center gap-2 text-emerald-600 mb-4">
+                <Calendar size={16} />
+                <span className="text-xs font-bold tracking-[0.2em] uppercase">
+                  Captured {new Date(mushroom.photoDateTime || mushroom.createdAt).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}
+                </span>
+              </div>
+              <h1 className="text-6xl font-black text-stone-900 tracking-tighter leading-[0.9] mb-4">
+                {mushroomData.name}
               </h1>
-              {mushroom.scientificName && (
-                <p className="text-xl italic text-emerald-600 font-semibold">
-                  {mushroom.scientificName}
-                </p>
-              )}
-            </div>
+              <p className="text-2xl italic font-medium text-emerald-800/50 font-serif">
+                {mushroom.scientificName || "Species Incognita"}
+              </p>
+            </header>
 
-            {/* Observation Date */}
-            <div className="flex items-center gap-2 text-stone-600">
-              <Calendar size={18} className="text-emerald-600" />
-              <span className="text-sm font-medium">
-                Observed on {new Date(mushroom.photoDateTime || mushroom.createdAt || Date.now()).toLocaleDateString("en-GB", {
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                })}
-              </span>
-            </div>
+            <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+               <Stat card label="Ecological Role" value={mushroom.ecologicalRole} />
+               <Stat card label="Texture" value={mushroom.texture} />
+               <div className="sm:col-span-2 bg-white border border-stone-200/60 rounded-[2.5rem] p-8 space-y-4">
+                  <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-stone-400 mb-2">Technical Summary</h3>
+                  <Stat label="Underside" value={mushroom.underside} />
+                  <Stat label="Stem Presence" value={mushroom.stemPresence} />
+                  <Stat label="Common Uses" value={mushroom.commonUses?.join(", ")} />
+               </div>
+            </section>
 
-            {/* Classification Details */}
-            <div className="bg-white rounded-3xl p-6 shadow-lg border border-stone-200">
-              <h3 className="text-xs font-black uppercase tracking-widest text-stone-500 mb-4">
-                Classification
-              </h3>
-              <div className="space-y-3">
-                {mushroom.ecologicalRole && (
-                  <DetailRow label="Ecological Role" value={
-                    Array.isArray(mushroom.ecologicalRole)
-                      ? mushroom.ecologicalRole.join(", ")
-                      : mushroom.ecologicalRole
-                  } />
-                )}
-                {mushroom.texture && <DetailRow label="Texture" value={mushroom.texture} />}
-                {mushroom.underside && <DetailRow label="Underside" value={mushroom.underside} />}
-                {mushroom.fruitingSurface && <DetailRow label="Fruiting Surface" value={mushroom.fruitingSurface} />}
-                {mushroom.stemPresence && <DetailRow label="Stem" value={mushroom.stemPresence} />}
-                {mushroom.commonUses && mushroom.commonUses.length > 0 && (
-                  <DetailRow 
-                    label="Common Uses" 
-                    value={mushroom.commonUses.join(", ")} 
-                  />
-                )}
-              </div>
-            </div>
-
-            {/* Location */}
-            <div className="bg-white rounded-3xl p-6 shadow-lg border border-stone-200">
-              <h3 className="text-xs font-black uppercase tracking-widest text-stone-500 mb-4">
-                Location
-              </h3>
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 text-stone-700">
-                  <MapPin size={18} className="text-emerald-600" />
-                  <span className="text-sm font-medium">
-                    {mushroomData.latitude?.toFixed(6)}, {mushroomData.longitude?.toFixed(6)}
-                  </span>
-                </div>
-                
-                {/* Mini Map */}
-                <div className="h-64 rounded-2xl overflow-hidden border-2 border-stone-200">
-                  <MiniMap
-                    latitude={mushroomData.latitude}
-                    longitude={mushroomData.longitude}
+            {/* ENLARGED MAP SECTION */}
+            <section className="space-y-6 pt-4">
+               <div className="flex items-end justify-between px-2">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-emerald-700">
+                      <Globe size={18} />
+                      <h3 className="text-sm font-black uppercase tracking-widest">Global Positioning</h3>
+                    </div>
+                    <p className="text-xs text-stone-400 font-medium">Detailed sighting location in the wild</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="block text-[10px] font-bold text-stone-400 uppercase tracking-tighter">Coordinates</span>
+                    <span className="text-sm font-mono font-bold text-stone-700">{mushroomData.lat?.toFixed(5)}° N, {mushroomData.lng?.toFixed(5)}° E</span>
+                  </div>
+               </div>
+               
+               {/* Increased height from 64 to 96 (approx 400px) */}
+                <div className="h-96 rounded-[3rem] overflow-hidden border-8 border-white shadow-2xl shadow-stone-200 relative group">
+                  <div className="absolute inset-0 bg-emerald-900/5 group-hover:bg-transparent transition-colors z-10 pointer-events-none" />
+                  <MiniMap 
+                    latitude={mushroomData.lat}
+                    longitude={mushroomData.lng}
                     name={mushroomData.name}
+                    locations={
+                      // Filter for all mushrooms of the same species (using scientific name preferred, fallback to common name)
+                      (allMushrooms || []).filter(m => 
+                        (mushroom.scientificName && m.scientificName?.toLowerCase() === mushroom.scientificName?.toLowerCase()) ||
+                        (!mushroom.scientificName && (m.commonName || m.name) === mushroomData.name)
+                      ).map(m => ({
+                        lat: m.location?.latitude || m.latitude,
+                        lng: m.location?.longitude || m.longitude,
+                        name: m.commonName || m.name,
+                        id: m._id || m.id
+                      })).filter(l => l.lat && l.lng)
+                    }
+                    currentId={params.id}
                   />
-                </div>
-              </div>
-            </div>
+               </div>
+            </section>
           </div>
+
         </div>
       </main>
     </div>
   );
 }
 
-function DetailRow({ label, value }) {
+function Stat({ label, value, card }) {
+  if (!value) return null;
+  const content = (
+    <>
+      <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-stone-400">{label}</span>
+      <span className="text-base font-bold text-stone-800 capitalize leading-tight">{value}</span>
+    </>
+  );
+
+  if (card) return <div className="bg-white border border-stone-200/60 p-6 rounded-[2rem] flex flex-col gap-2 shadow-sm">{content}</div>;
+  return <div className="flex justify-between items-center py-3 border-b border-stone-100 last:border-0">{content}</div>;
+}
+
+function LoadingState() {
   return (
-    <div className="flex justify-between items-center py-2 border-b border-stone-100 last:border-b-0">
-      <span className="text-xs font-bold text-stone-600 uppercase tracking-wider">
-        {label}
-      </span>
-      <span className="text-sm font-semibold text-stone-800 capitalize">
-        {value}
-      </span>
+    <div className="min-h-screen bg-[#faf9f6] flex flex-col items-center justify-center gap-6">
+      <div className="relative">
+        <div className="w-16 h-16 border-4 border-emerald-100 border-t-emerald-600 rounded-full animate-spin" />
+        <Loader2 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-emerald-600" size={24} />
+      </div>
+      <p className="text-stone-400 font-black uppercase tracking-[0.3em] text-[10px]">Processing Records</p>
+    </div>
+  );
+}
+
+function NotFoundState({ router }) {
+  return (
+    <div className="min-h-screen bg-[#faf9f6] flex items-center justify-center px-6">
+      <div className="max-w-sm text-center">
+        <div className="w-24 h-24 bg-white rounded-[2rem] shadow-xl shadow-stone-200 flex items-center justify-center mx-auto mb-8 text-stone-300">
+           <Info size={40} />
+        </div>
+        <h2 className="text-3xl font-black text-stone-900 mb-3 tracking-tight">Lost in the Brush</h2>
+        <p className="text-stone-500 mb-10 text-sm leading-relaxed">We couldn't find the specimen you're looking for. It might have been moved or removed from the database.</p>
+        <button onClick={() => router.push("/explore")} className="w-full py-4 bg-stone-900 text-white rounded-2xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-stone-200">Return to Exploration</button>
+      </div>
     </div>
   );
 }
