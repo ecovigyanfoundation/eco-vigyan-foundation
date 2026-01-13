@@ -1241,6 +1241,8 @@ function MapPageContent() {
                       onResetFilters={handleResetFilters}
                       selectedFilters={headerFilters}
                     />
+
+                    
                   </div>
                   
                   {/* Drawing Controls (shown when in drawing mode) */}

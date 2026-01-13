@@ -19,34 +19,37 @@ export default function MapFilter({
 }) {
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("all");
+
   const filterDropdownRef = useRef(null);
   const filterButtonClickedRef = useRef(false);
 
-  // Close filter menu when clicking outside
+  /* ------------------------------
+     CLICK OUTSIDE HANDLER
+  ------------------------------ */
   useEffect(() => {
-    const handleFilterMenuClickOutside = (event) => {
-      // Skip if button was just clicked (button's onClick handles the toggle)
+    const handleClickOutside = (event) => {
       if (filterButtonClickedRef.current) {
         filterButtonClickedRef.current = false;
         return;
       }
-      
-      if (filterMenuOpen && filterDropdownRef.current) {
-        const isClickInsideDropdown = filterDropdownRef.current.contains(event.target);
-        if (!isClickInsideDropdown) {
-          setFilterMenuOpen(false);
-        }
+
+      if (
+        filterMenuOpen &&
+        filterDropdownRef.current &&
+        !filterDropdownRef.current.contains(event.target)
+      ) {
+        setFilterMenuOpen(false);
       }
     };
 
-    document.addEventListener("click", handleFilterMenuClickOutside, true);
-    
-    return () => {
-      document.removeEventListener("click", handleFilterMenuClickOutside, true);
-    };
+    document.addEventListener("click", handleClickOutside, true);
+    return () =>
+      document.removeEventListener("click", handleClickOutside, true);
   }, [filterMenuOpen]);
 
-  // Combine all filter options
+  /* ------------------------------
+     FILTER DATA
+  ------------------------------ */
   const allFilterOptions = [
     ...ECOLOGICAL_ROLES,
     ...TEXTURES,
@@ -66,15 +69,29 @@ export default function MapFilter({
     { id: "use", label: "Common Uses", options: COMMON_USES },
   ];
 
-  const currentOptions = filterCategories.find((cat) => cat.id === selectedCategory)?.options || allFilterOptions;
+  const currentOptions =
+    filterCategories.find((c) => c.id === selectedCategory)?.options ||
+    allFilterOptions;
 
-  // Count active filters
-  const activeFilterCount = Object.values(selectedFilters || {}).reduce(
+  /* ------------------------------
+     ACTIVE FILTER COUNT
+  ------------------------------ */
+  const activeFilterCount = Object.values(selectedFilters).reduce(
     (total, arr) => total + (Array.isArray(arr) ? arr.length : 0),
     0
   );
 
-  // Determine filter type for a given value
+  /* Auto-close menu when everything is cleared */
+  useEffect(() => {
+    if (activeFilterCount === 0) {
+      setSelectedCategory("all");
+      setFilterMenuOpen(false);
+    }
+  }, [activeFilterCount]);
+
+  /* ------------------------------
+     HELPERS
+  ------------------------------ */
   const getFilterType = (value) => {
     if (ECOLOGICAL_ROLES.includes(value)) return "ecologicalRole";
     if (TEXTURES.includes(value)) return "texture";
@@ -85,156 +102,120 @@ export default function MapFilter({
     return null;
   };
 
-  // Check if a filter is selected
   const isFilterSelected = (value) => {
-    const filterType = getFilterType(value);
-    if (!filterType) return false;
-    const selected = selectedFilters[filterType] || [];
-    return selected.includes(value);
+    const type = getFilterType(value);
+    return selectedFilters[type]?.includes(value);
   };
 
-  // Handle filter click
-  const handleFilterClick = (value, event) => {
-    if (event) {
-      event.stopPropagation();
-    }
-    const filterType = getFilterType(value);
-    if (filterType && onFilterToggle) {
-      onFilterToggle(filterType, value);
-    }
+  const handleFilterClick = (value, e) => {
+    e.stopPropagation();
+    const type = getFilterType(value);
+    if (type) onFilterToggle(type, value);
   };
 
+  /* ------------------------------
+     RENDER
+  ------------------------------ */
   return (
     <div className="relative">
+      {/* FILTER BUTTON */}
       <button
         type="button"
         onClick={(e) => {
           e.stopPropagation();
           filterButtonClickedRef.current = true;
-          setFilterMenuOpen(prev => !prev);
+          setFilterMenuOpen((prev) => !prev);
         }}
-        className="relative flex items-center gap-1.5 px-3 py-2 bg-emerald-600/90 hover:bg-emerald-700/90 backdrop-blur-md rounded-xl border border-emerald-500 text-white shadow-2xl transition-all duration-300 hover:shadow-emerald-500/50"
+        className="relative flex items-center gap-1.5 px-3 py-2 bg-emerald-600/90 hover:bg-emerald-700 rounded-xl text-white"
       >
-        <Filter size={16} className="shrink-0" />
+        <Filter size={16} />
         <ChevronDown
           size={12}
-          className={`transition-transform shrink-0 ${
+          className={`transition-transform ${
             filterMenuOpen ? "rotate-180" : ""
           }`}
         />
+
         {activeFilterCount > 0 && (
-          <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-white text-emerald-600 text-[10px] font-black rounded-full flex items-center justify-center border-2 border-emerald-600">
+          <span className="absolute -top-1 -right-1 w-5 h-5 bg-white text-emerald-600 text-[10px] font-black rounded-full flex items-center justify-center">
             {activeFilterCount}
           </span>
         )}
       </button>
 
-      {/* FILTER DROPDOWN */}
+      {/* DROPDOWN */}
       {filterMenuOpen && (
-        <div 
+        <div
           ref={filterDropdownRef}
-          className="absolute left-0 mt-1 mb-4 w-80 max-w-[min(340px,calc(100vw-2rem))] max-h-[calc(100vh-200px)] bg-white rounded-xl shadow-2xl border border-emerald-100 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200"
+          className="absolute left-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border z-50"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="p-1 border-b border-emerald-50 bg-emerald-50/30">
-            <h3 className="text-[10px] font-black text-emerald-950 uppercase tracking-wider">
-              Filter Options
-            </h3>
+          {/* HEADER */}
+          <div className="p-2 border-b text-xs font-bold">
+            Filter Options
           </div>
 
-          {/* CATEGORY SELECTOR AND RESET */}
-          <div className="p-1.5 border-b border-emerald-50 bg-emerald-50/20 space-y-1">
+          {/* CATEGORY + RESET */}
+          <div className="p-2 space-y-1 border-b">
             <select
               value={selectedCategory}
-              onChange={(e) => {
-                e.stopPropagation();
-                setSelectedCategory(e.target.value);
-              }}
-              onClick={(e) => e.stopPropagation()}
-              className="w-full px-2 py-1 bg-white border border-emerald-200 rounded-md text-[12px] font-medium text-emerald-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="w-full px-2 py-1 border rounded text-xs"
             >
-              {filterCategories.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.label}
+              {filterCategories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.label}
                 </option>
               ))}
             </select>
-            {onResetFilters && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onResetFilters();
-                }}
-                className="w-full flex items-center justify-center gap-1 px-2 py-1 text-[10px] font-medium rounded-md transition-all bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm"
-                title="Reset all filters"
-              >
-                <RotateCcw size={10} />
-                <span>Reset All Filters</span>
-                {activeFilterCount > 0 && (
-                  <span className="ml-1 px-1 py-0.5 bg-white/20 rounded text-[9px] font-bold">
-                    {activeFilterCount}
-                  </span>
-                )}
-              </button>
-            )}
+
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onResetFilters();
+                setSelectedCategory("all");
+                setFilterMenuOpen(false);
+              }}
+              className="w-full flex items-center justify-center gap-1 px-2 py-1 text-xs bg-emerald-600 text-white rounded"
+            >
+              <RotateCcw size={12} />
+              Reset All Filters
+            </button>
           </div>
 
-          {/* FILTER OPTIONS GRID */}
-          <div className="p-1 max-h-[280px] overflow-y-auto">
-            <div className="grid grid-cols-5 gap-2">
-              {currentOptions.map((option) => {
-                const imagePath = getMushroomImage(option);
-                const displayName = getDisplayName(option);
-                const isSelected = isFilterSelected(option);
-                return (
-                  <button
-                    key={option}
-                    type="button"
-                    className={`flex flex-col items-center gap-1.5  rounded-lg border transition-all group ${
-                      isSelected
-                        ? "border-emerald-500 bg-emerald-50 shadow-md"
-                        : "border-emerald-100 hover:border-emerald-300 hover:bg-emerald-50/50"
-                    }`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleFilterClick(option, e);
-                    }}
-                  >
-                    {imagePath && (
-                      <div className="w-10 h-8 flex items-center justify-center relative">
-                        <img
-                          src={imagePath}
-                          alt={displayName}
-                          className={`w-full h-full object-contain transition-transform ${
-                            isSelected
-                              ? "scale-110"
-                              : "group-hover:scale-110"
-                          }`}
-                        />
-                        {isSelected && (
-                          <div className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center border-2 border-white">
-                            <span className="text-white text-[8px] font-black">✓</span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    <span
-                      className={`text-[8px] font-bold text-center leading-tight ${
-                        isSelected
-                          ? "text-emerald-700 font-bold"
-                          : "text-emerald-900"
-                      }`}
-                    >
-                      {displayName}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+          {/* FILTER GRID */}
+          <div className="p-2 max-h-72 overflow-y-auto grid grid-cols-5 gap-2">
+            {currentOptions.map((option) => {
+              const img = getMushroomImage(option);
+              const label = getDisplayName(option);
+              const selected = isFilterSelected(option);
+
+              return (
+                <button
+                  key={option}
+                  onClick={(e) => handleFilterClick(option, e)}
+                  className={`flex flex-col items-center gap-1 p-1 rounded border ${
+                    selected
+                      ? "bg-emerald-50 border-emerald-500"
+                      : "border-gray-200"
+                  }`}
+                >
+                  {img && (
+                    <img
+                      src={img}
+                      alt={label}
+                      className="w-8 h-8 object-contain"
+                    />
+                  )}
+                  <span className="text-[9px] font-bold text-center">
+                    {label}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
     </div>
   );
 }
-

@@ -100,6 +100,12 @@ export default function MushroomSubmissionForm({
           uniqueMatches.set(key, {
             commonName: item.commonName || item.name || "Unknown",
             scientificName: item.scientificName || "",
+            ecologicalRole: item.ecologicalRole || [],
+            texture: item.texture || "",
+            underside: item.underside || "",
+            fruitingSurface: item.fruitingSurface || "",
+            stemPresence: item.stemPresence || "",
+            commonUses: item.commonUses || [],
           });
         }
       }
@@ -130,6 +136,12 @@ export default function MushroomSubmissionForm({
           uniqueMatches.set(key, {
             commonName: item.commonName || item.name || "Unknown",
             scientificName: item.scientificName,
+            ecologicalRole: item.ecologicalRole || [],
+            texture: item.texture || "",
+            underside: item.underside || "",
+            fruitingSurface: item.fruitingSurface || "",
+            stemPresence: item.stemPresence || "",
+            commonUses: item.commonUses || [],
           });
         }
       }
@@ -701,6 +713,17 @@ toast.success(data.message || "Mushroom submitted successfully!");
                   if (suggestion.scientificName) {
                     setScientificName(suggestion.scientificName);
                   }
+                  // Autofill other fields if available
+                  if (suggestion.ecologicalRole && suggestion.ecologicalRole.length > 0) {
+                    setEcologicalRole(suggestion.ecologicalRole);
+                  }
+                  if (suggestion.texture) setTexture(suggestion.texture);
+                  if (suggestion.underside) setUnderside(suggestion.underside);
+                  if (suggestion.fruitingSurface) setFruitingSurface(suggestion.fruitingSurface);
+                  if (suggestion.stemPresence) setStemPresence(suggestion.stemPresence);
+                  if (suggestion.commonUses && suggestion.commonUses.length > 0) {
+                    setCommonUses(suggestion.commonUses);
+                  }
                   setShowCommonNameSuggestions(false);
                 } else if (e.key === "Escape") {
                   setShowCommonNameSuggestions(false);
@@ -724,6 +747,17 @@ toast.success(data.message || "Mushroom submitted successfully!");
                       setCommonName(suggestion.commonName);
                       if (suggestion.scientificName) {
                         setScientificName(suggestion.scientificName);
+                      }
+                      // Autofill other fields if available
+                      if (suggestion.ecologicalRole && suggestion.ecologicalRole.length > 0) {
+                        setEcologicalRole(suggestion.ecologicalRole);
+                      }
+                      if (suggestion.texture) setTexture(suggestion.texture);
+                      if (suggestion.underside) setUnderside(suggestion.underside);
+                      if (suggestion.fruitingSurface) setFruitingSurface(suggestion.fruitingSurface);
+                      if (suggestion.stemPresence) setStemPresence(suggestion.stemPresence);
+                      if (suggestion.commonUses && suggestion.commonUses.length > 0) {
+                        setCommonUses(suggestion.commonUses);
                       }
                       setShowCommonNameSuggestions(false);
                     }}
@@ -775,6 +809,17 @@ toast.success(data.message || "Mushroom submitted successfully!");
                   if (suggestion.commonName) {
                     setCommonName(suggestion.commonName);
                   }
+                  // Autofill other fields if available
+                  if (suggestion.ecologicalRole && suggestion.ecologicalRole.length > 0) {
+                    setEcologicalRole(suggestion.ecologicalRole);
+                  }
+                  if (suggestion.texture) setTexture(suggestion.texture);
+                  if (suggestion.underside) setUnderside(suggestion.underside);
+                  if (suggestion.fruitingSurface) setFruitingSurface(suggestion.fruitingSurface);
+                  if (suggestion.stemPresence) setStemPresence(suggestion.stemPresence);
+                  if (suggestion.commonUses && suggestion.commonUses.length > 0) {
+                    setCommonUses(suggestion.commonUses);
+                  }
                   setShowScientificNameSuggestions(false);
                 } else if (e.key === "Escape") {
                   setShowScientificNameSuggestions(false);
@@ -798,6 +843,17 @@ toast.success(data.message || "Mushroom submitted successfully!");
                       setScientificName(suggestion.scientificName);
                       if (suggestion.commonName) {
                         setCommonName(suggestion.commonName);
+                      }
+                      // Autofill other fields if available
+                      if (suggestion.ecologicalRole && suggestion.ecologicalRole.length > 0) {
+                        setEcologicalRole(suggestion.ecologicalRole);
+                      }
+                      if (suggestion.texture) setTexture(suggestion.texture);
+                      if (suggestion.underside) setUnderside(suggestion.underside);
+                      if (suggestion.fruitingSurface) setFruitingSurface(suggestion.fruitingSurface);
+                      if (suggestion.stemPresence) setStemPresence(suggestion.stemPresence);
+                      if (suggestion.commonUses && suggestion.commonUses.length > 0) {
+                        setCommonUses(suggestion.commonUses);
                       }
                       setShowScientificNameSuggestions(false);
                     }}
