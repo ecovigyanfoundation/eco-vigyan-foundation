@@ -185,8 +185,9 @@ function MapPageContent() {
   const [trailCurrentLocation, setTrailCurrentLocation] = useState(null);
   const [trailMushrooms, setTrailMushrooms] = useState([]);
   const [speciesSearchTerm, setSpeciesSearchTerm] = useState("");
+  const [scientificNameSearchTerm, setScientificNameSearchTerm] = useState("");
   const getCurrentBoundaryRef = useRef(null);
-  const prevFiltersRef = useRef({ speciesSearchTerm: "", hasZone: false });
+  const prevFiltersRef = useRef({ speciesSearchTerm: "", scientificNameSearchTerm: "", hasZone: false });
   const lastAddedMushroomRef = useRef(null);
   const trailModeRef = useRef(false);
   
@@ -271,6 +272,7 @@ function MapPageContent() {
     });
     // Also clear species search and zone selection
     setSpeciesSearchTerm("");
+    setScientificNameSearchTerm("");
     setSelectedZone(null);
     // Force map to reset zoom by incrementing mapKey
     setMapKey(prev => prev + 1);
@@ -288,9 +290,18 @@ function MapPageContent() {
       });
     }
 
-    // Apply species search filter
+    // Apply species search filter (common name)
     if (speciesSearchTerm.trim()) {
       const searchLower = speciesSearchTerm.toLowerCase().trim();
+      filtered = filtered.filter((item) => {
+        const commonName = (item.commonName || item.name || "").toLowerCase();
+        return commonName.includes(searchLower);
+      });
+    }
+
+    // Apply scientific name search filter (searches both common and scientific names)
+    if (scientificNameSearchTerm.trim()) {
+      const searchLower = scientificNameSearchTerm.toLowerCase().trim();
       filtered = filtered.filter((item) => {
         const commonName = (item.commonName || item.name || "").toLowerCase();
         const scientificName = (item.scientificName || "").toLowerCase();
@@ -387,11 +398,12 @@ function MapPageContent() {
     // Update previous filters ref
     prevFiltersRef.current = {
       speciesSearchTerm: speciesSearchTerm,
+      scientificNameSearchTerm: scientificNameSearchTerm,
       hasZone: !!hasZone,
       count: filtered.length,
       zoneId: selectedZone?.boundary?.length || null,
     };
-  }, [headerFilters, filters, mode, allData, selectedZone, speciesSearchTerm]);
+  }, [headerFilters, filters, mode, allData, selectedZone, speciesSearchTerm, scientificNameSearchTerm]);
 
   // Handle zone selection
   const handleZoneSelect = (zone) => {
@@ -1378,6 +1390,7 @@ function MapPageContent() {
           <MushroomGrid
             data={data}
             onMushroomClick={handleOpenMushroomDetail}
+            onScientificNameSearch={setScientificNameSearchTerm}
           />
         )}
 

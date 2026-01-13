@@ -4,18 +4,26 @@ import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Search, MapIcon, Navigation, Loader2 } from "lucide-react";
+import { Search, MapIcon, Navigation, Loader2, X } from "lucide-react";
 import MushroomBadge from "./MushroomBadge";
 
-const ITEMS_PER_PAGE = 30; // Load 30 items at a time
+const ITEMS_PER_PAGE = 30; // 5 rows on XL screens (6 cols × 5 rows)
 
-export default function MushroomGrid({ data, onMushroomClick }) {
+export default function MushroomGrid({ data, onMushroomClick, onScientificNameSearch }) {
   const router = useRouter();
   const [displayedItems, setDisplayedItems] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [scientificNameSearch, setScientificNameSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
   const observerTarget = useRef(null);
   const dataLengthRef = useRef(data.length);
+  const searchInputRef = useRef(null);
+  const suggestionsRef = useRef(null);
+  const debounceTimerRef = useRef(null);
 
   // Calculate total pages
   const totalPages = Math.ceil(data.length / ITEMS_PER_PAGE);
@@ -24,53 +32,151 @@ export default function MushroomGrid({ data, onMushroomClick }) {
   useEffect(() => {
     if (dataLengthRef.current !== data.length) {
       setCurrentPage(1);
-      setDisplayedItems([]);
       dataLengthRef.current = data.length;
     }
   }, [data.length]);
 
-  // Load items for current page
+  // Load items for current page only
   useEffect(() => {
-    const startIndex = 0;
-    const endIndex = currentPage * ITEMS_PER_PAGE;
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
     const itemsToShow = data.slice(startIndex, endIndex);
     setDisplayedItems(itemsToShow);
+    
+    // Scroll to top when page changes
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [data, currentPage]);
 
-  // Intersection Observer for infinite scroll
+  // Debounce search input
   useEffect(() => {
-    if (currentPage >= totalPages) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && !isLoading) {
-          setIsLoading(true);
-          // Simulate loading delay for smooth UX
-          setTimeout(() => {
-            setCurrentPage((prev) => prev + 1);
-            setIsLoading(false);
-          }, 300);
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    const currentTarget = observerTarget.current;
-    if (currentTarget) {
-      observer.observe(currentTarget);
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
     }
 
+    debounceTimerRef.current = setTimeout(() => {
+      setDebouncedSearch(scientificNameSearch);
+    }, 300); // 300ms debounce
+
     return () => {
-      if (currentTarget) {
-        observer.unobserve(currentTarget);
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [currentPage, totalPages, isLoading]);
+  }, [scientificNameSearch]);
+
+  // Generate suggestions based on debounced search term
+  useEffect(() => {
+    if (!debouncedSearch.trim()) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    const searchLower = debouncedSearch.toLowerCase().trim();
+    const uniqueMatches = new Map();
+
+    // Limit data processing for performance
+    const maxItemsToCheck = Math.min(data.length, 500);
+    
+    for (let i = 0; i < maxItemsToCheck && uniqueMatches.size < 10; i++) {
+      const item = data[i];
+      const commonName = (item.commonName || item.name || "").toLowerCase();
+      const scientificName = (item.scientificName || "").toLowerCase();
+      
+      // Check if either name matches
+      if (commonName.includes(searchLower) || scientificName.includes(searchLower)) {
+        // Use scientific name as key to avoid duplicates
+        const key = item.scientificName || item.commonName || item.name;
+        if (!uniqueMatches.has(key)) {
+          uniqueMatches.set(key, {
+            commonName: item.commonName || item.name || "Unknown",
+            scientificName: item.scientificName || "",
+          });
+        }
+      }
+    }
+
+    const matchArray = Array.from(uniqueMatches.values());
+    setSuggestions(matchArray);
+    setShowSuggestions(matchArray.length > 0);
+  }, [debouncedSearch, data]);
+
+  // Handle click outside to close suggestions
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        suggestionsRef.current &&
+        !suggestionsRef.current.contains(event.target) &&
+        searchInputRef.current &&
+        !searchInputRef.current.contains(event.target)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Handle scientific name search with immediate UI update
+  const handleScientificNameSearchChange = (value) => {
+    setScientificNameSearch(value);
+    setSelectedSuggestionIndex(-1);
+    // Don't call parent handler immediately - wait for debounce
+  };
+
+  // Call parent handler only when debounced search changes
+  useEffect(() => {
+    if (onScientificNameSearch) {
+      onScientificNameSearch(debouncedSearch);
+    }
+  }, [debouncedSearch, onScientificNameSearch]);
+
+  // Handle suggestion selection
+  const handleSuggestionClick = (suggestion) => {
+    const searchTerm = suggestion.scientificName || suggestion.commonName;
+    setScientificNameSearch(searchTerm);
+    setDebouncedSearch(searchTerm); // Update immediately for suggestions
+    setShowSuggestions(false);
+    if (onScientificNameSearch) {
+      onScientificNameSearch(searchTerm);
+    }
+  };
+
+  // Handle keyboard navigation
+  const handleKeyDown = (e) => {
+    if (!showSuggestions || suggestions.length === 0) return;
+
+    switch (e.key) {
+      case "ArrowDown":
+        e.preventDefault();
+        setSelectedSuggestionIndex((prev) =>
+          prev < suggestions.length - 1 ? prev + 1 : prev
+        );
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        setSelectedSuggestionIndex((prev) => (prev > 0 ? prev - 1 : -1));
+        break;
+      case "Enter":
+        e.preventDefault();
+        if (selectedSuggestionIndex >= 0) {
+          handleSuggestionClick(suggestions[selectedSuggestionIndex]);
+        }
+        break;
+      case "Escape":
+        setShowSuggestions(false);
+        setSelectedSuggestionIndex(-1);
+        break;
+      default:
+        break;
+    }
+  };
   return (
     <div className="p-8 h-full overflow-y-auto bg-stone-50 custom-scrollbar">
       <div className="max-w-7xl mx-auto">
         {/* SECTION HEADER */}
-        <div className="flex flex-col md:flex-row justify-between items-end mb-10 gap-4 border-b border-stone-200 pb-8">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-4 border-b border-stone-200 pb-8">
           <div>
             <span className="text-emerald-600 font-bold uppercase tracking-widest text-[10px] flex items-center gap-2 mb-2">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -80,9 +186,70 @@ export default function MushroomGrid({ data, onMushroomClick }) {
               Community <span className="text-emerald-600">Observations</span>
             </h2>
           </div>
-          <p className="text-stone-400 font-bold text-xs uppercase tracking-widest bg-white px-4 py-2 rounded-full border border-stone-100 shadow-sm">
-            {data.length} Specimens Documented
-          </p>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full md:w-auto">
+            {/* Autocomplete Search */}
+            <div className="relative w-full sm:w-auto">
+              <div className="flex items-center bg-white border border-stone-200 rounded-2xl px-4 gap-2 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all w-full sm:w-auto">
+                <Search size={16} className="text-emerald-600 shrink-0" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={scientificNameSearch}
+                  onChange={(e) => handleScientificNameSearchChange(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                  placeholder="Search by name (common or scientific)..."
+                  className="bg-transparent flex-1 sm:w-80 py-2.5 text-xs outline-none text-slate-800 placeholder:text-stone-400 font-medium"
+                />
+                {scientificNameSearch && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleScientificNameSearchChange("");
+                      setShowSuggestions(false);
+                    }}
+                    className="shrink-0 p-1 rounded-full hover:bg-stone-100 text-stone-400 hover:text-emerald-600 transition-colors"
+                    title="Clear search"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+              
+              {/* Suggestions Dropdown */}
+              {showSuggestions && suggestions.length > 0 && (
+                <div
+                  ref={suggestionsRef}
+                  className="absolute top-full left-0 right-0 mt-2 bg-white border border-stone-200 rounded-2xl shadow-2xl max-h-80 overflow-y-auto z-50 py-2"
+                >
+                  {suggestions.map((suggestion, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleSuggestionClick(suggestion)}
+                      className={`w-full px-4 py-3 text-left hover:bg-emerald-50 transition-colors border-b border-stone-100 last:border-b-0 ${
+                        index === selectedSuggestionIndex ? "bg-emerald-50" : ""
+                      }`}
+                    >
+                      <div className="flex flex-col gap-1">
+                        <span className="text-sm font-bold text-slate-800">
+                          {suggestion.commonName}
+                        </span>
+                        {suggestion.scientificName && (
+                          <span className="text-xs italic text-emerald-600">
+                            {suggestion.scientificName}
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            {/* Specimens Count */}
+            <p className="text-stone-400 font-bold text-xs uppercase tracking-widest bg-white px-4 py-2 rounded-full border border-stone-100 shadow-sm whitespace-nowrap">
+              {data.length} Specimens Documented
+            </p>
+          </div>
         </div>
 
         {/* THE GRID */}
@@ -240,23 +407,74 @@ export default function MushroomGrid({ data, onMushroomClick }) {
           })}
         </div>
 
-        {/* LOADING INDICATOR */}
-        {currentPage < totalPages && (
-          <div ref={observerTarget} className="col-span-full flex justify-center py-8">
-            <div className="flex flex-col items-center gap-3">
-              <Loader2 className="w-6 h-6 text-emerald-600 animate-spin" />
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                Loading more observations...
-              </p>
+        {/* PAGINATION */}
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center gap-2 mt-12 mb-8">
+            {/* Previous Button */}
+            <button
+              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${
+                currentPage === 1
+                  ? "bg-stone-200 text-stone-400 cursor-not-allowed"
+                  : "bg-white border border-emerald-500 text-emerald-600 hover:bg-emerald-500 hover:text-white shadow-sm"
+              }`}
+            >
+              Previous
+            </button>
+
+            {/* Page Numbers */}
+            <div className="flex gap-2">
+              {(() => {
+                const pages = [];
+                const maxPagesToShow = 5;
+                let startPage = Math.max(1, currentPage - 2);
+                let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
+                
+                // Adjust start if we're near the end
+                if (endPage - startPage < maxPagesToShow - 1) {
+                  startPage = Math.max(1, endPage - maxPagesToShow + 1);
+                }
+
+                for (let i = startPage; i <= endPage; i++) {
+                  pages.push(
+                    <button
+                      key={i}
+                      onClick={() => setCurrentPage(i)}
+                      className={`w-10 h-10 rounded-xl font-bold text-sm transition-all ${
+                        currentPage === i
+                          ? "bg-emerald-600 text-white shadow-lg shadow-emerald-200"
+                          : "bg-white border border-stone-200 text-slate-700 hover:border-emerald-500 hover:text-emerald-600"
+                      }`}
+                    >
+                      {i}
+                    </button>
+                  );
+                }
+                return pages;
+              })()}
             </div>
+
+            {/* Next Button */}
+            <button
+              onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+              className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${
+                currentPage === totalPages
+                  ? "bg-stone-200 text-stone-400 cursor-not-allowed"
+                  : "bg-white border border-emerald-500 text-emerald-600 hover:bg-emerald-500 hover:text-white shadow-sm"
+              }`}
+            >
+              Next
+            </button>
           </div>
         )}
 
-        {/* END OF LIST INDICATOR */}
-        {currentPage >= totalPages && displayedItems.length > 0 && (
-          <div className="col-span-full flex justify-center py-8">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-              All {data.length} observations loaded
+        {/* Page Info */}
+        {data.length > 0 && (
+          <div className="text-center mb-8">
+            <p className="text-xs text-stone-400 font-medium">
+              Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, data.length)} of {data.length} observations
             </p>
           </div>
         )}
