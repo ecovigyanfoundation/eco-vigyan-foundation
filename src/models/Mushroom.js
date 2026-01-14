@@ -59,6 +59,8 @@ const MushroomSchema = new mongoose.Schema(
         "teeth",
         "ball-with-no-distinctive-bottom",
         "cup-with-no-distinctive-bottom",
+        "club-with-no-distinctive-bottom",
+        "crust-on-wood-with-no-distinctive-bottom",
         "star-with-no-distinctive-bottom",
         "jelly-with-no-distinctive-bottom",
         "sponge-with-no-distinctive-bottom",
