@@ -1,59 +1,24 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import jwt from "jsonwebtoken";
 import { connectDB } from "@/lib/mongodb";
 import Mushroom from "@/models/Mushroom";
 import User from "@/models/User";
+import { getAuthenticatedUser } from "@/lib/auth";
 
 export async function GET(req, { params }) {
   try {
     await connectDB();
 
     /* ================= AUTH ================= */
-
-    // Get token from cookies - await cookies() in Next.js 15+
-    let token = null;
-    try {
-      const cookieStore = await cookies();
-      token = cookieStore.get("token")?.value;
-    } catch (err) {
-      console.error("Error reading cookies:", err);
-      // Fallback: try reading from request headers
-      const cookieHeader = req.headers.get("cookie");
-      if (cookieHeader) {
-        const cookieObj = cookieHeader.split(";").reduce((acc, cookie) => {
-          const [key, value] = cookie.trim().split("=");
-          if (key && value) {
-            acc[key] = decodeURIComponent(value);
-          }
-          return acc;
-        }, {});
-        token = cookieObj.token;
-      }
+    const { user, error } = await getAuthenticatedUser();
+    if (!user) {
+      return NextResponse.json({ error: error || "Unauthorized" }, { status: 401 });
     }
 
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    let decoded;
-    try {
-      // Handle URL-encoded token
-      const decodedToken = decodeURIComponent(token);
-      decoded = jwt.verify(decodedToken, process.env.JWT_SECRET);
-    } catch (err) {
-      console.error("JWT verification error:", err);
-      return NextResponse.json({ error: "Invalid or expired token" }, { status: 401 });
-    }
-
-    const admin = await User.findById(decoded.id);
-    if (!admin || admin.role !== "admin") {
+    if (user.role !== "admin") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     /* ================= FETCH ================= */
-
-    // In Next.js 15+, params is a Promise that must be awaited
     const { id } = await params;
     
     const mushroom = await Mushroom.findById(id)
@@ -81,50 +46,16 @@ export async function PATCH(req, { params }) {
     await connectDB();
 
     /* ================= AUTH ================= */
-
-    // Get token from cookies - await cookies() in Next.js 15+
-    let token = null;
-    try {
-      const cookieStore = await cookies();
-      token = cookieStore.get("token")?.value;
-    } catch (err) {
-      console.error("Error reading cookies:", err);
-      // Fallback: try reading from request headers
-      const cookieHeader = req.headers.get("cookie");
-      if (cookieHeader) {
-        const cookieObj = cookieHeader.split(";").reduce((acc, cookie) => {
-          const [key, value] = cookie.trim().split("=");
-          if (key && value) {
-            acc[key] = decodeURIComponent(value);
-          }
-          return acc;
-        }, {});
-        token = cookieObj.token;
-      }
+    const { user: admin, error } = await getAuthenticatedUser();
+    if (!admin) {
+      return NextResponse.json({ error: error || "Unauthorized" }, { status: 401 });
     }
 
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    let decoded;
-    try {
-      // Handle URL-encoded token
-      const decodedToken = decodeURIComponent(token);
-      decoded = jwt.verify(decodedToken, process.env.JWT_SECRET);
-    } catch (err) {
-      console.error("JWT verification error:", err);
-      return NextResponse.json({ error: "Invalid or expired token" }, { status: 401 });
-    }
-
-    const admin = await User.findById(decoded.id);
-    if (!admin || admin.role !== "admin") {
+    if (admin.role !== "admin") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     /* ================= FETCH MUSHROOM ================= */
-
-    // In Next.js 15+, params is a Promise that must be awaited
     const { id } = await params;
     
     const mushroom = await Mushroom.findById(id);
@@ -136,7 +67,6 @@ export async function PATCH(req, { params }) {
     }
 
     /* ================= PARSE BODY ================= */
-
     const body = await req.json();
     const {
       commonName,
@@ -154,7 +84,6 @@ export async function PATCH(req, { params }) {
     } = body;
 
     /* ================= UPDATE FIELDS ================= */
-
     const updateData = {};
 
     if (commonName !== undefined) {
@@ -189,7 +118,6 @@ export async function PATCH(req, { params }) {
     }
 
     /* ================= HANDLE STATUS ================= */
-
     if (action === "approve") {
       const wasApproved = mushroom.status === "approved";
       updateData.status = "approved";
@@ -198,10 +126,9 @@ export async function PATCH(req, { params }) {
       updateData.rejectionReason = null;
       
       // Award points to the submitter if this is the first time being approved
-      // (only if it wasn't already approved)
       if (!wasApproved && mushroom.submittedBy) {
         await User.findByIdAndUpdate(mushroom.submittedBy, {
-          $inc: { points: 1 }, // Increment points by 1
+          $inc: { points: 1 },
         });
       }
     } else if (action === "reject") {
@@ -213,7 +140,7 @@ export async function PATCH(req, { params }) {
       // Remove points if previously approved and now being rejected
       if (wasApproved && mushroom.submittedBy) {
         await User.findByIdAndUpdate(mushroom.submittedBy, {
-          $inc: { points: -1 }, // Decrement points by 1
+          $inc: { points: -1 },
         });
       }
     } else if (action === "pending") {
@@ -224,13 +151,12 @@ export async function PATCH(req, { params }) {
       // Remove points if previously approved and now set back to pending
       if (wasApproved && mushroom.submittedBy) {
         await User.findByIdAndUpdate(mushroom.submittedBy, {
-          $inc: { points: -1 }, // Decrement points by 1
+          $inc: { points: -1 },
         });
       }
     }
 
     /* ================= SAVE ================= */
-
     Object.assign(mushroom, updateData);
     await mushroom.save();
 
@@ -252,50 +178,16 @@ export async function DELETE(req, { params }) {
     await connectDB();
 
     /* ================= AUTH ================= */
-
-    // Get token from cookies - await cookies() in Next.js 15+
-    let token = null;
-    try {
-      const cookieStore = await cookies();
-      token = cookieStore.get("token")?.value;
-    } catch (err) {
-      console.error("Error reading cookies:", err);
-      // Fallback: try reading from request headers
-      const cookieHeader = req.headers.get("cookie");
-      if (cookieHeader) {
-        const cookieObj = cookieHeader.split(";").reduce((acc, cookie) => {
-          const [key, value] = cookie.trim().split("=");
-          if (key && value) {
-            acc[key] = decodeURIComponent(value);
-          }
-          return acc;
-        }, {});
-        token = cookieObj.token;
-      }
+    const { user: admin, error } = await getAuthenticatedUser();
+    if (!admin) {
+      return NextResponse.json({ error: error || "Unauthorized" }, { status: 401 });
     }
 
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    let decoded;
-    try {
-      // Handle URL-encoded token
-      const decodedToken = decodeURIComponent(token);
-      decoded = jwt.verify(decodedToken, process.env.JWT_SECRET);
-    } catch (err) {
-      console.error("JWT verification error:", err);
-      return NextResponse.json({ error: "Invalid or expired token" }, { status: 401 });
-    }
-
-    const admin = await User.findById(decoded.id);
-    if (!admin || admin.role !== "admin") {
+    if (admin.role !== "admin") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     /* ================= DELETE MUSHROOM ================= */
-
-    // In Next.js 15+, params is a Promise that must be awaited
     const { id } = await params;
     
     const mushroom = await Mushroom.findById(id).populate("submittedBy", "username email");

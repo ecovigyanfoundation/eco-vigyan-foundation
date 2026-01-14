@@ -1,51 +1,16 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import jwt from "jsonwebtoken";
 import { connectDB } from "@/lib/mongodb";
 import Mushroom from "@/models/Mushroom";
+import { getAuthenticatedUser } from "@/lib/auth";
 
 export async function GET(req) {
   try {
     await connectDB();
 
     /* ================= AUTH ================= */
-
-    // Get token from cookies - await cookies() in Next.js 15+
-    let token = null;
-    try {
-      const cookieStore = await cookies();
-      token = cookieStore.get("token")?.value;
-    } catch (err) {
-      console.error("Error reading cookies:", err);
-      // Fallback: try reading from request headers
-      const cookieHeader = req.headers.get("cookie");
-      if (cookieHeader) {
-        const cookieObj = cookieHeader.split(";").reduce((acc, cookie) => {
-          const [key, value] = cookie.trim().split("=");
-          if (key && value) {
-            acc[key] = decodeURIComponent(value);
-          }
-          return acc;
-        }, {});
-        token = cookieObj.token;
-      }
-    }
-
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    let decoded;
-    try {
-      // Handle URL-encoded token
-      const decodedToken = decodeURIComponent(token);
-      decoded = jwt.verify(decodedToken, process.env.JWT_SECRET);
-    } catch (err) {
-      console.error("JWT verification error:", err);
-      return NextResponse.json(
-        { error: "Invalid or expired token" },
-        { status: 401 }
-      );
+    const { user, error } = await getAuthenticatedUser();
+    if (!user) {
+      return NextResponse.json({ error: error || "Unauthorized" }, { status: 401 });
     }
 
     /* ================= QUERY ================= */
@@ -53,7 +18,7 @@ export async function GET(req) {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status"); // optional filter: pending, approved, rejected
 
-    const query = { submittedBy: decoded.id };
+    const query = { submittedBy: user._id };
 
     if (status && ["pending", "approved", "rejected"].includes(status)) {
       query.status = status;
@@ -67,15 +32,15 @@ export async function GET(req) {
 
     // Get counts for each status
     const pendingCount = await Mushroom.countDocuments({
-      submittedBy: decoded.id,
+      submittedBy: user._id,
       status: "pending",
     });
     const approvedCount = await Mushroom.countDocuments({
-      submittedBy: decoded.id,
+      submittedBy: user._id,
       status: "approved",
     });
     const rejectedCount = await Mushroom.countDocuments({
-      submittedBy: decoded.id,
+      submittedBy: user._id,
       status: "rejected",
     });
 
@@ -99,5 +64,3 @@ export async function GET(req) {
     );
   }
 }
-
-
