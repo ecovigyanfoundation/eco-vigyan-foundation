@@ -941,7 +941,7 @@ function MapPageContent() {
 
   // Handle drawing cancellation
   const handleDrawingCancel = () => {
-    setDrawingMode(null);
+    window.location.reload();
   };
 
   // Handle clearing the current drawing (reset but keep drawing mode active)

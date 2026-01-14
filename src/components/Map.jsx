@@ -147,7 +147,6 @@ export default function Map(props) {
     };
   }, [isTokenMissing]);
 
-  /* ---------------- DATA + LAYERS ---------------- */
   useEffect(() => {
     if (!mapLoaded || !mapRef.current || !mapRef.current.isStyleLoaded())
       return;
@@ -1432,6 +1431,8 @@ export default function Map(props) {
     }
 
     // Function to set up drawing mode (defined first so it can be called by event handlers)
+    let cleanupFunc = null;
+
     const setupDrawingMode = () => {
       if (!map || !map.isStyleLoaded()) {
         return;
@@ -2711,7 +2712,6 @@ export default function Map(props) {
 
         drawingStateRef.current.currentCenter = null;
         drawingStateRef.current.currentSize = null;
-
         completeDrawing(boundary, drawingMode, centerPoint, true);
       };
 
@@ -2725,6 +2725,23 @@ export default function Map(props) {
         map.off("touchend", handleTouchEnd);
         map.off("zoom", handleZoomOrMove);
         map.off("move", handleZoomOrMove);
+
+        // Remove layers and source
+        try {
+          if (map.getLayer("drawing-fill")) map.removeLayer("drawing-fill");
+          if (map.getLayer("drawing-outline")) map.removeLayer("drawing-outline");
+          if (map.getSource("drawing")) map.removeSource("drawing");
+        } catch (error) {
+          console.error("Error removing drawing layers:", error);
+        }
+
+        // Remove handles
+        if (resizeHandlesRef.current) {
+          resizeHandlesRef.current.forEach((handle) => handle.remove());
+          resizeHandlesRef.current = [];
+        }
+
+        map.getCanvas().style.cursor = "";
       };
 
       const completeDrawing = (
@@ -2884,21 +2901,21 @@ export default function Map(props) {
       const onStyleLoad = () => {
         if (map.isStyleLoaded() && drawingMode) {
           doCleanup();
-          setupDrawingMode();
+          cleanupFunc = setupDrawingMode();
         }
       };
 
       const onMapLoad = () => {
         if (map.isStyleLoaded() && drawingMode) {
           doCleanup();
-          setupDrawingMode();
+          cleanupFunc = setupDrawingMode();
         }
       };
 
       const onIdle = () => {
         if (map.isStyleLoaded() && drawingMode) {
           doCleanup();
-          setupDrawingMode();
+          cleanupFunc = setupDrawingMode();
         }
       };
 
@@ -2911,7 +2928,7 @@ export default function Map(props) {
       timeoutId = setTimeout(() => {
         if (map.isStyleLoaded() && drawingMode) {
           doCleanup();
-          setupDrawingMode();
+          cleanupFunc = setupDrawingMode();
         }
       }, 500);
 
@@ -2921,11 +2938,11 @@ export default function Map(props) {
     }
 
     // If style is already loaded, proceed immediately
-    setupDrawingMode();
+    cleanupFunc = setupDrawingMode();
 
     // Return cleanup for the useEffect
     return () => {
-      // Cleanup will be handled by setupDrawingMode's return
+      if (cleanupFunc) cleanupFunc();
     };
   }, [
     drawingMode,
