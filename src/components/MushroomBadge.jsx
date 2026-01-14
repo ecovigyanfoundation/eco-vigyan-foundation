@@ -1,31 +1,29 @@
-import {
-  Utensils,
-  FlaskConical,
-  Skull,
-  Leaf,
-  Flame,
-  Zap,
-} from "lucide-react";
+"use client";
+
+import { getMushroomImage, getDisplayName } from "@/components/mushroomImageMap";
 
 export default function MushroomBadge({ category, use, variant = "small" }) {
-  const getUseIcon = (useType) => {
-    const iconSize = variant === "small" ? 12 : 16;
-    switch (useType?.toLowerCase()) {
-      case "culinary":
-      case "edible":
-        return <Utensils size={iconSize} className="text-emerald-400" />;
-      case "medicinal":
-        return <FlaskConical size={iconSize} className="text-blue-400" />;
-      case "poisonous":
-        return <Skull size={iconSize} className="text-red-500" />;
-      case "research":
-        return <Leaf size={iconSize} className="text-orange-400" />;
-      case "fuel":
-        return <Flame size={iconSize} className="text-yellow-500" />;
-      default:
-        return <Zap size={iconSize} className="text-purple-400" />;
-    }
-  };
+  // Safely convert category to string (handles arrays like ecologicalRole)
+  const categoryStr = Array.isArray(category) 
+    ? category[0] 
+    : (typeof category === 'string' ? category : null);
+  
+  const useStr = Array.isArray(use) 
+    ? use[0] 
+    : (typeof use === 'string' ? use : null);
+  
+  // Get the icon for the ecological role (category)
+  const categoryIcon = categoryStr ? getMushroomImage(categoryStr.toLowerCase()) : null;
+  // Get the icon for the common use
+  const useIcon = useStr ? getMushroomImage(useStr.toLowerCase()) : null;
+  
+  // Determine which icon to display (prioritize use, fallback to category)
+  const iconSrc = useIcon || categoryIcon;
+  
+  // Format category for display
+  const displayCategory = categoryStr 
+    ? getDisplayName(categoryStr) 
+    : "Unknown";
 
   return (
     <div
@@ -33,24 +31,22 @@ export default function MushroomBadge({ category, use, variant = "small" }) {
         variant === "small" ? "px-2 py-0.5" : "px-4 py-2"
       }`}
     >
-      {getUseIcon(use)}
+      {iconSrc ? (
+        <img 
+          src={iconSrc} 
+          alt={displayCategory}
+          className={`object-contain ${variant === "small" ? "w-4 h-4" : "w-6 h-6"}`}
+        />
+      ) : (
+        <div className={`rounded-full bg-emerald-500/50 ${variant === "small" ? "w-3 h-3" : "w-5 h-5"}`} />
+      )}
       <span
         className={`font-black uppercase tracking-tighter text-white ${
           variant === "small" ? "text-[9px]" : "text-xs"
         }`}
       >
-        {category}
+        {displayCategory}
       </span>
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-

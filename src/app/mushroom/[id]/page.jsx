@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ArrowLeft, MapPin, Calendar, User, Loader2, Globe, Info } from "lucide-react";
 import MushroomBadge from "@/components/MushroomBadge";
+import { getMushroomImage, getDisplayName } from "@/components/mushroomImageMap";
 
 const MiniMap = dynamic(() => import("@/components/MiniMap"), {
   ssr: false,
@@ -175,10 +176,31 @@ export default function MushroomDetailPage() {
 
 function Stat({ label, value, card }) {
   if (!value) return null;
+  
+  // Get icon for the value if it's a known category/attribute
+  const getIconForValue = (val) => {
+    if (typeof val !== 'string') return null;
+    // Handle arrays like ecologicalRole
+    const values = val.includes(',') ? val.split(',').map(v => v.trim()) : [val];
+    return values.map(v => getMushroomImage(v.toLowerCase().replace(/ /g, '-')));
+  };
+  
+  const icons = getIconForValue(value);
+  const displayValue = typeof value === 'string' ? getDisplayName(value.replace(/-/g, ' ')) : value;
+  
   const content = (
     <>
       <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-stone-400">{label}</span>
-      <span className="text-base font-bold text-stone-800 capitalize leading-tight">{value}</span>
+      <div className="flex items-center gap-2">
+        {icons && icons.filter(Boolean).length > 0 && (
+          <div className="flex gap-1">
+            {icons.filter(Boolean).map((icon, idx) => (
+              <img key={idx} src={icon} alt="" className="w-6 h-6 object-contain" />
+            ))}
+          </div>
+        )}
+        <span className="text-base font-bold text-stone-800 capitalize leading-tight">{displayValue}</span>
+      </div>
     </>
   );
 
