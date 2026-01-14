@@ -1,60 +1,18 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import jwt from "jsonwebtoken";
 import { connectDB } from "@/lib/mongodb";
 import Trail from "@/models/Trail";
 import User from "@/models/User";
 import mongoose from "mongoose";
-
-// Helper function to get authenticated user
-async function getAuthenticatedUser(req) {
-  let token = null;
-  try {
-    const cookieStore = await cookies();
-    token = cookieStore.get("token")?.value;
-  } catch (err) {
-    console.error("Error reading cookies:", err);
-    const cookieHeader = req.headers.get("cookie");
-    if (cookieHeader) {
-      const cookieObj = cookieHeader.split(";").reduce((acc, cookie) => {
-        const [key, value] = cookie.trim().split("=");
-        if (key && value) {
-          acc[key] = decodeURIComponent(value);
-        }
-        return acc;
-      }, {});
-      token = cookieObj.token;
-    }
-  }
-
-  if (!token) {
-    return null;
-  }
-
-  try {
-    const decodedToken = decodeURIComponent(token);
-    const decoded = jwt.verify(decodedToken, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.id);
-    if (!user || user.isBanned) {
-      return null;
-    }
-    return user;
-  } catch (err) {
-    console.error("JWT verification error:", err);
-    return null;
-  }
-}
+import { getAuthenticatedUser } from "@/lib/auth";
 
 // GET - Get a specific trail
-// Normal users: can view any trail created by an admin
-// Admins: can view any trail
 export async function GET(req, { params }) {
   try {
     await connectDB();
 
-    const user = await getAuthenticatedUser(req);
+    const { user, error } = await getAuthenticatedUser();
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: error || "Unauthorized" }, { status: 401 });
     }
 
     const { id } = await params;
@@ -76,10 +34,9 @@ export async function GET(req, { params }) {
 
     // Normal users can only view trails created by admins
     if (user.role !== "admin") {
-      // Check if trail creator is an admin (user is already populated)
       const trailCreatorId = trail.user._id || trail.user;
       const trailCreator = trail.user.role 
-        ? trail.user // Already populated with role
+        ? trail.user
         : await User.findById(trailCreatorId).select("role");
       
       if (!trailCreator || trailCreator.role !== "admin") {
@@ -105,12 +62,11 @@ export async function PUT(req, { params }) {
   try {
     await connectDB();
 
-    const user = await getAuthenticatedUser(req);
+    const { user, error } = await getAuthenticatedUser();
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: error || "Unauthorized" }, { status: 401 });
     }
 
-    // Only admins can update trails
     if (user.role !== "admin") {
       return NextResponse.json(
         { error: "Only admins can update trails" },
@@ -136,7 +92,6 @@ export async function PUT(req, { params }) {
       return NextResponse.json({ error: "Trail not found" }, { status: 404 });
     }
 
-    // Update fields if provided
     if (name !== undefined) {
       if (!name || !name.trim()) {
         return NextResponse.json(
@@ -185,12 +140,11 @@ export async function DELETE(req, { params }) {
   try {
     await connectDB();
 
-    const user = await getAuthenticatedUser(req);
+    const { user, error } = await getAuthenticatedUser();
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: error || "Unauthorized" }, { status: 401 });
     }
 
-    // Only admins can delete trails
     if (user.role !== "admin") {
       return NextResponse.json(
         { error: "Only admins can delete trails" },
@@ -227,4 +181,3 @@ export async function DELETE(req, { params }) {
     );
   }
 }
-

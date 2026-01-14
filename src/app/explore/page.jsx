@@ -1280,6 +1280,14 @@ function MapPageContent() {
                         <Trash2 size={18} className="shrink-0" />
                         Clear
                       </button>
+                      <button
+                        onClick={handleDrawingCancel}
+                        className="px-4 py-3 rounded-2xl bg-gray-600/90 hover:bg-gray-700/90 backdrop-blur-md border border-gray-500 text-white shadow-2xl transition-all duration-300 hover:shadow-gray-500/50 flex items-center gap-2 font-bold text-sm"
+                        title="Cancel drawing"
+                      >
+                        <X size={18} className="shrink-0" />
+                        Cancel
+                      </button>
                     </div>
                   )}
                   
@@ -1397,6 +1405,27 @@ function MapPageContent() {
                       <p className="text-white/80 text-[10px] mt-1">
                         Click mushrooms on the map to add them to your trail
                       </p>
+
+                      <div className="mt-3 flex gap-2">
+                        {user?.role === "admin" && trailMushrooms.length > 0 && (
+                          <button
+                            onClick={handleSaveTrail}
+                            className="flex-1 px-3 py-2 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold text-[10px] transition-colors flex items-center justify-center gap-1.5 shadow-lg"
+                            title="Save Trail"
+                          >
+                            <Save size={12} strokeWidth={2.5} />
+                            SAVE
+                          </button>
+                        )}
+                        <button
+                          onClick={handleEndTrail}
+                          className="flex-1 px-3 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-[10px] transition-colors flex items-center justify-center gap-1.5 shadow-lg"
+                          title="End Trail"
+                        >
+                          <X size={12} strokeWidth={3} />
+                          END
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>

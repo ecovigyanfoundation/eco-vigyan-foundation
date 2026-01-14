@@ -1,67 +1,17 @@
 import { connectDB } from "@/lib/mongodb";
 import Gallery from "@/models/Gallery";
-import User from "@/models/User";
 import cloudinary from "@/lib/cloudinary";
-import jwt from "jsonwebtoken";
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { getAuthenticatedUser } from "@/lib/auth";
 
 // PUT - Update gallery item
 export async function PUT(req, { params }) {
   try {
     await connectDB();
 
-    // Authentication check
-    if (!process.env.JWT_SECRET) {
-      return NextResponse.json(
-        { error: "Server configuration error" },
-        { status: 500 }
-      );
-    }
-
-    // Get token from cookies - read from request headers
-    let token = null;
-    const cookieHeader = req.headers.get("cookie");
-    if (cookieHeader) {
-      const cookieObj = cookieHeader.split(";").reduce((acc, cookie) => {
-        const [key, value] = cookie.trim().split("=");
-        if (key && value) {
-          acc[key] = decodeURIComponent(value);
-        }
-        return acc;
-      }, {});
-      token = cookieObj.token;
-    }
-    
-    // Fallback: try using cookies() API if header method fails
-    if (!token) {
-      try {
-        const cookieStore = cookies();
-        if (cookieStore && typeof cookieStore.get === "function") {
-          token = cookieStore.get("token")?.value;
-        }
-      } catch (error) {
-        console.error("Error reading cookies:", error);
-      }
-    }
-
-    if (!token) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    // Decode URL-encoded token
-    const decodedToken = decodeURIComponent(token);
-    const decoded = jwt.verify(decodedToken, process.env.JWT_SECRET);
-
-    const user = await User.findById(decoded.id);
-    if (!user || user.isBanned) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+    const { user, error } = await getAuthenticatedUser();
+    if (!user) {
+      return NextResponse.json({ error: error || "Unauthorized" }, { status: 401 });
     }
 
     if (user.role !== "writer" && user.role !== "admin") {
@@ -71,7 +21,6 @@ export async function PUT(req, { params }) {
       );
     }
 
-    // In Next.js 15+, params is a Promise that must be awaited
     const { id } = await params;
     const galleryItem = await Gallery.findById(id);
 
@@ -148,57 +97,9 @@ export async function DELETE(req, { params }) {
   try {
     await connectDB();
 
-    // Authentication check
-    if (!process.env.JWT_SECRET) {
-      return NextResponse.json(
-        { error: "Server configuration error" },
-        { status: 500 }
-      );
-    }
-
-    // Get token from cookies - read from request headers
-    let token = null;
-    const cookieHeader = req.headers.get("cookie");
-    if (cookieHeader) {
-      const cookieObj = cookieHeader.split(";").reduce((acc, cookie) => {
-        const [key, value] = cookie.trim().split("=");
-        if (key && value) {
-          acc[key] = decodeURIComponent(value);
-        }
-        return acc;
-      }, {});
-      token = cookieObj.token;
-    }
-    
-    // Fallback: try using cookies() API if header method fails
-    if (!token) {
-      try {
-        const cookieStore = cookies();
-        if (cookieStore && typeof cookieStore.get === "function") {
-          token = cookieStore.get("token")?.value;
-        }
-      } catch (error) {
-        console.error("Error reading cookies:", error);
-      }
-    }
-
-    if (!token) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    // Decode URL-encoded token
-    const decodedToken = decodeURIComponent(token);
-    const decoded = jwt.verify(decodedToken, process.env.JWT_SECRET);
-
-    const user = await User.findById(decoded.id);
-    if (!user || user.isBanned) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+    const { user, error } = await getAuthenticatedUser();
+    if (!user) {
+      return NextResponse.json({ error: error || "Unauthorized" }, { status: 401 });
     }
 
     if (user.role !== "writer" && user.role !== "admin") {
@@ -208,7 +109,6 @@ export async function DELETE(req, { params }) {
       );
     }
 
-    // In Next.js 15+, params is a Promise that must be awaited
     const { id } = await params;
     const galleryItem = await Gallery.findById(id);
 
@@ -224,7 +124,6 @@ export async function DELETE(req, { params }) {
       await cloudinary.uploader.destroy(galleryItem.image.public_id);
     } catch (cloudinaryError) {
       console.error("Cloudinary delete error:", cloudinaryError);
-      // Continue with database deletion even if Cloudinary deletion fails
     }
 
     // Delete from database
@@ -241,4 +140,3 @@ export async function DELETE(req, { params }) {
     );
   }
 }
-

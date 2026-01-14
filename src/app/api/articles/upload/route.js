@@ -1,41 +1,17 @@
 import { connectDB } from "@/lib/mongodb";
 import Article from "@/models/Article";
-import User from "@/models/User";
 import cloudinary from "@/lib/cloudinary";
-import jwt from "jsonwebtoken";
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { getAuthenticatedUser } from "@/lib/auth";
 
 export async function POST(req) {
   try {
     await connectDB();
 
-    if (!process.env.JWT_SECRET) {
-      return NextResponse.json(
-        { error: "Server configuration error" },
-        { status: 500 }
-      );
-    }
-
     /* ================= AUTH ================= */
-
-    const token = cookies().get("token")?.value;
-
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    let decoded;
-    try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET);
-    } catch {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-    }
-
-    const user = await User.findById(decoded.id);
-
-    if (!user || user.isBanned) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const { user, error } = await getAuthenticatedUser();
+    if (!user) {
+      return NextResponse.json({ error: error || "Unauthorized" }, { status: 401 });
     }
 
     if (user.role !== "writer" && user.role !== "admin") {
@@ -46,7 +22,6 @@ export async function POST(req) {
     }
 
     /* ================= FORM DATA ================= */
-
     const formData = await req.formData();
     const title = formData.get("title")?.trim();
     const content = formData.get("content")?.trim();
@@ -75,7 +50,6 @@ export async function POST(req) {
     }
 
     /* ================= IMAGES ================= */
-
     const images = [];
     const maxFileSize = 10 * 1024 * 1024;
     const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
@@ -101,7 +75,6 @@ export async function POST(req) {
     }
 
     /* ================= CLOUDINARY ================= */
-
     const uploadedImages = [];
 
     for (const image of images) {
@@ -124,7 +97,6 @@ export async function POST(req) {
     }
 
     /* ================= DB ================= */
-
     const article = await Article.create({
       title,
       content,

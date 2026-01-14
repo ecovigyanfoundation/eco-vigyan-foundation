@@ -1,21 +1,17 @@
 import { connectDB } from "@/lib/mongodb";
 import Article from "@/models/Article";
-import User from "@/models/User";
 import cloudinary from "@/lib/cloudinary";
-import jwt from "jsonwebtoken";
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import mongoose from "mongoose";
+import { getAuthenticatedUser } from "@/lib/auth";
 
-// GET - Fetch a single article by ID
+// GET - Fetch a single article by ID (public)
 export async function GET(req, { params }) {
   try {
     await connectDB();
 
-    // In Next.js 15+, params is a Promise that must be awaited
     const { id } = await params;
 
-    // Validate ObjectId format
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json(
         { error: "Invalid article ID" },
@@ -37,7 +33,6 @@ export async function GET(req, { params }) {
       );
     }
 
-    // Convert to plain object to ensure proper JSON serialization
     const articleData = {
       _id: article._id.toString(),
       title: article.title,
@@ -53,10 +48,7 @@ export async function GET(req, { params }) {
   } catch (error) {
     console.error("Article fetch error:", error);
     return NextResponse.json(
-      { 
-        error: error.message || "Failed to fetch article",
-        details: process.env.NODE_ENV === "development" ? error.stack : undefined
-      },
+      { error: error.message || "Failed to fetch article" },
       { status: 500 }
     );
   }
@@ -67,57 +59,9 @@ export async function PUT(req, { params }) {
   try {
     await connectDB();
 
-    // Authentication check
-    if (!process.env.JWT_SECRET) {
-      return NextResponse.json(
-        { error: "Server configuration error" },
-        { status: 500 }
-      );
-    }
-
-    // Get token from cookies - read from request headers
-    let token = null;
-    const cookieHeader = req.headers.get("cookie");
-    if (cookieHeader) {
-      const cookieObj = cookieHeader.split(";").reduce((acc, cookie) => {
-        const [key, value] = cookie.trim().split("=");
-        if (key && value) {
-          acc[key] = decodeURIComponent(value);
-        }
-        return acc;
-      }, {});
-      token = cookieObj.token;
-    }
-    
-    // Fallback: try using cookies() API if header method fails
-    if (!token) {
-      try {
-        const cookieStore = cookies();
-        if (cookieStore && typeof cookieStore.get === "function") {
-          token = cookieStore.get("token")?.value;
-        }
-      } catch (error) {
-        console.error("Error reading cookies:", error);
-      }
-    }
-
-    if (!token) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    // Decode URL-encoded token
-    const decodedToken = decodeURIComponent(token);
-    const decoded = jwt.verify(decodedToken, process.env.JWT_SECRET);
-
-    const user = await User.findById(decoded.id);
-    if (!user || user.isBanned) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+    const { user, error } = await getAuthenticatedUser();
+    if (!user) {
+      return NextResponse.json({ error: error || "Unauthorized" }, { status: 401 });
     }
 
     if (user.role !== "writer" && user.role !== "admin") {
@@ -127,10 +71,8 @@ export async function PUT(req, { params }) {
       );
     }
 
-    // In Next.js 15+, params is a Promise that must be awaited
     const { id } = await params;
 
-    // Validate ObjectId format
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json(
         { error: "Invalid article ID" },
@@ -177,7 +119,7 @@ export async function PUT(req, { params }) {
     }
 
     // Handle image updates
-    const maxFileSize = 10 * 1024 * 1024; // 10MB
+    const maxFileSize = 10 * 1024 * 1024;
     const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
     let updatedImages = [...article.images];
 
@@ -186,8 +128,8 @@ export async function PUT(req, { params }) {
       const imageToRemove = updatedImages[0];
       try {
         await cloudinary.uploader.destroy(imageToRemove.public_id);
-      } catch (error) {
-        console.error("Error deleting image from Cloudinary:", error);
+      } catch (err) {
+        console.error("Error deleting image from Cloudinary:", err);
       }
       updatedImages = updatedImages.slice(1);
     }
@@ -196,13 +138,13 @@ export async function PUT(req, { params }) {
       const imageToRemove = updatedImages[1];
       try {
         await cloudinary.uploader.destroy(imageToRemove.public_id);
-      } catch (error) {
-        console.error("Error deleting image from Cloudinary:", error);
+      } catch (err) {
+        console.error("Error deleting image from Cloudinary:", err);
       }
       updatedImages = updatedImages.slice(0, 1);
     }
 
-    // Add new images (ensure max 2 total)
+    // Add new images
     if (image1 && image1 instanceof File && image1.size > 0) {
       if (image1.size > maxFileSize) {
         return NextResponse.json(
@@ -219,24 +161,13 @@ export async function PUT(req, { params }) {
 
       const buffer = Buffer.from(await image1.arrayBuffer());
       const uploadResult = await new Promise((resolve, reject) => {
-        const uploadStream = cloudinary.uploader.upload_stream(
-          {
-            folder: "articles",
-            resource_type: "image",
-          },
+        cloudinary.uploader.upload_stream(
+          { folder: "articles", resource_type: "image" },
           (err, result) => {
-            if (err) {
-              reject(new Error(`Image upload failed: ${err.message || "Unknown error"}`));
-              return;
-            }
-            if (!result) {
-              reject(new Error("Image upload failed: No result returned"));
-              return;
-            }
-            resolve(result);
+            if (err) reject(err);
+            else resolve(result);
           }
-        );
-        uploadStream.end(buffer);
+        ).end(buffer);
       });
 
       if (updatedImages.length === 0) {
@@ -245,11 +176,10 @@ export async function PUT(req, { params }) {
           url: uploadResult.secure_url,
         });
       } else {
-        // Replace first image
         try {
           await cloudinary.uploader.destroy(updatedImages[0].public_id);
-        } catch (error) {
-          console.error("Error deleting old image from Cloudinary:", error);
+        } catch (err) {
+          console.error("Error deleting old image:", err);
         }
         updatedImages[0] = {
           public_id: uploadResult.public_id,
@@ -281,48 +211,19 @@ export async function PUT(req, { params }) {
 
       const buffer = Buffer.from(await image2.arrayBuffer());
       const uploadResult = await new Promise((resolve, reject) => {
-        const uploadStream = cloudinary.uploader.upload_stream(
-          {
-            folder: "articles",
-            resource_type: "image",
-          },
+        cloudinary.uploader.upload_stream(
+          { folder: "articles", resource_type: "image" },
           (err, result) => {
-            if (err) {
-              reject(new Error(`Image upload failed: ${err.message || "Unknown error"}`));
-              return;
-            }
-            if (!result) {
-              reject(new Error("Image upload failed: No result returned"));
-              return;
-            }
-            resolve(result);
+            if (err) reject(err);
+            else resolve(result);
           }
-        );
-        uploadStream.end(buffer);
+        ).end(buffer);
       });
 
-      if (updatedImages.length === 0) {
-        updatedImages.push({
-          public_id: uploadResult.public_id,
-          url: uploadResult.secure_url,
-        });
-      } else if (updatedImages.length === 1) {
-        updatedImages.push({
-          public_id: uploadResult.public_id,
-          url: uploadResult.secure_url,
-        });
-      } else {
-        // Replace second image
-        try {
-          await cloudinary.uploader.destroy(updatedImages[1].public_id);
-        } catch (error) {
-          console.error("Error deleting old image from Cloudinary:", error);
-        }
-        updatedImages[1] = {
-          public_id: uploadResult.public_id,
-          url: uploadResult.secure_url,
-        };
-      }
+      updatedImages.push({
+        public_id: uploadResult.public_id,
+        url: uploadResult.secure_url,
+      });
     }
 
     article.images = updatedImages;
@@ -354,57 +255,9 @@ export async function DELETE(req, { params }) {
   try {
     await connectDB();
 
-    // Authentication check
-    if (!process.env.JWT_SECRET) {
-      return NextResponse.json(
-        { error: "Server configuration error" },
-        { status: 500 }
-      );
-    }
-
-    // Get token from cookies - read from request headers
-    let token = null;
-    const cookieHeader = req.headers.get("cookie");
-    if (cookieHeader) {
-      const cookieObj = cookieHeader.split(";").reduce((acc, cookie) => {
-        const [key, value] = cookie.trim().split("=");
-        if (key && value) {
-          acc[key] = decodeURIComponent(value);
-        }
-        return acc;
-      }, {});
-      token = cookieObj.token;
-    }
-    
-    // Fallback: try using cookies() API if header method fails
-    if (!token) {
-      try {
-        const cookieStore = cookies();
-        if (cookieStore && typeof cookieStore.get === "function") {
-          token = cookieStore.get("token")?.value;
-        }
-      } catch (error) {
-        console.error("Error reading cookies:", error);
-      }
-    }
-
-    if (!token) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    // Decode URL-encoded token
-    const decodedToken = decodeURIComponent(token);
-    const decoded = jwt.verify(decodedToken, process.env.JWT_SECRET);
-
-    const user = await User.findById(decoded.id);
-    if (!user || user.isBanned) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+    const { user, error } = await getAuthenticatedUser();
+    if (!user) {
+      return NextResponse.json({ error: error || "Unauthorized" }, { status: 401 });
     }
 
     if (user.role !== "writer" && user.role !== "admin") {
@@ -414,10 +267,8 @@ export async function DELETE(req, { params }) {
       );
     }
 
-    // In Next.js 15+, params is a Promise that must be awaited
     const { id } = await params;
 
-    // Validate ObjectId format
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json(
         { error: "Invalid article ID" },
@@ -440,11 +291,9 @@ export async function DELETE(req, { params }) {
         await cloudinary.uploader.destroy(image.public_id);
       } catch (cloudinaryError) {
         console.error("Cloudinary delete error:", cloudinaryError);
-        // Continue with database deletion even if Cloudinary deletion fails
       }
     }
 
-    // Delete from database
     await Article.findByIdAndDelete(id);
 
     return NextResponse.json({

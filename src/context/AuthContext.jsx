@@ -7,7 +7,7 @@ import toast from "react-hot-toast";
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   const loading = status === "loading";
   const user = session?.user || null;
 
@@ -59,19 +59,22 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const updateUser = (userData) => {
-    // With NextAuth, user data is managed through session
-    // This is kept for backward compatibility
+  const updateUser = async (userData) => {
+    // Update localStorage for backward compatibility
     if (userData) {
       localStorage.setItem("user", JSON.stringify(userData));
     } else {
       localStorage.removeItem("user");
     }
+    
+    // Trigger NextAuth session refresh
+    // This will fetch fresh data from the JWT callback
+    await update();
   };
 
   const fetchUser = async () => {
-    // With NextAuth, session is automatically managed
-    // This is a no-op kept for backward compatibility
+    // Trigger NextAuth session refresh
+    await update();
   };
 
   const isAuthenticated = () => {

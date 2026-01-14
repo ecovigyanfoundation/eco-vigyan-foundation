@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { connectDB } from "@/lib/mongodb";
 import Mushroom from "@/models/Mushroom";
 import User from "@/models/User";
+import { getAuthenticatedUser } from "@/lib/auth";
 
 // Helper function to convert Google Drive sharing link to direct image URL
 function convertGoogleDriveLink(driveLink) {
@@ -44,38 +43,12 @@ export async function POST(req) {
     await connectDB();
 
     /* ================= AUTH ================= */
-    let token = null;
-    try {
-      const cookieStore = await cookies();
-      token = cookieStore.get("token")?.value;
-    } catch (err) {
-      const cookieHeader = req.headers.get("cookie");
-      if (cookieHeader) {
-        const cookieObj = cookieHeader.split(";").reduce((acc, cookie) => {
-          const [key, value] = cookie.trim().split("=");
-          if (key && value) {
-            acc[key] = decodeURIComponent(value);
-          }
-          return acc;
-        }, {});
-        token = cookieObj.token;
-      }
+    const { user: admin, error } = await getAuthenticatedUser();
+    if (!admin) {
+      return NextResponse.json({ error: error || "Unauthorized" }, { status: 401 });
     }
 
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    let decoded;
-    try {
-      const decodedToken = decodeURIComponent(token);
-      decoded = jwt.verify(decodedToken, process.env.JWT_SECRET);
-    } catch (err) {
-      return NextResponse.json({ error: "Invalid or expired token" }, { status: 401 });
-    }
-
-    const admin = await User.findById(decoded.id);
-    if (!admin || admin.role !== "admin") {
+    if (admin.role !== "admin") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

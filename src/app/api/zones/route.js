@@ -1,63 +1,20 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import jwt from "jsonwebtoken";
 import { connectDB } from "@/lib/mongodb";
 import Zone from "@/models/Zone";
-import User from "@/models/User";
-
-// Helper function to get authenticated user
-async function getAuthenticatedUser(req) {
-  let token = null;
-  try {
-    const cookieStore = await cookies();
-    token = cookieStore.get("token")?.value;
-  } catch (err) {
-    console.error("Error reading cookies:", err);
-    const cookieHeader = req.headers.get("cookie");
-    if (cookieHeader) {
-      const cookieObj = cookieHeader.split(";").reduce((acc, cookie) => {
-        const [key, value] = cookie.trim().split("=");
-        if (key && value) {
-          acc[key] = decodeURIComponent(value);
-        }
-        return acc;
-      }, {});
-      token = cookieObj.token;
-    }
-  }
-
-  if (!token) {
-    return null;
-  }
-
-  try {
-    const decodedToken = decodeURIComponent(token);
-    const decoded = jwt.verify(decodedToken, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.id);
-    if (!user || user.isBanned) {
-      return null;
-    }
-    return user;
-  } catch (err) {
-    console.error("JWT verification error:", err);
-    return null;
-  }
-}
+import { getAuthenticatedUser } from "@/lib/auth";
 
 // GET - Get all zones (filtered by category if provided)
-// Normal users: can view all zones
-// Admins: can view all zones
 export async function GET(req) {
   try {
     await connectDB();
 
-    const user = await getAuthenticatedUser(req);
+    const { user, error } = await getAuthenticatedUser();
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: error || "Unauthorized" }, { status: 401 });
     }
 
     const { searchParams } = new URL(req.url);
-    const category = searchParams.get("category"); // decomposer, symbiont, or parasitic
+    const category = searchParams.get("category");
 
     let query = {};
     if (category && ["decomposer", "symbiont", "parasitic"].includes(category)) {
@@ -84,12 +41,11 @@ export async function POST(req) {
   try {
     await connectDB();
 
-    const user = await getAuthenticatedUser(req);
+    const { user, error } = await getAuthenticatedUser();
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: error || "Unauthorized" }, { status: 401 });
     }
 
-    // Only admins can create zones
     if (user.role !== "admin") {
       return NextResponse.json(
         { error: "Only admins can create zones" },
@@ -157,4 +113,3 @@ export async function POST(req) {
     );
   }
 }
-

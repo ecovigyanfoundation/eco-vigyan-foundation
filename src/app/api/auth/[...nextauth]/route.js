@@ -117,7 +117,7 @@ export const authOptions = {
       return true;
     },
 
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, trigger }) {
       // Initial sign in
       if (user) {
         token.id = user.id;
@@ -137,6 +137,19 @@ export const authOptions = {
           token.username = dbUser.username;
           token.points = dbUser.points;
           token.dp = dbUser.dp;
+        }
+      }
+
+      // When session is updated (e.g., after profile update), fetch fresh data
+      if (trigger === "update" && token.id) {
+        await connectDB();
+        const dbUser = await User.findById(token.id);
+        if (dbUser) {
+          token.role = dbUser.role;
+          token.username = dbUser.username;
+          token.points = dbUser.points;
+          token.dp = dbUser.dp;
+          token.name = dbUser.name;
         }
       }
 

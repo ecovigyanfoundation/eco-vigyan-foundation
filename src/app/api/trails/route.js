@@ -1,71 +1,27 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import jwt from "jsonwebtoken";
 import { connectDB } from "@/lib/mongodb";
 import Trail from "@/models/Trail";
 import User from "@/models/User";
-
-// Helper function to get authenticated user
-async function getAuthenticatedUser(req) {
-  let token = null;
-  try {
-    const cookieStore = await cookies();
-    token = cookieStore.get("token")?.value;
-  } catch (err) {
-    console.error("Error reading cookies:", err);
-    const cookieHeader = req.headers.get("cookie");
-    if (cookieHeader) {
-      const cookieObj = cookieHeader.split(";").reduce((acc, cookie) => {
-        const [key, value] = cookie.trim().split("=");
-        if (key && value) {
-          acc[key] = decodeURIComponent(value);
-        }
-        return acc;
-      }, {});
-      token = cookieObj.token;
-    }
-  }
-
-  if (!token) {
-    return null;
-  }
-
-  try {
-    const decodedToken = decodeURIComponent(token);
-    const decoded = jwt.verify(decodedToken, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.id);
-    if (!user || user.isBanned) {
-      return null;
-    }
-    return user;
-  } catch (err) {
-    console.error("JWT verification error:", err);
-    return null;
-  }
-}
+import { getAuthenticatedUser } from "@/lib/auth";
 
 // GET - Get all trails
-// Normal users: only trails created by admins
-// Admins: all trails
 export async function GET(req) {
   try {
     await connectDB();
 
-    const user = await getAuthenticatedUser(req);
+    const { user, error } = await getAuthenticatedUser();
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: error || "Unauthorized" }, { status: 401 });
     }
 
     let trails;
     
     if (user.role === "admin") {
-      // Admins can see all trails
       trails = await Trail.find()
         .populate("user", "name username")
         .sort({ createdAt: -1 })
         .lean();
     } else {
-      // Normal users can only see trails created by admins
       const adminUsers = await User.find({ role: "admin" }).select("_id");
       const adminIds = adminUsers.map(u => u._id);
       
@@ -90,12 +46,11 @@ export async function POST(req) {
   try {
     await connectDB();
 
-    const user = await getAuthenticatedUser(req);
+    const { user, error } = await getAuthenticatedUser();
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: error || "Unauthorized" }, { status: 401 });
     }
 
-    // Only admins can create trails
     if (user.role !== "admin") {
       return NextResponse.json(
         { error: "Only admins can create trails" },
@@ -144,4 +99,3 @@ export async function POST(req) {
     );
   }
 }
-
