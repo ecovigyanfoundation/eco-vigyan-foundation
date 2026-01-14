@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useMemo } from "react";
 import { Filter, ChevronDown, RotateCcw } from "lucide-react";
 import {
   ECOLOGICAL_ROLES,
@@ -114,6 +114,18 @@ export default function MapFilter({
   };
 
   /* ------------------------------
+     MEMOIZED PROCESSED OPTIONS
+  ------------------------------ */
+  const processedOptions = useMemo(() => {
+    return currentOptions.map((option) => {
+      const img = getMushroomImage(option);
+      const label = getDisplayName(option);
+      const selected = isFilterSelected(option);
+      return { option, img, label, selected };
+    });
+  }, [currentOptions, selectedFilters]);
+
+  /* ------------------------------
      RENDER
   ------------------------------ */
   return (
@@ -151,7 +163,7 @@ export default function MapFilter({
           onClick={(e) => e.stopPropagation()}
         >
           {/* HEADER */}
-          <div className="p-2 border-b text-xs font-bold">
+          <div className="p-2 border-b text-xs font-bold text-gray-800">
             Filter Options
           </div>
 
@@ -160,7 +172,7 @@ export default function MapFilter({
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full px-2 py-1 border rounded text-xs"
+              className="w-full px-2 py-1 border rounded text-xs text-gray-700"
             >
               {filterCategories.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -185,34 +197,28 @@ export default function MapFilter({
 
           {/* FILTER GRID */}
           <div className="p-2 max-h-72 overflow-y-auto grid grid-cols-5 gap-2">
-            {currentOptions.map((option) => {
-              const img = getMushroomImage(option);
-              const label = getDisplayName(option);
-              const selected = isFilterSelected(option);
-
-              return (
-                <button
-                  key={option}
-                  onClick={(e) => handleFilterClick(option, e)}
-                  className={`flex flex-col items-center gap-1 p-1 rounded border ${
-                    selected
-                      ? "bg-emerald-50 border-emerald-500"
-                      : "border-gray-200"
-                  }`}
-                >
-                  {img && (
-                    <img
-                      src={img}
-                      alt={label}
-                      className="w-8 h-8 object-contain"
-                    />
-                  )}
-                  <span className="text-[9px] font-bold text-center">
-                    {label}
-                  </span>
-                </button>
-              );
-            })}
+            {processedOptions.map(({ option, img, label, selected }) => (
+              <button
+                key={option}
+                onClick={(e) => handleFilterClick(option, e)}
+                className={`flex flex-col items-center gap-1 p-1 rounded border ${
+                  selected
+                    ? "bg-emerald-50 border-emerald-500"
+                    : "border-gray-200"
+                }`}
+              >
+                {img && (
+                  <img
+                    src={img}
+                    alt={label}
+                    className="w-8 h-8 object-contain"
+                  />
+                )}
+                <span className="text-[9px] font-bold text-center text-gray-700">
+                  {label}
+                </span>
+              </button>
+            ))}
           </div>
         </div>
       )}

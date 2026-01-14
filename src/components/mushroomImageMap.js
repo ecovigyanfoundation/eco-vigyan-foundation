@@ -17,9 +17,11 @@ export const MUSHROOM_IMAGE_MAP = {
   teeth: "/mushrooms/teeth.png",
   "ball-with-no-distinctive-bottom": "/mushrooms/ball shaped mushroom.png",
   "cup-with-no-distinctive-bottom": "/mushrooms/cup shaped.png",
+  "club-with-no-distinctive-bottom": "/mushrooms/club.png",
+  "crust-on-wood-with-no-distinctive-bottom": "/mushrooms/crusted.png",
   "star-with-no-distinctive-bottom": "/mushrooms/Star shape.png",
   "jelly-with-no-distinctive-bottom": "/mushrooms/jelly2.png",
-  "sponge-with-no-distinctive-bottom": "/mushrooms/crusted mushroom.png",
+  "sponge-with-no-distinctive-bottom": "/mushrooms/sponge.png",
 
   // Fruiting Surfaces
   ground: "/mushrooms/underground.png",
