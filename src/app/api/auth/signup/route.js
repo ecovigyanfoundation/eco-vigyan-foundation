@@ -151,6 +151,7 @@ export async function POST(req) {
       username,
       email,
       password: hashedPassword,
+      authProvider: "credentials",
       role: "user",
       points: 0,
       dp: {

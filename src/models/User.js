@@ -1,5 +1,10 @@
 import mongoose from "mongoose";
 
+// Delete cached model in development to ensure schema changes take effect
+if (process.env.NODE_ENV !== 'production') {
+  delete mongoose.models.User;
+}
+
 const userSchema = new mongoose.Schema(
   {
     /* ---------------- BASIC INFO ---------------- */
@@ -27,8 +32,15 @@ const userSchema = new mongoose.Schema(
 
     password: {
       type: String,
-      required: true,
+      required: false, // Not required for OAuth users
       select: false, // IMPORTANT: never return password
+    },
+
+    /* ---------------- AUTH PROVIDER ---------------- */
+    authProvider: {
+      type: String,
+      enum: ["credentials", "google"],
+      default: "credentials",
     },
 
     /* ---------------- PROFILE ---------------- */
@@ -85,5 +97,5 @@ const userSchema = new mongoose.Schema(
 );
 
 /* ---------------- SAFE EXPORT ---------------- */
-export default mongoose.models.User ||
-  mongoose.model("User", userSchema);
+export default mongoose.models.User || mongoose.model("User", userSchema);
+
