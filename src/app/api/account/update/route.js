@@ -4,45 +4,54 @@ import cloudinary from "@/lib/cloudinary";
 import jwt from "jsonwebtoken";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export async function PATCH(req) {
   try {
     await connectDB();
 
     /* ================= AUTH ================= */
-    let token = null;
-    try {
-      const cookieStore = await cookies();
-      token = cookieStore.get("token")?.value;
-    } catch (err) {
-      console.error("Error reading cookies:", err);
-      const cookieHeader = req.headers.get("cookie");
-      if (cookieHeader) {
-        const cookieObj = cookieHeader.split(";").reduce((acc, cookie) => {
-          const [key, value] = cookie.trim().split("=");
-          if (key && value) {
-            acc[key] = decodeURIComponent(value);
-          }
-          return acc;
-        }, {});
-        token = cookieObj.token;
+    let user = null;
+
+    // Try NextAuth session first
+    const session = await getServerSession(authOptions);
+    if (session?.user?.id) {
+      user = await User.findById(session.user.id);
+    }
+
+    // Fallback to legacy JWT token
+    if (!user) {
+      let token = null;
+      try {
+        const cookieStore = await cookies();
+        token = cookieStore.get("token")?.value;
+      } catch (err) {
+        console.error("Error reading cookies:", err);
+        const cookieHeader = req.headers.get("cookie");
+        if (cookieHeader) {
+          const cookieObj = cookieHeader.split(";").reduce((acc, cookie) => {
+            const [key, value] = cookie.trim().split("=");
+            if (key && value) {
+              acc[key] = decodeURIComponent(value);
+            }
+            return acc;
+          }, {});
+          token = cookieObj.token;
+        }
+      }
+
+      if (token && process.env.JWT_SECRET) {
+        try {
+          const decodedToken = decodeURIComponent(token);
+          const decoded = jwt.verify(decodedToken, process.env.JWT_SECRET);
+          user = await User.findById(decoded.id);
+        } catch (err) {
+          console.error("JWT verification error:", err);
+        }
       }
     }
 
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    let decoded;
-    try {
-      const decodedToken = decodeURIComponent(token);
-      decoded = jwt.verify(decodedToken, process.env.JWT_SECRET);
-    } catch (err) {
-      console.error("JWT verification error:", err);
-      return NextResponse.json({ error: "Invalid or expired token" }, { status: 401 });
-    }
-
-    const user = await User.findById(decoded.id);
     if (!user || user.isBanned) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
