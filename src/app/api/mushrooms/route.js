@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import jwt from "jsonwebtoken";
 import { connectDB } from "@/lib/mongodb";
 import Mushroom from "@/models/Mushroom";
-import User from "@/models/User";
+import { getAuthenticatedUser } from "@/lib/auth";
 
 
 export async function GET(req) {
@@ -36,21 +34,9 @@ export async function POST(req) {
     await connectDB();
 
     /* ---------- AUTH ---------- */
-    const cookieStore = await cookies();
-    const token = cookieStore.get("token")?.value;
-
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const decoded = jwt.verify(
-      decodeURIComponent(token),
-      process.env.JWT_SECRET
-    );
-
-    const user = await User.findById(decoded.id);
-    if (!user || user.isBanned) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const { user, error } = await getAuthenticatedUser();
+    if (!user) {
+      return NextResponse.json({ error: error || "Unauthorized" }, { status: 401 });
     }
 
     /* ---------- JSON BODY ---------- */
