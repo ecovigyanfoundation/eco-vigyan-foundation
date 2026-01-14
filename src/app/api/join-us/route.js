@@ -10,8 +10,51 @@ const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
   : null;
 
+// Simple in-memory rate limiter
+const rateLimit = new Map();
+const RATE_LIMIT_WINDOW = 60 * 60 * 1000*24; // 1 day
+const MAX_REQUESTS = 1; // 1 requests per hour
+
+// Clean up old entries periodically (every hour)
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, data] of rateLimit.entries()) {
+    if (now - data.startTime > RATE_LIMIT_WINDOW) {
+      rateLimit.delete(ip);
+    }
+  }
+}, RATE_LIMIT_WINDOW);
+
 export async function POST(req) {
   try {
+    // 1. Rate Limiting Check
+    const ip = req.headers.get("x-forwarded-for") || "unknown";
+    const now = Date.now();
+    
+    // Get existing data or initialize
+    const rateData = rateLimit.get(ip) || { count: 0, startTime: now };
+    
+    // Check if window has expired, reset if so
+    if (now - rateData.startTime > RATE_LIMIT_WINDOW) {
+      rateData.count = 1;
+      rateData.startTime = now;
+    } else {
+      rateData.count++;
+    }
+    
+    // Update map
+    rateLimit.set(ip, rateData);
+    
+    // Check if limit exceeded
+    if (rateData.count > MAX_REQUESTS) {
+      return NextResponse.json(
+        {
+          error: "Too many requests. Please try again later.",
+        },
+        { status: 429 }
+      );
+    }
+
     // Check if Resend is configured
     if (!resend || !process.env.RESEND_API_KEY) {
       console.error("Resend API key is not configured");
