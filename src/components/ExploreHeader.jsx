@@ -33,6 +33,9 @@ export default function ExploreHeader({
   onTrailsClick,
   onSpeciesSearch,
   onLocationSearch,
+  allData = [],
+  onManualSearch,
+  onManualLocationSearch,
 }) {
   const { user, logout } = useAuth();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -40,34 +43,55 @@ export default function ExploreHeader({
   const [speciesSearch, setSpeciesSearch] = useState("");
   const [locationSearch, setLocationSearch] = useState("");
   const [isSearchingLocation, setIsSearchingLocation] = useState(false);
+  const [speciesSuggestions, setSpeciesSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const userMenuRef = useRef(null);
   const speciesSearchTimeoutRef = useRef(null);
   const locationSearchTimeoutRef = useRef(null);
   const lastSuccessfulLocationRef = useRef(null);
   const onLocationSearchRef = useRef(onLocationSearch);
+  const suggestionsRef = useRef(null);
 
   // Keep ref updated
   useEffect(() => {
     onLocationSearchRef.current = onLocationSearch;
   }, [onLocationSearch]);
 
-  // Close user menu when clicking outside
+  // Close user menu and suggestions when clicking outside
   useEffect(() => {
-    const handleUserMenuClickOutside = (event) => {
+    const handleClickOutside = (event) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
         setUserMenuOpen(false);
       }
+      if (suggestionsRef.current && !suggestionsRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+      }
     };
 
-    document.addEventListener("mousedown", handleUserMenuClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener("mousedown", handleUserMenuClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
-  // Handle species search with debouncing
+  // Handle species search with debouncing and autocomplete
   const handleSpeciesSearchChange = (value) => {
     setSpeciesSearch(value);
+
+    // Update autocomplete suggestions
+    if (value.trim().length > 0) {
+      const searchLower = value.toLowerCase();
+      const matches = allData
+        .map(item => item.commonName || item.name)
+        .filter((name, index, self) => name && self.indexOf(name) === index) // Unique names
+        .filter(name => name.toLowerCase().includes(searchLower))
+        .slice(0, 8); // Show up to 8 suggestions
+      setSpeciesSuggestions(matches);
+      setShowSuggestions(matches.length > 0);
+    } else {
+      setSpeciesSuggestions([]);
+      setShowSuggestions(false);
+    }
 
     // Clear any pending timeout
     if (speciesSearchTimeoutRef.current) {
@@ -80,6 +104,27 @@ export default function ExploreHeader({
         onSpeciesSearch(value);
       }
     }, 300); // 300ms debounce
+  };
+
+  // Handle suggestion selection
+  const handleSuggestionClick = (suggestion) => {
+    setSpeciesSearch(suggestion);
+    setShowSuggestions(false);
+    if (onSpeciesSearch) {
+      onSpeciesSearch(suggestion);
+    }
+    // Trigger manual search to show toast
+    if (onManualSearch) {
+      setTimeout(() => onManualSearch(suggestion), 100);
+    }
+  };
+
+  // Handle manual search button click
+  const handleSearchButtonClick = () => {
+    if (speciesSearch.trim() && onManualSearch) {
+      onManualSearch(speciesSearch.trim());
+    }
+    setShowSuggestions(false);
   };
 
   // Debounce location search
@@ -177,15 +222,16 @@ export default function ExploreHeader({
           </a>
 
           {/* CENTER: SEARCH BAR AND FILTER */}
-          <div className="hidden md:flex flex-1 items-center gap-2 min-w-0 max-w-full">
+          <div className="hidden md:flex flex-1 items-center gap-2 min-w-0 max-w-full relative">
             {/* SEARCH BAR */}
-            <div className="flex-1 flex items-center bg-emerald-50/60 rounded-2xl border border-emerald-100/50 overflow-hidden px-3 gap-2 focus-within:bg-white focus-within:border-emerald-500 focus-within:ring-4 focus-within:ring-emerald-500/10 transition-all duration-300 min-w-0">
+            <div className="flex-1 flex items-center bg-emerald-50/60 rounded-2xl border border-emerald-100/50 overflow-visible px-3 gap-2 focus-within:bg-white focus-within:border-emerald-500 focus-within:ring-4 focus-within:ring-emerald-500/10 transition-all duration-300 min-w-0 relative" ref={suggestionsRef}>
               <Search size={16} className="text-emerald-400 shrink-0" />
-              <div className="flex-1 flex items-center gap-1 min-w-0">
+              <div className="flex-1 flex items-center gap-1 min-w-0 relative">
                 <input
                   type="text"
                   value={speciesSearch}
                   onChange={(e) => handleSpeciesSearchChange(e.target.value)}
+                  onFocus={() => speciesSuggestions.length > 0 && setShowSuggestions(true)}
                   placeholder="Search Species..."
                   className="bg-transparent flex-1 py-2.5 text-xs outline-none text-emerald-900 placeholder:text-emerald-300 font-medium min-w-0"
                 />
@@ -198,6 +244,33 @@ export default function ExploreHeader({
                   >
                     <X size={14} />
                   </button>
+                )}
+                {/* Search Button */}
+                {speciesSearch.trim() && (
+                  <button
+                    type="button"
+                    onClick={handleSearchButtonClick}
+                    className="shrink-0 p-1.5 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white transition-all active:scale-95 shadow-sm"
+                    title="Search for species"
+                  >
+                    <Search size={14} />
+                  </button>
+                )}
+
+                {/* Autocomplete Dropdown */}
+                {showSuggestions && speciesSuggestions.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-emerald-200 rounded-xl shadow-xl max-h-64 overflow-y-auto z-[150]">
+                    {speciesSuggestions.map((suggestion, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handleSuggestionClick(suggestion)}
+                        className="w-full px-4 py-2.5 text-left text-sm text-emerald-900 hover:bg-emerald-50 transition-colors border-b border-emerald-50 last:border-b-0 flex items-center gap-2"
+                      >
+                        <Search size={12} className="text-emerald-400" />
+                        {suggestion}
+                      </button>
+                    ))}
+                  </div>
                 )}
               </div>
               <div className="w-px h-4 bg-emerald-200 mx-0.5 shrink-0" />
@@ -218,6 +291,17 @@ export default function ExploreHeader({
                     title="Clear location search"
                   >
                     <X size={14} />
+                  </button>
+                )}
+                {/* Location Search Button */}
+                {locationSearch.trim() && (
+                  <button
+                    type="button"
+                    onClick={onManualLocationSearch}
+                    className="shrink-0 p-1.5 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white transition-all active:scale-95 shadow-sm"
+                    title="Search in this location"
+                  >
+                    <Search size={14} />
                   </button>
                 )}
               </div>

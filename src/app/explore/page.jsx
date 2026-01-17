@@ -376,40 +376,16 @@ function MapPageContent() {
 
     setData(filtered);
 
-    // Show toast notification when both species and location are searched
+    // Show toast notification for species searches (automated - not manual)
     const hasSpeciesSearch = speciesSearchTerm.trim().length > 0;
     const hasZone = selectedZone && selectedZone.boundary;
     const prevHasSpecies = prevFiltersRef.current.speciesSearchTerm.trim().length > 0;
     const prevHasZone = prevFiltersRef.current.hasZone;
     const prevCount = prevFiltersRef.current.count || 0;
+    const speciesChanged = speciesSearchTerm.trim() !== prevFiltersRef.current.speciesSearchTerm.trim();
 
-    // Show toast when both filters are active and something changed
-    if (hasSpeciesSearch && hasZone) {
-      const count = filtered.length;
-      const locationName = selectedZone.name || "this location";
-      const speciesName = speciesSearchTerm.trim();
-      const speciesChanged = speciesSearchTerm.trim() !== prevFiltersRef.current.speciesSearchTerm.trim();
-      const zoneChanged = !prevHasZone || (selectedZone && prevFiltersRef.current.zoneId !== selectedZone.boundary?.length);
-      const countChanged = count !== prevCount;
-
-      // Show toast when:
-      // 1. Both are newly set (wasn't both before)
-      // 2. Species search changed
-      // 3. Zone changed (new location selected)
-      if ((!prevHasSpecies || !prevHasZone) || speciesChanged || zoneChanged) {
-        if (count > 0) {
-          toast.success(
-            `Found ${count} ${count === 1 ? 'species' : 'species'} of "${speciesName}" in ${locationName}`,
-            { duration: 4000 }
-          );
-        } else {
-          toast.error(
-            `No species "${speciesName}" found in ${locationName}`,
-            { duration: 4000 }
-          );
-        }
-      }
-    }
+    // Don't show automatic toast - only manual search should trigger toast now
+    // (Manual search is triggered by clicking search button or selecting suggestion)
 
     // Update previous filters ref
     prevFiltersRef.current = {
@@ -421,10 +397,122 @@ function MapPageContent() {
     };
   }, [headerFilters, filters, mode, allData, selectedZone, speciesSearchTerm, scientificNameSearchTerm]);
 
+  // Manual search handler - triggered by search button or suggestion click
+  const handleManualSearch = (searchTerm) => {
+    if (!searchTerm || !searchTerm.trim()) return;
+
+    const searchLower = searchTerm.toLowerCase().trim();
+    const hasZone = selectedZone && selectedZone.boundary;
+
+    // Filter data based on search term
+    let searchResults = allData.filter((item) => {
+      const commonName = (item.commonName || item.name || "").toLowerCase();
+      const scientificName = (item.scientificName || "").toLowerCase();
+      return commonName.includes(searchLower) || scientificName.includes(searchLower);
+    });
+
+    // Apply zone filter if active
+    if (hasZone) {
+      searchResults = searchResults.filter((item) => {
+        if (!item.latitude || !item.longitude) return false;
+        return isPointInPolygon(item.latitude, item.longitude, selectedZone.boundary);
+      });
+    }
+
+    const count = searchResults.length;
+
+    if (hasZone) {
+      // When both species and location are searched
+      const locationName = selectedZone.name || "this location";
+      if (count > 0) {
+        toast.success(
+          `Found ${searchTerm} (${count === 1 ? '1 observation' : `${count} observations`}) in ${locationName}`,
+          { duration: 4000, icon: '🍄' }
+        );
+      } else {
+        // Show suggestions when no results in location
+        const suggestions = allData
+          .filter(item => {
+            const commonName = (item.commonName || item.name || "").toLowerCase();
+            return commonName.includes(searchLower.substring(0, 3));
+          })
+          .slice(0, 3)
+          .map(item => item.commonName || item.name)
+          .filter((name, index, self) => self.indexOf(name) === index);
+        
+        const suggestionText = suggestions.length > 0 
+          ? ` Try: ${suggestions.join(', ')}` 
+          : '';
+        
+        toast.error(
+          `No "${searchTerm}" found in ${locationName}.${suggestionText}`,
+          { duration: 5000 }
+        );
+      }
+    } else {
+      // When only species is searched (no location filter)
+      if (count > 0) {
+        toast.success(
+          `Found ${searchTerm} (${count === 1 ? '1 observation' : `${count} observations`})`,
+          { duration: 3000, icon: '🍄' }
+        );
+      } else {
+        // Show suggestions when no results found at all
+        const suggestions = allData
+          .filter(item => {
+            const commonName = (item.commonName || item.name || "").toLowerCase();
+            const searchPrefix = searchLower.substring(0, Math.min(3, searchLower.length));
+            return searchPrefix.length > 0 && commonName.includes(searchPrefix);
+          })
+          .slice(0, 3)
+          .map(item => item.commonName || item.name)
+          .filter((name, index, self) => self.indexOf(name) === index);
+        
+        const suggestionText = suggestions.length > 0 
+          ? ` Did you mean: ${suggestions.join(', ')}?` 
+          : ' Try different keywords.';
+        
+        toast.error(
+          `No "${searchTerm}" found.${suggestionText}`,
+          { duration: 5000 }
+        );
+      }
+    }
+  };
+
   // Handle zone selection
   const handleZoneSelect = (zone) => {
     setSelectedZone(zone);
     setDrawingMode(null);
+  };
+
+  // Handle manual location search - triggered by location search button
+  const handleManualLocationSearch = () => {
+    if (!selectedZone || !selectedZone.boundary) {
+      toast.error("Please select a location first", { duration: 2500 });
+      return;
+    }
+
+    // Count observations in this zone
+    const observationsInZone = allData.filter((item) => {
+      if (!item.latitude || !item.longitude) return false;
+      return isPointInPolygon(item.latitude, item.longitude, selectedZone.boundary);
+    });
+    
+    const count = observationsInZone.length;
+    const locationName = selectedZone.name || "this location";
+    
+    if (count > 0) {
+      toast.success(
+        `Found ${count === 1 ? '1 observation' : `${count} observations`} in ${locationName}`,
+        { duration: 3500, icon: '📍' }
+      );
+    } else {
+      toast.error(
+        `No observations found in ${locationName}`,
+        { duration: 3500 }
+      );
+    }
   };
 
   // Handle trail location selection
@@ -1038,6 +1126,9 @@ function MapPageContent() {
         onTrailsClick={handleTrailsClick}
         onSpeciesSearch={setSpeciesSearchTerm}
         onLocationSearch={handleZoneSelect}
+        allData={allData}
+        onManualSearch={handleManualSearch}
+        onManualLocationSearch={handleManualLocationSearch}
       />
 
       {/* DESKTOP SIDEBAR MENU */}
@@ -1450,6 +1541,9 @@ function MapPageContent() {
         onClose={() => setShowMobileSearch(false)}
         onSpeciesSearch={setSpeciesSearchTerm}
         onLocationSearch={handleZoneSelect}
+        allData={allData}
+        onManualSearch={handleManualSearch}
+        onManualLocationSearch={handleManualLocationSearch}
       />
 
       <MushroomSubmissionForm
