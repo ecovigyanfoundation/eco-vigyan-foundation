@@ -16,12 +16,21 @@ export default function MapFilter({
   onFilterToggle,
   onResetFilters,
   selectedFilters = {},
+  onApplyFilter,
 }) {
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [pendingFilters, setPendingFilters] = useState(selectedFilters);
 
   const filterDropdownRef = useRef(null);
   const filterButtonClickedRef = useRef(false);
+
+  // Sync pending filters with actual filters when menu opens
+  useEffect(() => {
+    if (filterMenuOpen) {
+      setPendingFilters(selectedFilters);
+    }
+  }, [filterMenuOpen, selectedFilters]);
 
   /* ------------------------------
      CLICK OUTSIDE HANDLER
@@ -74,9 +83,9 @@ export default function MapFilter({
     allFilterOptions;
 
   /* ------------------------------
-     ACTIVE FILTER COUNT
+     ACTIVE FILTER COUNT (based on pending filters while menu is open)
   ------------------------------ */
-  const activeFilterCount = Object.values(selectedFilters).reduce(
+  const activeFilterCount = Object.values(filterMenuOpen ? pendingFilters : selectedFilters).reduce(
     (total, arr) => total + (Array.isArray(arr) ? arr.length : 0),
     0
   );
@@ -104,13 +113,23 @@ export default function MapFilter({
 
   const isFilterSelected = (value) => {
     const type = getFilterType(value);
-    return selectedFilters[type]?.includes(value);
+    return pendingFilters[type]?.includes(value);
   };
 
   const handleFilterClick = (value, e) => {
     e.stopPropagation();
     const type = getFilterType(value);
-    if (type) onFilterToggle(type, value);
+    if (!type) return;
+
+    // Update pending filters (staging area)
+    setPendingFilters((prev) => {
+      const currentValues = prev[type] || [];
+      const isSelected = currentValues.includes(value);
+      const newValues = isSelected
+        ? currentValues.filter((v) => v !== value)
+        : [...currentValues, value];
+      return { ...prev, [type]: newValues };
+    });
   };
 
   /* ------------------------------
@@ -123,7 +142,7 @@ export default function MapFilter({
       const selected = isFilterSelected(option);
       return { option, img, label, selected };
     });
-  }, [currentOptions, selectedFilters]);
+  }, [currentOptions, pendingFilters]);
 
   /* ------------------------------
      RENDER
@@ -184,14 +203,54 @@ export default function MapFilter({
             <button
               onClick={(e) => {
                 e.stopPropagation();
+                setPendingFilters({
+                  ecologicalRole: [],
+                  texture: [],
+                  underside: [],
+                  fruitingSurface: [],
+                  stemPresence: [],
+                  commonUses: [],
+                });
                 onResetFilters();
                 setSelectedCategory("all");
                 setFilterMenuOpen(false);
               }}
-              className="w-full flex items-center justify-center gap-1 px-2 py-1 text-xs bg-emerald-600 text-white rounded"
+              className="w-full flex items-center justify-center gap-1 px-2 py-2 md:py-1 text-xs md:text-xs bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
             >
-              <RotateCcw size={12} />
+              <RotateCcw size={14} className="md:w-3 md:h-3" />
               Reset All Filters
+            </button>
+
+            {/* Apply Filter Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                // Apply pending filters to actual filters
+                Object.keys(pendingFilters).forEach((filterType) => {
+                  const pendingValues = pendingFilters[filterType] || [];
+                  const currentValues = selectedFilters[filterType] || [];
+                  
+                  // Find values to remove (in current but not in pending)
+                  const toRemove = currentValues.filter(v => !pendingValues.includes(v));
+                  // Find values to add (in pending but not in current)
+                  const toAdd = pendingValues.filter(v => !currentValues.includes(v));
+                  
+                  // Remove values
+                  toRemove.forEach(value => onFilterToggle(filterType, value));
+                  // Add values
+                  toAdd.forEach(value => onFilterToggle(filterType, value));
+                });
+                
+                if (onApplyFilter) {
+                  // Pass pending filters so toast knows what's being applied
+                  onApplyFilter(pendingFilters);
+                }
+                setFilterMenuOpen(false);
+              }}
+              className="w-full flex items-center justify-center gap-1 px-2 py-2 md:py-1 text-xs md:text-xs bg-emerald-600 text-white rounded hover:bg-emerald-700 transition-colors font-bold"
+            >
+              <Filter size={14} className="md:w-3 md:h-3" />
+              Apply Filter
             </button>
           </div>
 

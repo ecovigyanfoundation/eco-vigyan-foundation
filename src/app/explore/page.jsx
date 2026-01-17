@@ -192,6 +192,7 @@ function MapPageContent() {
   const prevFiltersRef = useRef({ speciesSearchTerm: "", scientificNameSearchTerm: "", hasZone: false });
   const lastAddedMushroomRef = useRef(null);
   const trailModeRef = useRef(false);
+  const skipFilterToastRef = useRef(false);
   
   // Keep trailModeRef in sync with trailMode state
   useEffect(() => {
@@ -375,6 +376,20 @@ function MapPageContent() {
     }
 
     setData(filtered);
+
+    // Don't show toast if skipFilterToastRef is true (means Apply Filter button was clicked)
+    if (skipFilterToastRef.current) {
+      skipFilterToastRef.current = false;
+      // Update previous filters ref
+      prevFiltersRef.current = {
+        speciesSearchTerm: speciesSearchTerm,
+        scientificNameSearchTerm: scientificNameSearchTerm,
+        hasZone: !!(selectedZone && selectedZone.boundary),
+        count: filtered.length,
+        zoneId: selectedZone?.boundary?.length || null,
+      };
+      return;
+    }
 
     // Show toast notification for species searches (automated - not manual)
     const hasSpeciesSearch = speciesSearchTerm.trim().length > 0;
@@ -1111,6 +1126,123 @@ function MapPageContent() {
     setShowTrailModal(true);
   };
 
+  // Handle apply filter button click - show toast with filtered count
+  const handleApplyFilter = (pendingFilters = {}) => {
+    // Set flag to skip automatic toast from useEffect
+    skipFilterToastRef.current = true;
+    
+    const totalCount = allData.length;
+    
+    // Use pending filters if provided, otherwise use header filters
+    const filtersToCheck = Object.keys(pendingFilters).length > 0 ? pendingFilters : headerFilters;
+    
+    // Calculate what the filtered count will be with these filters
+    let filtered = [...allData];
+    
+    // Apply zone filter
+    if (selectedZone && selectedZone.boundary) {
+      filtered = filtered.filter((item) => {
+        if (!item.latitude || !item.longitude) return false;
+        return isPointInPolygon(item.latitude, item.longitude, selectedZone.boundary);
+      });
+    }
+    
+    // Apply species search filter
+    if (speciesSearchTerm.trim()) {
+      const searchLower = speciesSearchTerm.toLowerCase().trim();
+      filtered = filtered.filter((item) => {
+        const commonName = (item.commonName || item.name || "").toLowerCase();
+        return commonName.includes(searchLower);
+      });
+    }
+    
+    // Apply header filters with AND logic (must match ALL selected filters)
+    if (filtersToCheck.ecologicalRole?.length > 0) {
+      filtered = filtered.filter((item) => {
+        const roles = Array.isArray(item.ecologicalRole) ? item.ecologicalRole : [item.ecologicalRole];
+        // Must have ALL selected roles
+        return filtersToCheck.ecologicalRole.every((selectedRole) => roles.includes(selectedRole));
+      });
+    }
+    if (filtersToCheck.texture?.length > 0) {
+      filtered = filtered.filter((item) => filtersToCheck.texture.includes(item.texture));
+    }
+    if (filtersToCheck.underside?.length > 0) {
+      filtered = filtered.filter((item) => filtersToCheck.underside.includes(item.underside));
+    }
+    if (filtersToCheck.fruitingSurface?.length > 0) {
+      filtered = filtered.filter((item) => filtersToCheck.fruitingSurface.includes(item.fruitingSurface));
+    }
+    if (filtersToCheck.stemPresence?.length > 0) {
+      filtered = filtered.filter((item) => filtersToCheck.stemPresence.includes(item.stemPresence));
+    }
+    if (filtersToCheck.commonUses?.length > 0) {
+      filtered = filtered.filter((item) => {
+        const uses = Array.isArray(item.commonUses) ? item.commonUses : [item.commonUses];
+        // Must have ALL selected uses
+        return filtersToCheck.commonUses.every((selectedUse) => uses.includes(selectedUse));
+      });
+    }
+    
+    const filterCount = filtered.length;
+    
+    // Check if any filters are active
+    const hasActiveFilters = Object.values(filtersToCheck).some(
+      (arr) => Array.isArray(arr) && arr.length > 0
+    );
+    
+    if (!hasActiveFilters && !selectedZone && !speciesSearchTerm.trim()) {
+      toast(
+        `Showing all ${totalCount} observations`,
+        { duration: 3000, icon: '🍄' }
+      );
+    } else {
+      const filterDescriptions = [];
+      
+      // Add filter descriptions with actual names
+      if (filtersToCheck.ecologicalRole?.length > 0) {
+        filterDescriptions.push(filtersToCheck.ecologicalRole.join(', '));
+      }
+      if (filtersToCheck.texture?.length > 0) {
+        filterDescriptions.push(filtersToCheck.texture.join(', '));
+      }
+      if (filtersToCheck.underside?.length > 0) {
+        filterDescriptions.push(filtersToCheck.underside.join(', '));
+      }
+      if (filtersToCheck.fruitingSurface?.length > 0) {
+        filterDescriptions.push(filtersToCheck.fruitingSurface.join(', '));
+      }
+      if (filtersToCheck.stemPresence?.length > 0) {
+        filterDescriptions.push(filtersToCheck.stemPresence.join(', '));
+      }
+      if (filtersToCheck.commonUses?.length > 0) {
+        filterDescriptions.push(filtersToCheck.commonUses.join(', '));
+      }
+      if (selectedZone) {
+        filterDescriptions.push(selectedZone.name || 'location');
+      }
+      if (speciesSearchTerm.trim()) {
+        filterDescriptions.push(`"${speciesSearchTerm.trim()}"`);
+      }
+      
+      const filterText = filterDescriptions.length > 0 
+        ? ` with ${filterDescriptions.join(', ')}` 
+        : '';
+      
+      if (filterCount > 0) {
+        toast.success(
+          `Found ${filterCount} observation${filterCount === 1 ? '' : 's'}${filterText}`,
+          { duration: 4000, icon: '🔍' }
+        );
+      } else {
+        toast.error(
+          `No observations found${filterText}`,
+          { duration: 3500 }
+        );
+      }
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-dvh w-full bg-gray-950 overflow-x-hidden text-white">
       {/* HEADER */}
@@ -1331,6 +1463,7 @@ function MapPageContent() {
                       onFilterToggle={handleHeaderFilterToggle}
                       onResetFilters={handleResetFilters}
                       selectedFilters={headerFilters}
+                      onApplyFilter={handleApplyFilter}
                     />
 
                     
