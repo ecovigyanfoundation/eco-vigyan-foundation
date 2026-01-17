@@ -159,10 +159,10 @@ export default function MapFilter({
         }}
         className="relative flex items-center gap-1.5 px-3 py-2 bg-emerald-600/90 hover:bg-emerald-700 rounded-xl text-white"
       >
-        <Filter size={16} />
+        <Filter size={20} className="md:w-4 md:h-4" />
         <ChevronDown
-          size={12}
-          className={`transition-transform ${
+          size={14}
+          className={`md:w-3 md:h-3 transition-transform ${
             filterMenuOpen ? "rotate-180" : ""
           }`}
         />
@@ -199,6 +199,9 @@ export default function MapFilter({
                 </option>
               ))}
             </select>
+
+            {/* Buttons Container - Flex Column on Mobile */}
+            <div className="flex flex-col gap-1">
 
             <button
               onClick={(e) => {
@@ -252,6 +255,7 @@ export default function MapFilter({
               <Filter size={14} className="md:w-3 md:h-3" />
               Apply Filter
             </button>
+            </div>
           </div>
 
           {/* FILTER GRID */}
