@@ -6,132 +6,144 @@ import { motion } from "framer-motion";
 import {
   ArrowLeft,
   Sprout,
-  Calendar,
-  Users,
+  Clock,
+  Quote,
+  CheckCircle2,
   ExternalLink,
+  MessageSquare,
 } from "lucide-react";
 
 const GrowYourOwnMushrooms = ({ onBack }) => {
   const router = useRouter();
+
+  const testimonials = [
+    {
+      name: "Romi Kohsala",
+      text: "I am not sure which is easier- to push a car uphill single-handedly or to enthuse an 80-year person to get excited to grow mushrooms. But Shrey has done just that. I was successful. Oysters grew.",
+      highlight: "I just followed what he told me to do."
+    },
+    {
+      name: "Raman Bhal",
+      text: "Something that I couldn't even measure was the happiness which I got post getting the first harvest! It was invaluable!",
+      highlight: ""
+    }
+  ];
+
   return (
     <motion.div
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -50 }}
-      className="bg-white rounded-[3rem] shadow-xl overflow-hidden border border-emerald-100"
+      className="bg-white rounded-[3rem] shadow-xl overflow-hidden border border-sky-100"
     >
       {/* Top Header Bar */}
-      <div className="bg-white border-b border-stone-100 p-6 flex justify-between items-center">
+      <div className="bg-white border-b border-slate-100 p-6 flex flex-col md:flex-row justify-between items-center gap-4">
         <button
           onClick={onBack}
-          className="flex items-center gap-2 text-emerald-700 font-bold hover:text-emerald-500 transition-colors"
+          className="flex items-center gap-2 text-sky-600 font-bold hover:text-sky-400 transition-colors"
         >
           <ArrowLeft className="w-5 h-5" /> Back to Programs
         </button>
-        <h2 className="text-2xl font-black text-emerald-800 uppercase tracking-tighter">
-          Grow Your Own Mushrooms
+        <h2 className="text-3xl font-black text-sky-500 uppercase tracking-tight">
+          Grow Your Own <span className="text-slate-800">Mushrooms</span>
         </h2>
       </div>
 
       <div className="p-8 md:p-12">
-        {/* Intro Text */}
-        <p className="text-stone-600 text-lg mb-12 max-w-4xl">
-          Learn the art and science of mushroom cultivation! This hands-on program 
-          teaches you how to grow nutritious and delicious mushrooms at home, from 
-          substrate preparation to harvesting. Perfect for beginners and enthusiasts alike.
-        </p>
+        {/* Intro Section */}
+        <div className="max-w-4xl mb-12">
+          <p className="text-slate-700 text-xl font-medium leading-relaxed">
+            This is an online, hands-on series of <span className="text-sky-600 font-bold">8 sessions</span> to help you grow your own <span className="underline decoration-sky-300 decoration-4 underline-offset-4">oyster mushrooms on kitchen waste.</span>
+          </p>
+          <div className="flex items-center gap-3 mt-4 text-slate-500">
+            <Clock className="w-5 h-5 text-sky-500" />
+            <p className="text-lg">Follow along & towards the end of this series, you will be able to successfully harvest your first crop in <span className="font-bold text-slate-800">30 days.</span></p>
+          </div>
+        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Left: Program Details */}
-          <div className="space-y-6">
-            <h4 className="text-emerald-600 font-bold text-xl mb-6">
-              What You'll Learn
-            </h4>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+          {/* Left: Program Highlights */}
+          <div className="lg:col-span-1 space-y-6">
+            <div className="bg-sky-50 p-6 rounded-3xl border border-sky-100">
+              <h4 className="text-sky-700 font-black uppercase tracking-wider mb-6 flex items-center gap-2">
+                <Sprout className="w-6 h-6" /> Program Goals
+              </h4>
+              <ul className="space-y-4">
+                {[
+                  "Grow on Kitchen Waste",
+                  "8 Comprehensive Sessions",
+                  "First Harvest in 30 Days",
+                  "Beginner Friendly",
+                  "Step-by-Step Guidance"
+                ].map((item, i) => (
+                  <li key={i} className="flex items-center gap-3 text-slate-700 font-medium">
+                    <CheckCircle2 className="w-5 h-5 text-sky-500" /> {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
 
-            <div className="space-y-4">
-              <div className="bg-emerald-50 p-5 rounded-2xl border border-emerald-100">
-                <h5 className="font-bold text-emerald-900 mb-2 flex items-center gap-2">
-                  <Sprout className="w-5 h-5" />
-                  Substrate Preparation
-                </h5>
-                <p className="text-sm text-stone-600">
-                  Master the techniques of preparing optimal growing mediums for different mushroom species.
-                </p>
-              </div>
-
-              <div className="bg-emerald-50 p-5 rounded-2xl border border-emerald-100">
-                <h5 className="font-bold text-emerald-900 mb-2 flex items-center gap-2">
-                  <Calendar className="w-5 h-5" />
-                  Cultivation Cycles
-                </h5>
-                <p className="text-sm text-stone-600">
-                  Understand the complete lifecycle from inoculation to fruiting and harvesting.
-                </p>
-              </div>
-
-              <div className="bg-emerald-50 p-5 rounded-2xl border border-emerald-100">
-                <h5 className="font-bold text-emerald-900 mb-2 flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  Hands-On Training
-                </h5>
-                <p className="text-sm text-stone-600">
-                  Get practical experience with live demonstrations and interactive sessions.
-                </p>
-              </div>
+            {/* Visual Placeholder for People Photos from Image */}
+            <div className="grid grid-cols-2 gap-2 opacity-80">
+                <div className="aspect-square bg-slate-100 rounded-xl flex items-center justify-center text-[10px] text-slate-400 text-center p-2">Participant Showcase</div>
+                <div className="aspect-square bg-slate-100 rounded-xl flex items-center justify-center text-[10px] text-slate-400 text-center p-2">Success Stories</div>
             </div>
           </div>
 
-          {/* Right: Program Features */}
-          <div className="bg-stone-50 rounded-3xl p-6 border border-stone-100">
-            <h4 className="font-black text-stone-800 uppercase mb-6">
-              Program <span className="text-emerald-600">Features</span>
-            </h4>
-            
-            <div className="space-y-4">
-              <div className="bg-white p-4 rounded-xl shadow-sm">
-                <h5 className="font-bold text-emerald-900 mb-2">Oyster Mushrooms</h5>
-                <p className="text-sm text-stone-600">
-                  Easy to grow, fast-growing, and perfect for beginners
-                </p>
+          {/* Right: Testimonials (The Quote Section) */}
+          <div className="lg:col-span-2 space-y-8">
+            <div className="relative">
+              <Quote className="absolute -top-6 -left-6 w-12 h-12 text-sky-100 rotate-180" />
+              <div className="space-y-8 relative z-10">
+                {testimonials.map((t, idx) => (
+                  <motion.div 
+                    key={idx}
+                    whileHover={{ scale: 1.01 }}
+                    className="bg-white p-8 rounded-3xl border-l-4 border-sky-400 shadow-sm border-y border-r border-slate-100"
+                  >
+                    <div className="flex items-start gap-4">
+                      <MessageSquare className="w-6 h-6 text-sky-400 flex-shrink-0 mt-1" />
+                      <div>
+                        <p className="text-slate-600 italic text-lg leading-relaxed mb-4">
+                          "{t.text} <span className="font-bold text-slate-800 not-italic">{t.highlight}</span>"
+                        </p>
+                        <p className="text-sky-600 font-bold flex items-center justify-end gap-2">
+                          — {t.name}
+                        </p>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
               </div>
+            </div>
 
-              <div className="bg-white p-4 rounded-xl shadow-sm">
-                <h5 className="font-bold text-emerald-900 mb-2">Button Mushrooms</h5>
-                <p className="text-sm text-stone-600">
-                  Learn commercial cultivation techniques for the most popular variety
-                </p>
-              </div>
-
-              <div className="bg-white p-4 rounded-xl shadow-sm">
-                <h5 className="font-bold text-emerald-900 mb-2">Specialty Varieties</h5>
-                <p className="text-sm text-stone-600">
-                  Explore unique mushrooms like shiitake and lion's mane
-                </p>
-              </div>
-
-              <div className="bg-emerald-600 text-white p-4 rounded-xl shadow-sm">
-                <p className="font-bold text-center">
-                  Take-home mushroom growing kit included!
-                </p>
-              </div>
+            {/* Instructor Mention */}
+            <div className="bg-slate-50 p-6 rounded-2xl text-center border border-dashed border-slate-300">
+                <p className="text-slate-500 italic">"My family says there must be something extraordinary about him. They are absolutely right"</p>
             </div>
           </div>
         </div>
 
         {/* Footer: CTA */}
-        <div className="mt-16 pt-8 border-t border-stone-100 flex flex-col md:flex-row items-center justify-between gap-8">
-          <div className="max-w-2xl">
-            <p className="text-stone-600 text-lg">
-              Start your mushroom growing journey today and discover the joy of 
-              cultivating your own fresh, organic mushrooms at home!
+        <div className="mt-16 pt-8 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="flex flex-col gap-1">
+            <span className="text-sky-600 font-bold uppercase tracking-widest text-sm">Ready to start?</span>
+            <p className="text-slate-500 text-lg">
+              Turn your kitchen waste into a bountiful mushroom harvest.
             </p>
           </div>
 
           <button 
-            onClick={() => router.push('/register?program=grow-mushrooms')}
-            className="bg-emerald-500 hover:bg-emerald-600 text-white px-10 py-5 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-emerald-200 flex items-center gap-3 transition-all active:scale-95"
+            onClick={() => router.push('/register?program=mushroom-series')}
+            className="group bg-[#4ade80] hover:bg-[#22c55e] text-white px-12 py-5 rounded-full font-black uppercase tracking-widest shadow-xl shadow-green-100 flex items-center gap-3 transition-all hover:scale-105 active:scale-95"
           >
-            Register Here <ExternalLink className="w-5 h-5" />
+            Register Here 
+            <motion.div
+                animate={{ x: [0, 5, 0] }}
+                transition={{ repeat: Infinity, duration: 1.5 }}
+            >
+                <ExternalLink className="w-6 h-6" />
+            </motion.div>
           </button>
         </div>
       </div>

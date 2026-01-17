@@ -5,149 +5,135 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
-  Droplets,
-  Home,
   Leaf,
+  Droplets,
+  Sparkles,
+  ShoppingBasket,
+  MessageCircle,
   ExternalLink,
 } from "lucide-react";
 
-const ChemicalFreeLivingSeries = ({ onBack }) => {
+const ChemicalFreeLiving = ({ onBack }) => {
   const router = useRouter();
+
+  const themes = [
+    {
+      title: "Chemical-free Edibles",
+      icon: <ShoppingBasket className="w-6 h-6 text-emerald-500" />,
+      desc: "Decode what goes into your food and transition to natural alternatives.",
+    },
+    {
+      title: "Personal Care Products",
+      icon: <Sparkles className="w-6 h-6 text-sky-500" />,
+      desc: "Learn to identify synthetic chemicals in skincare and hygiene routines.",
+    },
+    {
+      title: "Household Cleaning",
+      icon: <Droplets className="w-6 h-6 text-blue-500" />,
+      desc: "Create effective, non-toxic cleaners for a safer home environment.",
+    },
+  ];
+
+  const testimonials = [
+    {
+      text: "It was reflective and provided solutions rather just discussing about problems",
+      color: "bg-sky-100 border-sky-200 text-sky-800",
+      position: "md:rotate-[-2deg]",
+    },
+    {
+      text: "What is not good for you & me is not good for Mother earth too!",
+      color: "bg-emerald-100 border-emerald-200 text-emerald-800",
+      position: "md:translate-y-4",
+    },
+    {
+      text: "We could make bioproducts on our own and the ingredients were as easily available as the process.",
+      color: "bg-white border-slate-200 text-slate-700 shadow-sm",
+      position: "md:rotate-[2deg]",
+    },
+  ];
+
   return (
     <motion.div
-      initial={{ opacity: 0, x: 50 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -50 }}
-      className="bg-white rounded-[3rem] shadow-xl overflow-hidden border border-emerald-100"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="bg-white rounded-[3rem] shadow-xl overflow-hidden border border-emerald-50"
     >
-      {/* Top Header Bar */}
-      <div className="bg-white border-b border-stone-100 p-6 flex justify-between items-center">
+      {/* Header Bar */}
+      <div className="bg-white border-b border-slate-100 p-6 flex flex-col md:row justify-between items-center gap-4">
         <button
           onClick={onBack}
-          className="flex items-center gap-2 text-emerald-700 font-bold hover:text-emerald-500 transition-colors"
+          className="flex items-center gap-2 text-emerald-600 font-bold hover:text-emerald-500 transition-colors"
         >
-          <ArrowLeft className="w-5 h-5" /> Back to Programs
+          <ArrowLeft className="w-5 h-5" /> Back
         </button>
-        <h2 className="text-2xl font-black text-emerald-800 uppercase tracking-tighter">
-          Chemical Free Living Series
+        <h2 className="text-3xl font-black text-sky-500 uppercase tracking-tight">
+          Chemical Free <span className="text-emerald-500">Living Series</span>
         </h2>
       </div>
 
       <div className="p-8 md:p-12">
-        {/* Intro Text */}
-        <p className="text-stone-600 text-lg mb-12 max-w-4xl">
-          Embrace a healthier lifestyle with our comprehensive workshop series on 
-          chemical-free living. Learn practical solutions to reduce your chemical 
-          footprint and create a safer, more sustainable home environment.
-        </p>
+        {/* Intro Section */}
+        <div className="max-w-4xl mb-12">
+          <p className="text-slate-700 text-xl leading-relaxed">
+            To handhold you and get you off most synthetic chemicals in your everyday routine, 
+            we are happy to announce a <span className="font-bold text-emerald-600">journey of 3 sessions</span> to 
+            decode a synthetic chemical-free living.
+          </p>
+        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Left: Workshop Topics */}
-          <div className="space-y-6">
-            <h4 className="text-emerald-600 font-bold text-xl mb-6">
-              Workshop Series
-            </h4>
+        {/* Themes Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+          {themes.map((theme, i) => (
+            <motion.div
+              key={i}
+              whileHover={{ y: -5 }}
+              className="p-6 rounded-3xl bg-slate-50 border border-slate-100 flex flex-col items-center text-center space-y-4"
+            >
+              <div className="p-4 bg-white rounded-2xl shadow-sm">{theme.icon}</div>
+              <h4 className="font-bold text-slate-800">{theme.title}</h4>
+              <p className="text-sm text-slate-500 leading-relaxed">{theme.desc}</p>
+            </motion.div>
+          ))}
+        </div>
 
-            <div className="space-y-4">
-              <div className="bg-emerald-50 p-5 rounded-2xl border border-emerald-100">
-                <h5 className="font-bold text-emerald-900 mb-2 flex items-center gap-2">
-                  <Droplets className="w-5 h-5" />
-                  Natural Cleaning Products
-                </h5>
-                <p className="text-sm text-stone-600">
-                  Make your own eco-friendly cleaning solutions using simple household ingredients.
-                </p>
-              </div>
-
-              <div className="bg-emerald-50 p-5 rounded-2xl border border-emerald-100">
-                <h5 className="font-bold text-emerald-900 mb-2 flex items-center gap-2">
-                  <Home className="w-5 h-5" />
-                  Chemical-Free Home Care
-                </h5>
-                <p className="text-sm text-stone-600">
-                  Discover alternatives to chemical-laden products for home maintenance and care.
-                </p>
-              </div>
-
-              <div className="bg-emerald-50 p-5 rounded-2xl border border-emerald-100">
-                <h5 className="font-bold text-emerald-900 mb-2 flex items-center gap-2">
-                  <Leaf className="w-5 h-5" />
-                  Organic Personal Care
-                </h5>
-                <p className="text-sm text-stone-600">
-                  Create natural personal care products for healthier skin and body.
-                </p>
-              </div>
-            </div>
-
-            {/* Impact Box */}
-            <div className="bg-gradient-to-br from-green-500 to-emerald-600 text-white p-6 rounded-2xl shadow-lg">
-              <h5 className="font-bold mb-2">Environmental Impact</h5>
-              <p className="text-sm opacity-90">
-                By switching to chemical-free alternatives, each household can prevent 
-                approximately 20kg of harmful chemicals from entering our water systems annually.
-              </p>
-            </div>
+        {/* Educators Feedback Section */}
+        <div className="bg-[#f3f4e9] rounded-[3rem] p-8 md:p-12 border border-slate-200 relative overflow-hidden">
+          <div className="flex items-center gap-3 mb-10">
+            <MessageCircle className="w-8 h-8 text-indigo-600" />
+            <h3 className="text-2xl font-black text-indigo-900 uppercase">Educators Said!</h3>
           </div>
 
-          {/* Right: Benefits & Topics */}
-          <div className="bg-stone-50 rounded-3xl p-6 border border-stone-100">
-            <h4 className="font-black text-stone-800 uppercase mb-6">
-              What You'll <span className="text-emerald-600">Gain</span>
-            </h4>
-            
-            <div className="space-y-4">
-              <div className="bg-white p-4 rounded-xl shadow-sm">
-                <h5 className="font-bold text-emerald-900 mb-2">Healthier Living</h5>
-                <p className="text-sm text-stone-600">
-                  Reduce exposure to harmful chemicals and toxins in your daily life.
-                </p>
-              </div>
-
-              <div className="bg-white p-4 rounded-xl shadow-sm">
-                <h5 className="font-bold text-emerald-900 mb-2">Cost Savings</h5>
-                <p className="text-sm text-stone-600">
-                  DIY solutions are often more economical than commercial chemical products.
-                </p>
-              </div>
-
-              <div className="bg-white p-4 rounded-xl shadow-sm">
-                <h5 className="font-bold text-emerald-900 mb-2">Environmental Protection</h5>
-                <p className="text-sm text-stone-600">
-                  Minimize your ecological footprint and contribute to a cleaner planet.
-                </p>
-              </div>
-
-              <div className="bg-white p-4 rounded-xl shadow-sm">
-                <h5 className="font-bold text-emerald-900 mb-2">Practical Skills</h5>
-                <p className="text-sm text-stone-600">
-                  Learn recipes and techniques you can use immediately at home.
-                </p>
-              </div>
-
-              <div className="bg-emerald-600 text-white p-4 rounded-xl shadow-sm">
-                <p className="font-bold text-center">
-                  Recipe booklet and starter kit included!
-                </p>
-              </div>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {testimonials.map((t, i) => (
+              <motion.div
+                key={i}
+                className={`${t.color} ${t.position} p-8 rounded-[2rem] border-2 flex items-center justify-center text-center font-medium leading-snug shadow-sm`}
+              >
+                "{t.text}"
+              </motion.div>
+            ))}
           </div>
         </div>
 
-        {/* Footer: CTA */}
-        <div className="mt-16 pt-8 border-t border-stone-100 flex flex-col md:flex-row items-center justify-between gap-8">
-          <div className="max-w-2xl">
-            <p className="text-stone-600 text-lg">
-              Take the first step towards a chemical-free lifestyle and create a 
-              healthier home for you and your family!
-            </p>
+        {/* CTA Section */}
+        <div className="mt-16 flex flex-col md:row items-center justify-between gap-8 border-t border-slate-100 pt-10">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
+              <Leaf className="text-emerald-600 w-6 h-6" />
+            </div>
+            <div>
+              <p className="font-bold text-slate-800">Start your natural journey</p>
+              <p className="text-sm text-slate-500">3 Sessions to decode non-toxic living</p>
+            </div>
           </div>
 
-          <button 
-            onClick={() => router.push('/register?program=chemical-free')}
-            className="bg-emerald-500 hover:bg-emerald-600 text-white px-10 py-5 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-emerald-200 flex items-center gap-3 transition-all active:scale-95"
+          <button
+            onClick={() => router.push("/register?program=chemical-free")}
+            className="group bg-[#4ade80] hover:bg-[#22c55e] text-white px-10 py-5 rounded-full font-black uppercase tracking-widest shadow-xl shadow-green-100 flex items-center gap-3 transition-all hover:scale-105 active:scale-95"
           >
-            Register Now <ExternalLink className="w-5 h-5" />
+            Register Here
+            <ExternalLink className="w-5 h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
           </button>
         </div>
       </div>
@@ -155,4 +141,4 @@ const ChemicalFreeLivingSeries = ({ onBack }) => {
   );
 };
 
-export default ChemicalFreeLivingSeries;
+export default ChemicalFreeLiving;

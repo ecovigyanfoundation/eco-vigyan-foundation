@@ -82,6 +82,31 @@ export async function POST(req) {
       );
     }
 
+    // Validate email format using regex
+    const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json(
+        {
+          error: "Please enter a valid email address.",
+        },
+        { status: 400 }
+      );
+    }
+
+    // Validate Indian phone number format
+    // Accepts: +919876543210, 919876543210, or 9876543210 (10 digits starting with 6-9)
+    const phoneRegex = /^(\+91|91)?[6-9]\d{9}$/;
+    const cleanPhone = phone.replace(/[\s-]/g, ""); // Remove spaces and hyphens
+    if (!phoneRegex.test(cleanPhone)) {
+      return NextResponse.json(
+        {
+          error:
+            "Please enter a valid Indian phone number (10 digits starting with 6-9, optionally prefixed with +91 or 91).",
+        },
+        { status: 400 }
+      );
+    }
+
     const subject = `Program Registration: ${program}`;
 
     // Create email content

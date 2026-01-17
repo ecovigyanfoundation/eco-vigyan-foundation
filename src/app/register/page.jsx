@@ -160,6 +160,7 @@ const RegisterContent = () => {
                   </label>
                   <input
                     type="email"
+                    pattern="[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"
                     id="email"
                     name="email"
                     value={formData.email}
@@ -176,7 +177,7 @@ const RegisterContent = () => {
                     htmlFor="phone"
                     className="block text-sm font-bold text-stone-700 mb-2 uppercase tracking-wide"
                   >
-                    Phone Number *
+                    Phone Number * (Indian)
                   </label>
                   <input
                     type="tel"
@@ -184,9 +185,11 @@ const RegisterContent = () => {
                     name="phone"
                     value={formData.phone}
                     onChange={handleChange}
+                    pattern="(\+91|91)?[6-9]\d{9}"
+                    title="Enter a valid 10-digit Indian phone number (optionally with +91 or 91 prefix)"
                     required
                     className="w-full px-4 py-3 rounded-xl border-2 border-stone-200 focus:border-emerald-500 focus:outline-none transition-colors"
-                    placeholder="+91 1234567890"
+                    placeholder="+91 9876543210 or 9876543210"
                   />
                 </div>
 

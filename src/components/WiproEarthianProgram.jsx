@@ -5,14 +5,17 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
-  School,
-  Target,
-  Award,
+  Globe,
+  PlayCircle,
+  History,
   ExternalLink,
+  Award,
+  Users
 } from "lucide-react";
 
 const WiproEarthianProgram = ({ onBack }) => {
   const router = useRouter();
+
   return (
     <motion.div
       initial={{ opacity: 0, x: 50 }}
@@ -21,136 +24,94 @@ const WiproEarthianProgram = ({ onBack }) => {
       className="bg-white rounded-[3rem] shadow-xl overflow-hidden border border-emerald-100"
     >
       {/* Top Header Bar */}
-      <div className="bg-white border-b border-stone-100 p-6 flex justify-between items-center">
+      <div className="bg-white border-b border-stone-100 p-6 flex flex-col md:flex-row justify-between items-center gap-4">
         <button
           onClick={onBack}
           className="flex items-center gap-2 text-emerald-700 font-bold hover:text-emerald-500 transition-colors"
         >
           <ArrowLeft className="w-5 h-5" /> Back to Programs
         </button>
-        <h2 className="text-2xl font-black text-emerald-800 uppercase tracking-tighter">
-          Wipro Earthian Program
+        <h2 className="text-3xl font-black text-sky-600 uppercase tracking-tighter">
+          Wipro Earthian <span className="text-emerald-600">Program</span>
         </h2>
       </div>
 
       <div className="p-8 md:p-12">
         {/* Intro Text */}
-        <p className="text-stone-600 text-lg mb-12 max-w-4xl">
-          A comprehensive school engagement program in partnership with Wipro Foundation, 
-          fostering environmental stewardship and sustainability awareness among students 
-          and educators across the country.
-        </p>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Left: Program Focus Areas */}
-          <div className="space-y-6">
-            <h4 className="text-emerald-600 font-bold text-xl mb-6">
-              Focus Areas
-            </h4>
-
-            <div className="space-y-4">
-              <div className="bg-emerald-50 p-5 rounded-2xl border border-emerald-100">
-                <h5 className="font-bold text-emerald-900 mb-2 flex items-center gap-2">
-                  <School className="w-5 h-5" />
-                  School Collaborations
-                </h5>
-                <p className="text-sm text-stone-600">
-                  Work directly with schools to integrate environmental education into their curriculum.
-                </p>
-              </div>
-
-              <div className="bg-emerald-50 p-5 rounded-2xl border border-emerald-100">
-                <h5 className="font-bold text-emerald-900 mb-2 flex items-center gap-2">
-                  <Target className="w-5 h-5" />
-                  Project-Based Learning
-                </h5>
-                <p className="text-sm text-stone-600">
-                  Students undertake real-world sustainability projects addressing local environmental challenges.
-                </p>
-              </div>
-
-              <div className="bg-emerald-50 p-5 rounded-2xl border border-emerald-100">
-                <h5 className="font-bold text-emerald-900 mb-2 flex items-center gap-2">
-                  <Award className="w-5 h-5" />
-                  Recognition & Awards
-                </h5>
-                <p className="text-sm text-stone-600">
-                  Outstanding projects are recognized and awarded at national level competitions.
-                </p>
-              </div>
-            </div>
-
-            {/* Program Stats */}
-            <div className="bg-gradient-to-br from-blue-500 to-emerald-600 text-white p-6 rounded-2xl shadow-lg">
-              <div className="grid grid-cols-3 gap-4 text-center">
-                <div>
-                  <div className="text-2xl font-black">100+</div>
-                  <div className="text-[10px] uppercase tracking-wider opacity-90">Schools</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-black">5000+</div>
-                  <div className="text-[10px] uppercase tracking-wider opacity-90">Students</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-black">50+</div>
-                  <div className="text-[10px] uppercase tracking-wider opacity-90">Projects</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right: Program Benefits */}
-          <div className="bg-stone-50 rounded-3xl p-6 border border-stone-100">
-            <h4 className="font-black text-stone-800 uppercase mb-6">
-              Program <span className="text-emerald-600">Benefits</span>
-            </h4>
-            
-            <div className="space-y-4">
-              <div className="bg-white p-4 rounded-xl shadow-sm">
-                <h5 className="font-bold text-emerald-900 mb-2">For Students</h5>
-                <ul className="text-sm text-stone-600 space-y-1">
-                  <li>• Hands-on environmental learning</li>
-                  <li>• Critical thinking and problem-solving skills</li>
-                  <li>• National recognition opportunities</li>
-                </ul>
-              </div>
-
-              <div className="bg-white p-4 rounded-xl shadow-sm">
-                <h5 className="font-bold text-emerald-900 mb-2">For Teachers</h5>
-                <ul className="text-sm text-stone-600 space-y-1">
-                  <li>• Professional development workshops</li>
-                  <li>• Curriculum integration resources</li>
-                  <li>• Network with fellow educators</li>
-                </ul>
-              </div>
-
-              <div className="bg-white p-4 rounded-xl shadow-sm">
-                <h5 className="font-bold text-emerald-900 mb-2">For Schools</h5>
-                <ul className="text-sm text-stone-600 space-y-1">
-                  <li>• Enhanced environmental curriculum</li>
-                  <li>• Free training and resources</li>
-                  <li>• Visibility and recognition</li>
-                </ul>
-              </div>
-            </div>
-          </div>
+        <div className="mb-12">
+          <p className="text-slate-700 text-lg leading-relaxed max-w-5xl">
+            Eco Vigyan gladly invites you to attend the <span className="font-bold text-emerald-700">National Level School Competition for Sustainability</span> managed by Wipro earthian in collaboration with Wipro earthian’s Sustainability Program and the Department of Education (DOE) Himachal Pradesh.
+          </p>
+          <p className="mt-4 text-slate-600 text-lg">
+            This competition is open to all Schools, Administrations, Teachers, and Educational Institutions across India to build knowledge, skills, and a mindset for self-reliance.
+          </p>
         </div>
 
-        {/* Footer: CTA */}
-        <div className="mt-16 pt-8 border-t border-stone-100 flex flex-col md:flex-row items-center justify-between gap-8">
-          <div className="max-w-2xl">
-            <p className="text-stone-600 text-lg">
-              Join hands with Wipro Earthian to create environmentally conscious 
-              future leaders committed to sustainability!
-            </p>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          {/* Left: Video & Video CTA */}
+          <div className="lg:col-span-8 space-y-6">
+            <div className="relative aspect-video bg-slate-900 rounded-[2rem] overflow-hidden shadow-2xl border-4 border-white">
+              {/* iframe for YouTube Video */}
+              <iframe
+                className="w-full h-full"
+                src="https://www.youtube.com/embed/Ri-3fJ3JoHY"
+                title="12 Years of Wipro earthian | India Impact Stories"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              ></iframe>
+            </div>
+            
+            <div className="flex items-center justify-center gap-3 text-sky-600 font-bold">
+              <PlayCircle className="w-6 h-6 animate-pulse" />
+              <p>To get a quick program overview, watch this video!</p>
+            </div>
           </div>
 
-          <button 
-            onClick={() => router.push('/register?program=wipro-earthian')}
-            className="bg-emerald-500 hover:bg-emerald-600 text-white px-10 py-5 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-emerald-200 flex items-center gap-3 transition-all active:scale-95"
-          >
-            Partner With Us <ExternalLink className="w-5 h-5" />
-          </button>
+          {/* Right: Interaction Cards */}
+          <div className="lg:col-span-4 flex flex-col gap-6">
+            {/* Journey Card */}
+            <motion.div 
+              whileHover={{ scale: 1.02 }}
+              className="bg-emerald-50 p-6 rounded-[2rem] border-2 border-emerald-100 relative group cursor-pointer"
+            >
+              <div className="flex gap-4">
+                <History className="w-10 h-10 text-emerald-600 shrink-0" />
+                <p className="text-emerald-900 font-bold leading-tight">
+                  To look back at our journey with the program in Himachal last year, click here!
+                </p>
+              </div>
+              <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                <ExternalLink className="w-5 h-5 text-emerald-600" />
+              </div>
+            </motion.div>
+
+            {/* Program Impact Stats/Highlights (Derived from Video Content) */}
+            <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 space-y-4">
+              <h4 className="font-black text-slate-800 uppercase text-sm tracking-widest">Program Focus</h4>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <Globe className="w-5 h-5 text-sky-500" />
+                  <span className="text-slate-700 font-medium">Biodiversity & Nature Care</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Award className="w-5 h-5 text-sky-500" />
+                  <span className="text-slate-700 font-medium">Water & Waste Management</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Users className="w-5 h-5 text-sky-500" />
+                  <span className="text-slate-700 font-medium">Community Awareness</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Register CTA */}
+            <button 
+              onClick={() => router.push('/register?program=wipro-earthian')}
+              className="mt-auto bg-[#4ade80] hover:bg-[#22c55e] text-white py-6 rounded-full font-black uppercase tracking-widest shadow-xl shadow-green-100 flex items-center justify-center gap-3 transition-all hover:scale-105 active:scale-95"
+            >
+              Register Here <ExternalLink className="w-6 h-6" />
+            </button>
+          </div>
         </div>
       </div>
     </motion.div>
