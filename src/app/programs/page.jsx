@@ -281,30 +281,7 @@ const SustainabilityProgramsContent = () => {
           </table>
         </div>
 
-        {/* 3. SDG Banner */}
-        <div className="mt-12 bg-stone-100 border border-stone-200 rounded-2xl p-8 flex flex-col lg:flex-row items-center justify-between gap-8">
-          <div className="max-w-md text-center lg:text-left">
-            <h4 className="text-xl font-bold text-slate-900 mb-2">Global Impact</h4>
-            <p className="text-slate-600 leading-relaxed">
-              Through these offerings, we aim to meet the following United Nations Sustainable Development Goals (SDGs).
-            </p>
-          </div>
-          
-          <div className="flex flex-wrap justify-center gap-3">
-            {sdgs.map((sdg) => (
-              <div 
-                key={sdg.id} 
-                style={{ backgroundColor: sdg.color }}
-                className="w-20 h-20 md:w-24 md:h-24 flex flex-col items-center justify-center p-2 text-white shadow-lg rounded-sm hover:-translate-y-1 transition-transform"
-              >
-                <span className="text-xl md:text-2xl font-black leading-none">{sdg.id}</span>
-                <span className="text-[7px] md:text-[9px] font-bold text-center uppercase mt-1 leading-tight">
-                  {sdg.label}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
+\        
       </div>
     </motion.div>
   )}
