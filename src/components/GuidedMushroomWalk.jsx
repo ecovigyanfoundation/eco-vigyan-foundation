@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -10,6 +11,7 @@ import {
 } from "lucide-react";
 
 const GuidedMushroomWalk = ({ onBack }) => {
+  const router = useRouter();
   const locations = [
     "Banglore",
     "Nalagarh",
@@ -126,7 +128,10 @@ const GuidedMushroomWalk = ({ onBack }) => {
             </p>
           </div>
 
-          <button className="bg-emerald-500 hover:bg-emerald-600 text-white px-10 py-5 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-emerald-200 flex items-center gap-3 transition-all active:scale-95">
+          <button 
+            onClick={() => router.push('/register?program=mushroom-walk')}
+            className="bg-emerald-500 hover:bg-emerald-600 text-white px-10 py-5 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-emerald-200 flex items-center gap-3 transition-all active:scale-95"
+          >
             Register Here <ExternalLink className="w-5 h-5" />
           </button>
         </div>

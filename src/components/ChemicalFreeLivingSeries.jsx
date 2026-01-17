@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -11,6 +12,7 @@ import {
 } from "lucide-react";
 
 const ChemicalFreeLivingSeries = ({ onBack }) => {
+  const router = useRouter();
   return (
     <motion.div
       initial={{ opacity: 0, x: 50 }}
@@ -141,7 +143,10 @@ const ChemicalFreeLivingSeries = ({ onBack }) => {
             </p>
           </div>
 
-          <button className="bg-emerald-500 hover:bg-emerald-600 text-white px-10 py-5 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-emerald-200 flex items-center gap-3 transition-all active:scale-95">
+          <button 
+            onClick={() => router.push('/register?program=chemical-free')}
+            className="bg-emerald-500 hover:bg-emerald-600 text-white px-10 py-5 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-emerald-200 flex items-center gap-3 transition-all active:scale-95"
+          >
             Register Now <ExternalLink className="w-5 h-5" />
           </button>
         </div>
