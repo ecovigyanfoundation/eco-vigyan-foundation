@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { MapPin, Phone, Mail, Facebook, Instagram, Linkedin, ArrowRight, Heart } from 'lucide-react';
 
@@ -61,16 +62,16 @@ export default function Footer() {
             </h3>
             <ul className="space-y-3 text-sm font-medium"> {/* Size increased to text-sm */}
               {[
-                { name: "About Us", href: "/about" },
-                { name: "Our Activities", href: "/activities" },
+                { name: "About Us", href: "/#about" },
+                { name: "Our Activities", href: "/programs" },
                 { name: "Join Us", href: "/join-us", highlight: true },
                 { name: "Contact Us", href: "/contact" },
               ].map((link, idx) => (
                 <li key={idx}>
-                  <a href={link.href} className={`flex items-center transition-colors ${link.highlight ? 'text-emerald-400 font-bold' : 'hover:text-white'}`}>
+                  <Link href={link.href} className={`flex items-center transition-colors ${link.highlight ? 'text-emerald-400 font-bold' : 'hover:text-white'}`}>
                     <ArrowRight className="w-4 h-4 mr-2" />
                     {link.name}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -94,9 +95,9 @@ export default function Footer() {
                 <Phone className="w-5 h-5 text-emerald-500 mr-3 shrink-0" />
                 <a href="tel:+918894486066" className="hover:text-white">+91-8894486066</a>
               </div>
-              <div className="flex items-center">
+              <div className="flex items-start">
                 <Mail className="w-5 h-5 text-emerald-500 mr-3 shrink-0" />
-                <a href="mailto:ecovigyan@gmail.com" className="hover:text-white">ecovigyan@gmail.com</a>
+                <a href="mailto:ecovigyan@gmail.com" className="hover:text-white break-all">ecovigyan@gmail.com</a>
               </div>
             </address>
           </div>
