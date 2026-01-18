@@ -82,12 +82,14 @@ export async function POST(req) {
     }
 
     /* ---------- CREATE DOCUMENT ---------- */
+    const isAdmin = user.role === "admin";
     const mushroomData = {
-  images: [{ url: imageUrl, publicId }],
-  location: { latitude: lat, longitude: lng },
-  submittedBy: user._id,
-  status: "pending",
-};
+      images: [{ url: imageUrl, publicId }],
+      location: { latitude: lat, longitude: lng },
+      submittedBy: user._id,
+      status: isAdmin ? "approved" : "pending",
+      ...(isAdmin && { approvedAt: new Date(), reviewedBy: user._id }),
+    };
 
 
     if (commonName) mushroomData.commonName = commonName;
@@ -109,7 +111,11 @@ export async function POST(req) {
     await Mushroom.create(mushroomData);
 
     return NextResponse.json(
-      { message: "Mushroom submitted successfully will be reviewed by an Admin" },
+      { 
+        message: isAdmin 
+          ? "Mushroom published successfully" 
+          : "Mushroom submitted successfully will be reviewed by an Admin" 
+      },
       { status: 201 }
     );
   } catch (err) {

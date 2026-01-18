@@ -123,7 +123,7 @@ export default function AnimatedHeroText({ currentIndex }) {
 
           {/* Main Headline - Character Reveal */}
           <motion.h2
-            className="text-4xl md:text-6xl lg:text-7xl font-extrabold leading-tight mb-6 text-white drop-shadow-xl"
+            className="text-5xl md:text-6xl lg:text-7xl font-extrabold leading-tight mb-6 text-white drop-shadow-xl"
             variants={letterContainerVariants}
           >
             {splitText(current.main)}
@@ -131,7 +131,7 @@ export default function AnimatedHeroText({ currentIndex }) {
 
           {/* Tagline - Smooth Slide Up */}
           <motion.p
-            className="text-lg md:text-2xl font-light text-emerald-50 max-w-3xl leading-relaxed drop-shadow-md"
+            className="text-xl md:text-2xl font-light text-emerald-50 max-w-3xl leading-relaxed drop-shadow-md"
             variants={slideUpVariants}
           >
             {current.tagline}
