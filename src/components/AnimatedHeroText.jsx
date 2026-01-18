@@ -40,98 +40,91 @@ export const HEADLINES = [
   },
 ];
 
-// Unique 3D text reveal animation
-const textVariants = {
-  enter: { 
+// Staggered letter animation for main headline
+const letterContainerVariants = {
+  enter: { transition: { staggerChildren: 0.03 } },
+  center: { transition: { staggerChildren: 0.03 } },
+  exit: { transition: { staggerChildren: 0.01, staggerDirection: -1 } },
+};
+
+const letterVariants = {
+  enter: { y: 20, opacity: 0, scale: 0.8, filter: "blur(4px)" },
+  center: { 
+    y: 0, 
+    opacity: 1, 
+    scale: 1, 
+    filter: "blur(0px)",
+    transition: { type: "spring", stiffness: 100, damping: 10 } 
+  },
+  exit: { 
+    y: -20, 
     opacity: 0, 
-    y: 40, 
-    scale: 0.95,
-    filter: "blur(8px)",
+    filter: "blur(4px)",
+    transition: { duration: 0.2 } 
+  },
+};
+
+// Smooth slide-up for topic and tagline
+const slideUpVariants = {
+  enter: { y: 20, opacity: 0, filter: "blur(4px)" },
+  center: { 
+    y: 0, 
+    opacity: 1, 
+    filter: "blur(0px)",
     transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } 
   },
-  center: { 
-    opacity: 1, 
-    y: 0, 
-    scale: 1,
-    filter: "blur(0px)",
-    transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] } 
-  },
   exit: { 
+    y: -20, 
     opacity: 0, 
-    y: -30, 
-    scale: 1.02,
-    filter: "blur(6px)",
-    transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } 
-  },
-};
-
-// Staggered children animation
-const containerVariants = {
-  enter: { opacity: 0 },
-  center: { 
-    opacity: 1,
-    transition: { 
-      staggerChildren: 0.12,
-      delayChildren: 0.1,
-    }
-  },
-  exit: { opacity: 0 },
-};
-
-const itemVariants = {
-  enter: { 
-    opacity: 0, 
-    y: 30,
     filter: "blur(4px)",
-  },
-  center: { 
-    opacity: 1, 
-    y: 0,
-    filter: "blur(0px)",
-    transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] }
-  },
-  exit: { 
-    opacity: 0, 
-    y: -20,
-    filter: "blur(4px)",
-    transition: { duration: 0.4 }
+    transition: { duration: 0.4 } 
   },
 };
 
 export default function AnimatedHeroText({ currentIndex }) {
   const current = HEADLINES[currentIndex];
 
+  // Helper to split text into characters
+  const splitText = (text) => {
+    return text.split("").map((char, index) => (
+      <motion.span key={index} variants={letterVariants} className="inline-block whitespace-pre">
+        {char}
+      </motion.span>
+    ));
+  };
+
   return (
-    <div className="w-full h-full flex flex-col justify-center items-center text-center">
+    <div className="w-full h-full flex flex-col justify-center items-center text-center z-50">
       <AnimatePresence mode="wait">
         <motion.div
-          key={current.main}
-          className="flex flex-col items-center justify-center"
-          variants={containerVariants}
+          key={currentIndex}
+          className="flex flex-col items-center justify-center max-w-5xl px-4"
           initial="enter"
           animate="center"
           exit="exit"
         >
-          {/* Topic - Original Styling */}
-          <motion.p 
-            className="text-xl font-medium tracking-widest mb-3 text-white"
-            variants={itemVariants}
+          {/* Topic - Elegant Fade In */}
+          <motion.div
+            className="overflow-hidden mb-4"
+            variants={slideUpVariants}
           >
-            {current.topic}
-          </motion.p>
+            <span className="inline-block px-4 py-1.5 rounded-full border border-white/30 bg-white/10 backdrop-blur-md text-emerald-300 font-bold tracking-widest text-sm uppercase shadow-lg">
+              {current.topic}
+            </span>
+          </motion.div>
 
-          {/* Main Headline - Original Styling */}
-          <motion.h2 
-            className="text-6xl font-extrabold leading-tight mb-4 text-white"
-            variants={itemVariants}
+          {/* Main Headline - Character Reveal */}
+          <motion.h2
+            className="text-4xl md:text-6xl lg:text-7xl font-extrabold leading-tight mb-6 text-white drop-shadow-xl"
+            variants={letterContainerVariants}
           >
-            {current.main}
+            {splitText(current.main)}
           </motion.h2>
 
-          {/* Tagline - Original Styling */}
-          <motion.p 
-            className="text-lg italic font-light text-white"
-            variants={itemVariants}
+          {/* Tagline - Smooth Slide Up */}
+          <motion.p
+            className="text-lg md:text-2xl font-light text-emerald-50 max-w-3xl leading-relaxed drop-shadow-md"
+            variants={slideUpVariants}
           >
             {current.tagline}
           </motion.p>
