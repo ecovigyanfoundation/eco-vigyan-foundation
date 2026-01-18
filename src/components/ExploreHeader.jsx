@@ -17,7 +17,17 @@ import {
   Menu,
   X,
   Loader2,
+  Home,
+  Info,
+  FileText,
+  Image,
+  Calendar,
+  FileCheck,
+  Mail,
+  Heart,
+  Users,
 } from "lucide-react";
+import { createPortal } from "react-dom";
 import { useAuth } from "@/context/AuthContext";
 import { getCityBoundary } from "@/lib/geocoding";
 
@@ -40,6 +50,13 @@ export default function ExploreHeader({
   const { user, logout } = useAuth();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const [speciesSearch, setSpeciesSearch] = useState("");
   const [locationSearch, setLocationSearch] = useState("");
   const [isSearchingLocation, setIsSearchingLocation] = useState(false);
@@ -417,11 +434,183 @@ export default function ExploreHeader({
                   </Link>
                 )}
 
+                {/* NAVIGATION MENU TOGGLE (Now in Header) */}
+                <button
+                  onClick={() => setShowSidebar(true)}
+                  className="hidden md:flex bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-4 rounded-xl shadow-xl transition-all active:scale-95 shrink-0 items-center justify-center"
+                  title="Open Navigation"
+                >
+                  <Menu size={20} />
+                </button>
+
+                {/* SIDEBAR (Relocated to Header) */}
+                {/* SIDEBAR (Relocated to Header) */}
+                {/* SIDEBAR (Relocated to Header) */}
+                {mounted && createPortal(
+                  <div className={`fixed inset-0 z-[99999] ${showSidebar ? "pointer-events-auto" : "pointer-events-none"}`}>
+                    {/* BACKDROP */}
+                    <div 
+                      className={`absolute inset-0 bg-black/20 backdrop-blur-sm transition-opacity duration-300 ${showSidebar ? "opacity-100" : "opacity-0"}`}
+                      onClick={() => setShowSidebar(false)}
+                    />
+
+                    {/* DRAWER - RIGHT SIDE */}
+                    <div
+                      className={`absolute right-0 top-0 h-[100dvh] bg-white/95 backdrop-blur-md border-l border-emerald-100 shadow-2xl transition-transform duration-300 ease-in-out w-72 flex flex-col ${
+                        showSidebar ? "translate-x-0" : "translate-x-full"
+                      }`}
+                    >
+                      {/* HEADER */}
+                      <div className="p-6 border-b border-emerald-100 flex justify-between items-center bg-emerald-50/50 shrink-0">
+                        <h2 className="text-lg font-black text-emerald-950 uppercase tracking-widest">
+                          Navigation
+                        </h2>
+                        <button 
+                          onClick={() => setShowSidebar(false)}
+                          className="p-2 rounded-full bg-white border border-emerald-100 text-emerald-400 hover:text-red-500 hover:bg-red-50 hover:border-red-100 transition-all shadow-sm active:scale-95 z-50 cursor-pointer"
+                        >
+                          <X size={20} />
+                        </button>
+                      </div>
+
+                      {/* MENU LINKS */}
+                      <nav className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-1">
+                        {/* MAIN PAGES */}
+                        <div className="mb-6">
+                          <p className="text-xs font-bold text-emerald-400 uppercase tracking-widest mb-3 px-3">
+                            Main Pages
+                          </p>
+                          <Link
+                            href="/"
+                            className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-emerald-700/80 hover:bg-emerald-50 hover:text-emerald-700 transition-all group"
+                            onClick={() => setShowSidebar(false)}
+                          >
+                            <div className="p-2 bg-emerald-50 rounded-lg group-hover:bg-white group-hover:scale-110 transition-all shadow-sm text-emerald-500 group-hover:text-emerald-600"><span className="lucide-icon"><Home size={18} /></span></div>
+                            <span>Home</span>
+                          </Link>
+                          <Link
+                            href="/#about"
+                            className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-emerald-700/80 hover:bg-emerald-50 hover:text-emerald-700 transition-all group"
+                            onClick={() => setShowSidebar(false)}
+                          >
+                             <div className="p-2 bg-emerald-50 rounded-lg group-hover:bg-white group-hover:scale-110 transition-all shadow-sm text-emerald-500 group-hover:text-emerald-600"><span className="lucide-icon"><Info size={18} /></span></div>
+                            <span>About</span>
+                          </Link>
+                          <Link
+                            href="/explore"
+                            className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold bg-emerald-600 text-white shadow-lg shadow-emerald-200 group ring-4 ring-emerald-50"
+                            onClick={() => setShowSidebar(false)}
+                          >
+                             <div className="p-2 bg-white/20 rounded-lg transition-transform text-white"><span className="lucide-icon"><Navigation size={18} /></span></div>
+                            <span>Explore</span>
+                          </Link>
+                          <Link
+                            href="/join-us"
+                            className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-emerald-700/80 hover:bg-emerald-50 hover:text-emerald-700 transition-all group"
+                            onClick={() => setShowSidebar(false)}
+                          >
+                             <div className="p-2 bg-emerald-50 rounded-lg group-hover:bg-white group-hover:scale-110 transition-all shadow-sm text-emerald-500 group-hover:text-emerald-600"><span className="lucide-icon"><Users size={18} /></span></div>
+                            <span>Join Us</span>
+                          </Link>
+                        </div>
+
+                        {/* PROGRAMS */}
+                        <div className="mb-6">
+                          <p className="text-xs font-bold text-emerald-400 uppercase tracking-widest mb-3 px-3">
+                            Programs
+                          </p>
+                          <Link
+                            href="/articles"
+                            className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-emerald-700/80 hover:bg-emerald-50 hover:text-emerald-700 transition-all group"
+                            onClick={() => setShowSidebar(false)}
+                          >
+                             <div className="p-2 bg-emerald-50 rounded-lg group-hover:bg-white group-hover:scale-110 transition-all shadow-sm text-emerald-500 group-hover:text-emerald-600"><span className="lucide-icon"><Layers size={18} /></span></div>
+                            <span>Articles</span>
+                          </Link>
+                          <Link
+                            href="/gallery"
+                            className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-emerald-700/80 hover:bg-emerald-50 hover:text-emerald-700 transition-all group"
+                            onClick={() => setShowSidebar(false)}
+                          >
+                             <div className="p-2 bg-emerald-50 rounded-lg group-hover:bg-white group-hover:scale-110 transition-all shadow-sm text-emerald-500 group-hover:text-emerald-600"><span className="lucide-icon"><Trophy size={18} /></span></div>
+                            <span>Eco-Art Gallery</span>
+                          </Link>
+                          <Link
+                            href="/programs"
+                            className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-emerald-700/80 hover:bg-emerald-50 hover:text-emerald-700 transition-all group"
+                            onClick={() => setShowSidebar(false)}
+                          >
+                             <div className="p-2 bg-emerald-50 rounded-lg group-hover:bg-white group-hover:scale-110 transition-all shadow-sm text-emerald-500 group-hover:text-emerald-600"><span className="lucide-icon"><Grid size={18} /></span></div>
+                            <span>Programs</span>
+                          </Link>
+                          <Link
+                            href="/reports"
+                            className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-emerald-700/80 hover:bg-emerald-50 hover:text-emerald-700 transition-all group"
+                            onClick={() => setShowSidebar(false)}
+                          >
+                             <div className="p-2 bg-emerald-50 rounded-lg group-hover:bg-white group-hover:scale-110 transition-all shadow-sm text-emerald-500 group-hover:text-emerald-600"><span className="lucide-icon"><FileText size={18} /></span></div>
+                            <span>Reports</span>
+                          </Link>
+                          <Link
+                            href="/contact"
+                            className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-emerald-700/80 hover:bg-emerald-50 hover:text-emerald-700 transition-all group"
+                            onClick={() => setShowSidebar(false)}
+                          >
+                             <div className="p-2 bg-emerald-50 rounded-lg group-hover:bg-white group-hover:scale-110 transition-all shadow-sm text-emerald-500 group-hover:text-emerald-600"><span className="lucide-icon"><Mail size={18} /></span></div>
+                            <span>Contact Us</span>
+                          </Link>
+                        </div>
+
+                        {/* USER PAGES */}
+                        {user && (
+                          <div className="mb-6">
+                            <p className="text-xs font-bold text-emerald-400 uppercase tracking-widest mb-3 px-3">
+                              My Account
+                            </p>
+                            <Link
+                              href="/my-submissions"
+                              className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-emerald-700/80 hover:bg-emerald-50 hover:text-emerald-700 transition-all group"
+                              onClick={() => setShowSidebar(false)}
+                            >
+                               <div className="p-2 bg-emerald-50 rounded-lg group-hover:bg-white group-hover:scale-110 transition-all shadow-sm text-emerald-500 group-hover:text-emerald-600"><span className="lucide-icon"><User size={18} /></span></div>
+                              <span>My Submissions</span>
+                            </Link>
+                            {user.role === "admin" && (
+                              <Link
+                                href="/admin/mushrooms"
+                                className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-emerald-700/80 hover:bg-emerald-50 hover:text-emerald-700 transition-all group"
+                                onClick={() => setShowSidebar(false)}
+                              >
+                                 <div className="p-2 bg-emerald-50 rounded-lg group-hover:bg-white group-hover:scale-110 transition-all shadow-sm text-emerald-500 group-hover:text-emerald-600"><span className="lucide-icon"><Settings size={18} /></span></div>
+                                <span>Admin Panel</span>
+                              </Link>
+                            )}
+                          </div>
+                        )}
+                      </nav>
+
+                      {/* FOOTER */}
+                      <div className="p-4 border-t border-emerald-100 bg-emerald-50/30 shrink-0">
+                        <Link
+                          href="/donate"
+                          className="w-full flex items-center justify-center gap-2 px-4 py-3.5 bg-gradient-to-r from-emerald-600 to-green-600 active:to-emerald-700 text-white font-black uppercase tracking-widest rounded-xl hover:shadow-lg hover:shadow-emerald-200 transition-all active:scale-95"
+                          onClick={() => setShowSidebar(false)}
+                        >
+                          <span className="lucide-icon"><Heart size={16} fill="currentColor" /></span>
+                          <span>Donate Now</span>
+                        </Link>
+                      </div>
+                    </div>
+                  </div>,
+                  document.body
+                )}
+
               </div>
             )}
 
             {/* MOBILE SEARCH ICON */}
             <button
+
               onClick={onMobileSearchClick}
               className="md:hidden p-3 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100 active:bg-emerald-100 transition-colors shrink-0"
             >
