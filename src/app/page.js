@@ -21,11 +21,16 @@ export default function HomePage() {
         VISION & MISSION (Reduced py-24 to py-12, reduced mb-10 to mb-6)
       ------------------------------------------------------------------- */}
       <section className="py-24 bg-white relative overflow-hidden">
+        {/* Subtle animated background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 via-white to-emerald-50/50" />
+        <div className="absolute top-20 left-10 w-72 h-72 bg-pink-200/30 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-emerald-200/30 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        
         <div className="max-w-6xl mx-auto px-4 text-center relative z-10">
-          <FramerAnimation delay={0.3}>
-            <div className="bg-blue-50 border-t-8 border-pink-500 rounded-[2.5rem] p-8 mb-6 shadow-2xl shadow-blue-200/50">
+          <FramerAnimation delay={0.3} variant="glow">
+            <div className="bg-gradient-to-br from-blue-50 to-white border-t-8 border-pink-500 rounded-[2.5rem] p-8 mb-6 shadow-2xl shadow-blue-200/50 backdrop-blur-sm hover:shadow-pink-200/30 transition-shadow duration-500">
               <div className="flex justify-center mb-4">
-                <h3 className="text-3xl font-bold text-pink-500 uppercase tracking-wider">
+                <h3 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-500 uppercase tracking-wider">
                   Our Vision
                 </h3>
               </div>
@@ -37,10 +42,10 @@ export default function HomePage() {
             </div>
           </FramerAnimation>
 
-          <FramerAnimation delay={0.4}>
-            <div className="bg-emerald-50 border-t-8 border-emerald-500 rounded-[2.5rem] p-8 shadow-2xl shadow-emerald-200/50">
+          <FramerAnimation delay={0.5} variant="morph">
+            <div className="bg-gradient-to-br from-emerald-50 to-white border-t-8 border-emerald-500 rounded-[2.5rem] p-8 shadow-2xl shadow-emerald-200/50 backdrop-blur-sm hover:shadow-emerald-300/30 transition-shadow duration-500">
               <div className="flex justify-center mb-4">
-                <h3 className="text-3xl font-bold text-emerald-600 uppercase tracking-wider">
+                <h3 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500 uppercase tracking-wider">
                   Our Mission
                 </h3>
               </div>
@@ -65,10 +70,10 @@ export default function HomePage() {
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-emerald-200 rounded-full blur-3xl opacity-20 animate-pulse-slow"></div>
 
         <div className="max-w-7xl mx-auto px-4 relative z-10">
-          <FramerAnimation delay={0.2}>
+          <FramerAnimation delay={0.2} variant="rise">
             <div className="text-center mb-10">
               <h2 className="mt-3 text-4xl md:text-5xl font-bold text-slate-900">
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500 drop-shadow-md">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 via-teal-500 to-cyan-500 drop-shadow-md">
                   Who We Are
                 </span>
               </h2>
@@ -76,7 +81,7 @@ export default function HomePage() {
           </FramerAnimation>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-            <FramerAnimation delay={0.3}>
+            <FramerAnimation delay={0.3} variant="float">
               {/* Kept original alignment: text-center lg:text-left */}
               <div className="space-y-6 text-lg lg:text-xl lg:text-left text-center text-slate-600 leading-relaxed mx-auto font-medium tracking-normal">
                 <p>
@@ -148,7 +153,7 @@ export default function HomePage() {
               </div>
             </FramerAnimation>
 
-            <FramerAnimation delay={0.4}>
+            <FramerAnimation delay={0.4} variant="morph">
               <div className="relative group">
                 <div className="absolute -inset-3 bg-gradient-to-r from-sky-500 to-emerald-500 opacity-30 blur-xl rounded-3xl group-hover:opacity-60 transition duration-700"></div>
                 <div className="relative aspect-video bg-slate-900 overflow-hidden rounded-2xl shadow-2xl">
@@ -191,7 +196,7 @@ export default function HomePage() {
       ------------------------------------------------------------------- */}
       <section className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4">
-          <FramerAnimation delay={0.4}>
+          <FramerAnimation delay={0.4} variant="cascade">
             {/* Changed md:grid-cols-5 to md:grid-cols-3 and added lg:grid-cols-6 for better spacing */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               <ImpactCard

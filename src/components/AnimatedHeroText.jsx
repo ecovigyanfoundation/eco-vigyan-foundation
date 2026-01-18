@@ -17,7 +17,7 @@ export const HEADLINES = [
   },
   {
     topic: "Fungi & Biodiversity Awareness",
-    main: "Revealing Nature’s Hidden Heroes",
+    main: "Revealing Nature's Hidden Heroes",
     tagline:
       "Exploring the unseen world of fungi to inspire wonder and understanding.",
   },
@@ -40,10 +40,62 @@ export const HEADLINES = [
   },
 ];
 
+// Unique 3D text reveal animation
 const textVariants = {
-  enter: { opacity: 0, y: 20, transition: { duration: 0.6 } },
-  center: { opacity: 1, y: 0, transition: { duration: 0.6 } },
-  exit: { opacity: 0, y: -20, transition: { duration: 0.6 } },
+  enter: { 
+    opacity: 0, 
+    y: 40, 
+    scale: 0.95,
+    filter: "blur(8px)",
+    transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } 
+  },
+  center: { 
+    opacity: 1, 
+    y: 0, 
+    scale: 1,
+    filter: "blur(0px)",
+    transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] } 
+  },
+  exit: { 
+    opacity: 0, 
+    y: -30, 
+    scale: 1.02,
+    filter: "blur(6px)",
+    transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } 
+  },
+};
+
+// Staggered children animation
+const containerVariants = {
+  enter: { opacity: 0 },
+  center: { 
+    opacity: 1,
+    transition: { 
+      staggerChildren: 0.12,
+      delayChildren: 0.1,
+    }
+  },
+  exit: { opacity: 0 },
+};
+
+const itemVariants = {
+  enter: { 
+    opacity: 0, 
+    y: 30,
+    filter: "blur(4px)",
+  },
+  center: { 
+    opacity: 1, 
+    y: 0,
+    filter: "blur(0px)",
+    transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] }
+  },
+  exit: { 
+    opacity: 0, 
+    y: -20,
+    filter: "blur(4px)",
+    transition: { duration: 0.4 }
+  },
 };
 
 export default function AnimatedHeroText({ currentIndex }) {
@@ -55,22 +107,34 @@ export default function AnimatedHeroText({ currentIndex }) {
         <motion.div
           key={current.main}
           className="flex flex-col items-center justify-center"
+          variants={containerVariants}
           initial="enter"
           animate="center"
           exit="exit"
-          variants={textVariants}
         >
-          <p className="text-xl font-medium tracking-widest mb-3 text-white">
+          {/* Topic - Original Styling */}
+          <motion.p 
+            className="text-xl font-medium tracking-widest mb-3 text-white"
+            variants={itemVariants}
+          >
             {current.topic}
-          </p>
+          </motion.p>
 
-          <h2 className="text-6xl font-extrabold leading-tight mb-4 text-white">
+          {/* Main Headline - Original Styling */}
+          <motion.h2 
+            className="text-6xl font-extrabold leading-tight mb-4 text-white"
+            variants={itemVariants}
+          >
             {current.main}
-          </h2>
+          </motion.h2>
 
-          <p className="text-lg italic font-light text-white">
+          {/* Tagline - Original Styling */}
+          <motion.p 
+            className="text-lg italic font-light text-white"
+            variants={itemVariants}
+          >
             {current.tagline}
-          </p>
+          </motion.p>
         </motion.div>
       </AnimatePresence>
     </div>
