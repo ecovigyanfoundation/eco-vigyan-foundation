@@ -84,12 +84,20 @@ const slideUpVariants = {
 export default function AnimatedHeroText({ currentIndex }) {
   const current = HEADLINES[currentIndex];
 
-  // Helper to split text into characters
+  // Helper to split text into words and then characters
   const splitText = (text) => {
-    return text.split("").map((char, index) => (
-      <motion.span key={index} variants={letterVariants} className="inline-block whitespace-pre">
-        {char}
-      </motion.span>
+    return text.split(" ").map((word, wordIndex) => (
+      <span key={wordIndex} className="inline-block whitespace-nowrap mr-2 sm:mr-3 lg:mr-4 last:mr-0">
+        {word.split("").map((char, charIndex) => (
+          <motion.span
+            key={`${wordIndex}-${charIndex}`}
+            variants={letterVariants}
+            className="inline-block"
+          >
+            {char}
+          </motion.span>
+        ))}
+      </span>
     ));
   };
 
