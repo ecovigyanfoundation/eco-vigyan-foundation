@@ -27,7 +27,7 @@ export default function HomePage() {
         <div className="absolute bottom-20 right-10 w-96 h-96 bg-emerald-200/30 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
         
         <div className="max-w-6xl mx-auto px-4 text-center relative z-10">
-          <FramerAnimation delay={0.3} variant="glow">
+          <FramerAnimation delay={0.2} variant="slideLeft">
             <div className="bg-gradient-to-br from-blue-50 to-white border-t-8 border-pink-500 rounded-[2.5rem] p-8 mb-6 shadow-2xl shadow-blue-200/50 backdrop-blur-sm hover:shadow-pink-200/30 transition-shadow duration-500">
               <div className="flex justify-center mb-4">
                 <h3 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-500 uppercase tracking-wider">
@@ -42,7 +42,7 @@ export default function HomePage() {
             </div>
           </FramerAnimation>
 
-          <FramerAnimation delay={0.5} variant="morph">
+          <FramerAnimation delay={0.4} variant="slideRight">
             <div className="bg-gradient-to-br from-emerald-50 to-white border-t-8 border-emerald-500 rounded-[2.5rem] p-8 shadow-2xl shadow-emerald-200/50 backdrop-blur-sm hover:shadow-emerald-300/30 transition-shadow duration-500">
               <div className="flex justify-center mb-4">
                 <h3 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500 uppercase tracking-wider">

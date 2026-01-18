@@ -166,9 +166,9 @@ export default function Navbar() {
               <div className="flex justify-between items-center">
                 {/* Logo - slides from left */}
                 <motion.div
-                  initial={{ x: -80, opacity: 0 }}
+                  initial={{ x: -100, opacity: 0 }}
                   animate={{ x: 0, opacity: 1 }}
-                  transition={{ duration: 0.5, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                  transition={{ duration: 0.4, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
                 >
                   <Link
                     href="/"
@@ -187,16 +187,16 @@ export default function Navbar() {
                   </Link>
                 </motion.div>
 
-                {/* Desktop Menu - slides from right */}
+                {/* Desktop Menu - slides from left */}
                 <div className="hidden md:flex flex-1 justify-end items-center space-x-8">
                   {navLinks.map((link, index) => (
                     <motion.div
                       key={link.name}
-                      initial={{ x: 60, opacity: 0 }}
+                      initial={{ x: -100, opacity: 0 }}
                       animate={{ x: 0, opacity: 1 }}
                       transition={{ 
                         duration: 0.4, 
-                        delay: 0.25 + index * 0.05, 
+                        delay: 0.1, 
                         ease: [0.22, 1, 0.36, 1] 
                       }}
                     >
@@ -223,9 +223,9 @@ export default function Navbar() {
                     ref={dropdownRef}
                     onMouseEnter={handleMouseEnter}
                     onMouseLeave={handleMouseLeave}
-                    initial={{ x: 60, opacity: 0 }}
+                    initial={{ x: -100, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
-                    transition={{ duration: 0.4, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                    transition={{ duration: 0.4, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
                   >
                     <button
                       onClick={() => setIsProgramsOpen((p) => !p)}
@@ -271,9 +271,9 @@ export default function Navbar() {
 
                   {/* User Profile or Login */}
                   <motion.div
-                    initial={{ x: 60, opacity: 0 }}
+                    initial={{ x: -100, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
-                    transition={{ duration: 0.4, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                    transition={{ duration: 0.4, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
                   >
                     {user ? (
                       <div className="relative" ref={userMenuRef}>
@@ -375,14 +375,14 @@ export default function Navbar() {
                     )}
                   </motion.div>
 
-                  {/* Donate - slides from right with bounce */}
+                  {/* Donate - slides from left */}
                   <motion.div
-                    initial={{ x: 80, opacity: 0 }}
+                    initial={{ x: -100, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
                     transition={{ 
-                      duration: 0.5, 
-                      delay: 0.45, 
-                      ease: [0.34, 1.56, 0.64, 1] 
+                      duration: 0.4, 
+                      delay: 0.1, 
+                      ease: [0.22, 1, 0.36, 1] 
                     }}
                   >
                     <Link
@@ -406,7 +406,7 @@ export default function Navbar() {
                 {/* Mobile Toggle */}
                 <motion.div 
                   className="md:hidden"
-                  initial={{ x: 40, opacity: 0 }}
+                  initial={{ x: -40, opacity: 0 }}
                   animate={{ x: 0, opacity: 1 }}
                   transition={{ duration: 0.4, delay: 0.3 }}
                 >

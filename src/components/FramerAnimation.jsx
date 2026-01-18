@@ -162,6 +162,44 @@ export default function FramerAnimation({
         },
     };
 
+    // SlideLeft: Slow slide from left (triggers on scroll)
+    const slideLeftVariants = {
+        hidden: {
+            opacity: 0,
+            x: -120,
+            filter: "blur(10px)",
+        },
+        visible: {
+            opacity: 1,
+            x: 0,
+            filter: "blur(0px)",
+            transition: {
+                duration: 1.2,
+                delay,
+                ease: [0.22, 1, 0.36, 1],
+            },
+        },
+    };
+
+    // SlideRight: Slow slide from right (triggers on scroll)
+    const slideRightVariants = {
+        hidden: {
+            opacity: 0,
+            x: 120,
+            filter: "blur(10px)",
+        },
+        visible: {
+            opacity: 1,
+            x: 0,
+            filter: "blur(0px)",
+            transition: {
+                duration: 1.2,
+                delay,
+                ease: [0.22, 1, 0.36, 1],
+            },
+        },
+    };
+
     // Select variant based on prop
     const getVariants = () => {
         switch (variant) {
@@ -171,6 +209,8 @@ export default function FramerAnimation({
             case "cascade": return cascadeVariants;
             case "rise": return riseVariants;
             case "unfold": return unfoldVariants;
+            case "slideLeft": return slideLeftVariants;
+            case "slideRight": return slideRightVariants;
             default: return revealVariants;
         }
     };
