@@ -20,13 +20,23 @@ import {
   LogOut,
   User,
   Settings,
+  Navigation,
+  Info,
+  Layers,
+  Trophy,
+  Grid,
+  FileText,
+  Home,
 } from "lucide-react";
+import { createPortal } from "react-dom";
 
 export default function Navbar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
 
   const [isOpen, setIsOpen] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [isProgramsOpen, setIsProgramsOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -49,6 +59,11 @@ export default function Navbar() {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [userMenuOpen]);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const hideNavbar = pathname.startsWith("/explore");
 
   // Handle logout
@@ -486,208 +501,231 @@ export default function Navbar() {
                   }}
                 >
                   <motion.button 
-                    onClick={() => setIsOpen(!isOpen)}
+                    onClick={() => setShowSidebar(true)}
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
+                    className="p-2 text-slate-600 hover:text-emerald-600 transition-colors"
                   >
-                    <AnimatePresence mode="wait">
-                      {isOpen ? (
-                        <motion.div
-                          key="close"
-                          initial={{ rotate: -90, opacity: 0 }}
-                          animate={{ rotate: 0, opacity: 1 }}
-                          exit={{ rotate: 90, opacity: 0 }}
-                          transition={{ duration: 0.2 }}
-                        >
-                          <X className="w-7 h-7" />
-                        </motion.div>
-                      ) : (
-                        <motion.div
-                          key="menu"
-                          initial={{ rotate: 90, opacity: 0 }}
-                          animate={{ rotate: 0, opacity: 1 }}
-                          exit={{ rotate: -90, opacity: 0 }}
-                          transition={{ duration: 0.2 }}
-                        >
-                          <Menu className="w-7 h-7" />
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                    <Menu className="w-7 h-7" />
                   </motion.button>
                 </motion.div>
               </div>
             </div>
 
-            {/* Mobile Menu - Beautiful slide down */}
-            <AnimatePresence>
-              {isOpen && (
-                <motion.div
-                  className="md:hidden absolute top-full left-0 w-full bg-white border-t shadow-2xl"
-                  initial={{ opacity: 0, height: 0, filter: "blur(10px)" }}
-                  animate={{ opacity: 1, height: "auto", filter: "blur(0px)" }}
-                  exit={{ opacity: 0, height: 0, filter: "blur(10px)" }}
-                  transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+
+            {/* SIDEBAR NAVIGATION PORTAL */}
+            {mounted && createPortal(
+              <div className={`fixed inset-0 z-[99999] ${showSidebar ? "pointer-events-auto" : "pointer-events-none"}`}>
+                {/* BACKDROP */}
+                <div 
+                  className={`absolute inset-0 bg-black/20 backdrop-blur-sm transition-opacity duration-300 ${showSidebar ? "opacity-100" : "opacity-0"}`}
+                  onClick={() => setShowSidebar(false)}
+                />
+
+                {/* DRAWER - RIGHT SIDE */}
+                <div
+                  className={`absolute right-0 top-0 h-[100dvh] bg-white/95 backdrop-blur-md border-l border-emerald-100 shadow-2xl transition-transform duration-300 ease-in-out w-72 flex flex-col ${
+                    showSidebar ? "translate-x-0" : "translate-x-full"
+                  }`}
                 >
-                  <div className="px-4 py-6 space-y-4 flex flex-col items-center">
-                    {/* Home Link */}
-                    <motion.div
-                      initial={{ x: -50, opacity: 0 }}
-                      animate={{ x: 0, opacity: 1 }}
-                      transition={{ duration: 0.4, delay: 0.1 }}
-                      className="w-full"
+                  {/* HEADER */}
+                  <div className="p-6 border-b border-emerald-100 flex justify-between items-center bg-emerald-50/50 shrink-0">
+                    <h2 className="text-lg font-black text-emerald-950 uppercase tracking-widest">
+                      Navigation
+                    </h2>
+                    <button 
+                      onClick={() => setShowSidebar(false)}
+                      className="p-2 rounded-full bg-white border border-emerald-100 text-emerald-400 hover:text-red-500 hover:bg-red-50 hover:border-red-100 transition-all shadow-sm active:scale-95 z-50 cursor-pointer"
                     >
+                      <X size={20} />
+                    </button>
+                  </div>
+
+                  {/* MENU LINKS */}
+                  <nav className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-1">
+                    {/* MAIN PAGES */}
+                    <div className="mb-6">
+                      <p className="text-xs font-bold text-emerald-400 uppercase tracking-widest mb-3 px-3">
+                        Main Pages
+                      </p>
                       <Link
                         href="/"
-                        className="text-lg font-medium text-slate-700 w-full text-center py-2 hover:text-emerald-600 transition-colors block"
-                        onClick={() => setIsOpen(false)}
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-emerald-700/80 hover:bg-emerald-50 hover:text-emerald-700 transition-all group"
+                        onClick={() => setShowSidebar(false)}
                       >
-                        Home
+                        <div className="p-2 bg-emerald-50 rounded-lg group-hover:bg-white group-hover:scale-110 transition-all shadow-sm text-emerald-500 group-hover:text-emerald-600"><span className="lucide-icon"><Home size={18} /></span></div>
+                        <span>Home</span>
                       </Link>
-                    </motion.div>
-                    {navLinks.map((link, idx) => (
-                      <motion.div
-                        key={link.name}
-                        initial={{ x: -50, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        transition={{ duration: 0.4, delay: 0.15 + idx * 0.08 }}
-                        className="w-full"
+                      <Link
+                        href="/#about"
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-emerald-700/80 hover:bg-emerald-50 hover:text-emerald-700 transition-all group"
+                        onClick={() => setShowSidebar(false)}
                       >
-                        <Link
-                          href={link.path}
-                          className="text-lg font-medium text-slate-700 w-full text-center py-2 block hover:text-emerald-600 transition-colors"
-                          onClick={() => setIsOpen(false)}
-                        >
-                          {link.name}
-                        </Link>
-                      </motion.div>
-                    ))}
-                    <motion.div 
-                      className="w-full text-center pt-2 border-t border-stone-100"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.3 }}
-                    >
-                      <p className="text-sm uppercase text-slate-400 my-2 font-semibold">
-                        Our Programs
-                      </p>
-                      {programLinks.map((item, idx) => (
-                        <motion.div
-                          key={item.name}
-                          initial={{ x: -40, opacity: 0 }}
-                          animate={{ x: 0, opacity: 1 }}
-                          transition={{ duration: 0.3, delay: 0.35 + idx * 0.06 }}
-                        >
-                          <Link
-                            href={item.path}
-                            className="block py-2 text-slate-700 hover:text-emerald-600 transition-colors"
-                            onClick={() => setIsOpen(false)}
-                          >
-                            {item.name}
-                          </Link>
-                        </motion.div>
-                      ))}
-                    </motion.div>
+                          <div className="p-2 bg-emerald-50 rounded-lg group-hover:bg-white group-hover:scale-110 transition-all shadow-sm text-emerald-500 group-hover:text-emerald-600"><span className="lucide-icon"><Info size={18} /></span></div>
+                        <span>About</span>
+                      </Link>
+                      <Link
+                        href="/explore"
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-emerald-700/80 hover:bg-emerald-50 hover:text-emerald-700 transition-all group"
+                        onClick={() => setShowSidebar(false)}
+                      >
+                          <div className="p-2 bg-emerald-50 rounded-lg group-hover:bg-white group-hover:scale-110 transition-all shadow-sm text-emerald-500 group-hover:text-emerald-600"><span className="lucide-icon"><Navigation size={18} /></span></div>
+                        <span>Explore</span>
+                      </Link>
+                      <Link
+                        href="/join-us"
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-emerald-700/80 hover:bg-emerald-50 hover:text-emerald-700 transition-all group"
+                        onClick={() => setShowSidebar(false)}
+                      >
+                          <div className="p-2 bg-emerald-50 rounded-lg group-hover:bg-white group-hover:scale-110 transition-all shadow-sm text-emerald-500 group-hover:text-emerald-600"><span className="lucide-icon"><User size={18} /></span></div>
+                        <span>Join Us</span>
+                      </Link>
+                    </div>
 
-                    {/* Mobile User Profile or Login */}
-                    {user ? (
-                      <motion.div 
-                        className="w-full space-y-3 border-t border-stone-200 pt-4 mt-4"
-                        initial={{ y: 20, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        transition={{ delay: 0.5 }}
+                    {/* PROGRAMS */}
+                    <div className="mb-6">
+                      <p className="text-xs font-bold text-emerald-400 uppercase tracking-widest mb-3 px-3">
+                        Programs
+                      </p>
+                      <Link
+                        href="/articles"
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-emerald-700/80 hover:bg-emerald-50 hover:text-emerald-700 transition-all group"
+                        onClick={() => setShowSidebar(false)}
                       >
-                        <Link
-                          href={`/user/${user.id || user._id?.toString() || user._id}`}
-                          className="flex items-center gap-3 px-4 py-3 bg-stone-50 rounded-lg hover:bg-emerald-50 transition-colors cursor-pointer"
-                          onClick={() => setIsOpen(false)}
-                        >
-                          <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-emerald-600 shrink-0">
+                          <div className="p-2 bg-emerald-50 rounded-lg group-hover:bg-white group-hover:scale-110 transition-all shadow-sm text-emerald-500 group-hover:text-emerald-600"><span className="lucide-icon"><Layers size={18} /></span></div>
+                        <span>Articles</span>
+                      </Link>
+                      <Link
+                        href="/gallery"
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-emerald-700/80 hover:bg-emerald-50 hover:text-emerald-700 transition-all group"
+                        onClick={() => setShowSidebar(false)}
+                      >
+                          <div className="p-2 bg-emerald-50 rounded-lg group-hover:bg-white group-hover:scale-110 transition-all shadow-sm text-emerald-500 group-hover:text-emerald-600"><span className="lucide-icon"><Trophy size={18} /></span></div>
+                        <span>Eco-Art Gallery</span>
+                      </Link>
+                      <Link
+                        href="/programs"
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-emerald-700/80 hover:bg-emerald-50 hover:text-emerald-700 transition-all group"
+                        onClick={() => setShowSidebar(false)}
+                      >
+                          <div className="p-2 bg-emerald-50 rounded-lg group-hover:bg-white group-hover:scale-110 transition-all shadow-sm text-emerald-500 group-hover:text-emerald-600"><span className="lucide-icon"><Grid size={18} /></span></div>
+                        <span>Programs</span>
+                      </Link>
+                      <Link
+                        href="/reports"
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-emerald-700/80 hover:bg-emerald-50 hover:text-emerald-700 transition-all group"
+                        onClick={() => setShowSidebar(false)}
+                      >
+                          <div className="p-2 bg-emerald-50 rounded-lg group-hover:bg-white group-hover:scale-110 transition-all shadow-sm text-emerald-500 group-hover:text-emerald-600"><span className="lucide-icon"><FileText size={18} /></span></div>
+                        <span>Reports</span>
+                      </Link>
+                      <Link
+                        href="/contact"
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-emerald-700/80 hover:bg-emerald-50 hover:text-emerald-700 transition-all group"
+                        onClick={() => setShowSidebar(false)}
+                      >
+                          <div className="p-2 bg-emerald-50 rounded-lg group-hover:bg-white group-hover:scale-110 transition-all shadow-sm text-emerald-500 group-hover:text-emerald-600"><span className="lucide-icon"><Mail size={18} /></span></div>
+                        <span>Contact Us</span>
+                      </Link>
+                    </div>
+
+                    {/* USER PAGES */}
+                    {user ? (
+                      <div className="mb-6">
+                        <p className="text-xs font-bold text-emerald-400 uppercase tracking-widest mb-3 px-3">
+                          My Account
+                        </p>
+                        
+                        {/* Profile Summary */}
+                        <div className="mx-3 mb-4 p-3 bg-emerald-50/50 rounded-xl border border-emerald-100 flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-emerald-200 border-2 border-white shadow-sm flex items-center justify-center overflow-hidden shrink-0">
                             {user.dp?.url ? (
-                              <img
-                                src={user.dp.url}
-                                alt={user.name || "User"}
-                                className="w-full h-full object-cover"
-                              />
+                              <img src={user.dp.url} alt={user.name} className="w-full h-full object-cover" />
                             ) : (
-                              <div className="w-full h-full bg-emerald-600 flex items-center justify-center">
-                                <User className="w-6 h-6 text-white" />
-                              </div>
+                              <User size={20} className="text-emerald-700" />
                             )}
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-bold text-slate-800 truncate">{user.name}</p>
-                            <p className="text-xs text-slate-500 truncate">{user.email}</p>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-bold text-emerald-950 truncate">
+                              Hi, {user.name?.split(" ")[0]}
+                            </p>
+                            <p className="text-xs text-emerald-600 truncate">
+                              {user.email}
+                            </p>
                           </div>
-                        </Link>
-                        <div className="w-full flex flex-col gap-2">
-                          <Link
-                            href="/my-submissions"
-                            className="w-full text-center px-6 py-3 border border-emerald-600 text-emerald-700 font-bold rounded-lg hover:bg-emerald-50 transition"
-                            onClick={() => setIsOpen(false)}
-                          >
-                            My Submissions
-                          </Link>
-                          <Link
-                            href="/account"
-                            className="w-full text-center px-6 py-3 border border-emerald-600 text-emerald-700 font-bold rounded-lg hover:bg-emerald-50 transition"
-                            onClick={() => setIsOpen(false)}
-                          >
-                            Account Settings
-                          </Link>
-                          {user.role === "admin" && (
-                            <Link
-                              href="/admin/mushrooms"
-                              className="w-full text-center px-6 py-3 border border-emerald-600 text-emerald-700 font-bold rounded-lg hover:bg-emerald-50 transition"
-                              onClick={() => setIsOpen(false)}
-                            >
-                              Admin Panel
-                            </Link>
-                          )}
-                          <button
-                            onClick={() => {
-                              handleLogout();
-                              setIsOpen(false);
-                            }}
-                            className="w-full text-center px-6 py-3 border border-red-600 text-red-600 font-bold rounded-lg hover:bg-red-50 transition"
-                          >
-                            Logout
-                          </button>
                         </div>
-                      </motion.div>
-                    ) : (
-                      <motion.div
-                        initial={{ x: -40, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        transition={{ delay: 0.5 }}
-                        className="w-full"
-                      >
+
                         <Link
-                          href="/login"
-                          className="w-full text-center px-6 py-3 border border-emerald-600 text-emerald-700 font-bold rounded-lg block hover:bg-emerald-50 transition"
-                          onClick={() => setIsOpen(false)}
+                          href="/my-submissions"
+                          className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-emerald-700/80 hover:bg-emerald-50 hover:text-emerald-700 transition-all group"
+                          onClick={() => setShowSidebar(false)}
                         >
-                          Member Login
+                            <div className="p-2 bg-emerald-50 rounded-lg group-hover:bg-white group-hover:scale-110 transition-all shadow-sm text-emerald-500 group-hover:text-emerald-600"><span className="lucide-icon"><User size={18} /></span></div>
+                          <span>My Submissions</span>
                         </Link>
-                      </motion.div>
+                        {user.role === "admin" && (
+                          <Link
+                            href="/admin/mushrooms"
+                            className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-emerald-700/80 hover:bg-emerald-50 hover:text-emerald-700 transition-all group"
+                            onClick={() => setShowSidebar(false)}
+                          >
+                              <div className="p-2 bg-emerald-50 rounded-lg group-hover:bg-white group-hover:scale-110 transition-all shadow-sm text-emerald-500 group-hover:text-emerald-600"><span className="lucide-icon"><Settings size={18} /></span></div>
+                            <span>Admin Panel</span>
+                          </Link>
+                        )}
+                        
+                        {/* Logout Button */}
+                         <button
+                          onClick={() => {
+                            handleLogout();
+                            setShowSidebar(false);
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-red-400 hover:bg-red-50 hover:text-red-600 transition-all group mt-1"
+                        >
+                           <div className="p-2 bg-red-50 rounded-lg group-hover:bg-white group-hover:scale-110 transition-all shadow-sm text-red-400 group-hover:text-red-500"><span className="lucide-icon"><LogOut size={18} /></span></div>
+                          <span>Logout</span>
+                        </button>
+                      </div>
+                    ) : (
+                       <div className="mb-6 px-3">
+                          <p className="text-xs font-bold text-emerald-400 uppercase tracking-widest mb-3 px-1">
+                            Account
+                          </p>
+                          <div className="grid grid-cols-2 gap-3">
+                            <Link
+                              href="/login"
+                              className="flex items-center justify-center py-2.5 rounded-xl border border-emerald-200 text-emerald-700 font-bold hover:bg-emerald-50 transition text-sm"
+                              onClick={() => setShowSidebar(false)}
+                            >
+                              Login
+                            </Link>
+                            <Link
+                              href="/register"
+                              className="flex items-center justify-center py-2.5 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-700 transition shadow-lg shadow-emerald-200 text-sm"
+                              onClick={() => setShowSidebar(false)}
+                            >
+                              Register
+                            </Link>
+                          </div>
+                       </div>
                     )}
-                    <motion.div
-                      initial={{ y: 30, opacity: 0, scale: 0.9 }}
-                      animate={{ y: 0, opacity: 1, scale: 1 }}
-                      transition={{ delay: 0.6, type: "spring", stiffness: 150 }}
-                      className="w-full"
+                  </nav>
+
+                  {/* FOOTER */}
+                  <div className="p-4 border-t border-emerald-100 bg-emerald-50/30 shrink-0">
+                    <Link
+                      href="/donate"
+                      className="w-full flex items-center justify-center gap-2 px-4 py-3.5 bg-gradient-to-r from-emerald-600 to-green-600 active:to-emerald-700 text-white font-black uppercase tracking-widest rounded-xl hover:shadow-lg hover:shadow-emerald-200 transition-all active:scale-95"
+                      onClick={() => setShowSidebar(false)}
                     >
-                      <Link
-                        href="/donate"
-                        className="w-full text-center px-6 py-3 bg-gradient-to-r from-emerald-600 to-green-700 text-white font-bold rounded-lg block shadow-lg"
-                        onClick={() => setIsOpen(false)}
-                      >
-                        Donate Now ❤️
-                      </Link>
-                    </motion.div>
+                      <span className="lucide-icon"><Heart size={16} fill="currentColor" /></span>
+                      <span>Donate Now</span>
+                    </Link>
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                </div>
+              </div>,
+              document.body
+            )}
           </motion.nav>
         </>
       )}

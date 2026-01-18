@@ -561,11 +561,31 @@ export default function ExploreHeader({
                         </div>
 
                         {/* USER PAGES */}
-                        {user && (
+                        {user ? (
                           <div className="mb-6">
                             <p className="text-xs font-bold text-emerald-400 uppercase tracking-widest mb-3 px-3">
                               My Account
                             </p>
+                            
+                            {/* Profile Summary */}
+                            <div className="mx-3 mb-4 p-3 bg-emerald-50/50 rounded-xl border border-emerald-100 flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-emerald-200 border-2 border-white shadow-sm flex items-center justify-center overflow-hidden shrink-0">
+                                {user.dp?.url ? (
+                                  <img src={user.dp.url} alt={user.name} className="w-full h-full object-cover" />
+                                ) : (
+                                  <User size={20} className="text-emerald-700" />
+                                )}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-bold text-emerald-950 truncate">
+                                  Hi, {user.name?.split(" ")[0]}
+                                </p>
+                                <p className="text-xs text-emerald-600 truncate">
+                                  {user.email}
+                                </p>
+                              </div>
+                            </div>
+
                             <Link
                               href="/my-submissions"
                               className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-emerald-700/80 hover:bg-emerald-50 hover:text-emerald-700 transition-all group"
@@ -574,6 +594,7 @@ export default function ExploreHeader({
                                <div className="p-2 bg-emerald-50 rounded-lg group-hover:bg-white group-hover:scale-110 transition-all shadow-sm text-emerald-500 group-hover:text-emerald-600"><span className="lucide-icon"><User size={18} /></span></div>
                               <span>My Submissions</span>
                             </Link>
+
                             {user.role === "admin" && (
                               <Link
                                 href="/admin/mushrooms"
@@ -584,7 +605,41 @@ export default function ExploreHeader({
                                 <span>Admin Panel</span>
                               </Link>
                             )}
+
+                             {/* Logout Button */}
+                             <button
+                              onClick={() => {
+                                logout();
+                                setShowSidebar(false);
+                              }}
+                              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-red-400 hover:bg-red-50 hover:text-red-600 transition-all group mt-1"
+                            >
+                               <div className="p-2 bg-red-50 rounded-lg group-hover:bg-white group-hover:scale-110 transition-all shadow-sm text-red-400 group-hover:text-red-500"><span className="lucide-icon"><LogOut size={18} /></span></div>
+                              <span>Logout</span>
+                            </button>
                           </div>
+                        ) : (
+                           <div className="mb-6 px-3">
+                              <p className="text-xs font-bold text-emerald-400 uppercase tracking-widest mb-3 px-1">
+                                Account
+                              </p>
+                              <div className="grid grid-cols-2 gap-3">
+                                <Link
+                                  href="/login"
+                                  className="flex items-center justify-center py-2.5 rounded-xl border border-emerald-200 text-emerald-700 font-bold hover:bg-emerald-50 transition text-sm"
+                                  onClick={() => setShowSidebar(false)}
+                                >
+                                  Login
+                                </Link>
+                                <Link
+                                  href="/register"
+                                  className="flex items-center justify-center py-2.5 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-700 transition shadow-lg shadow-emerald-200 text-sm"
+                                  onClick={() => setShowSidebar(false)}
+                                >
+                                  Register
+                                </Link>
+                              </div>
+                           </div>
                         )}
                       </nav>
 
