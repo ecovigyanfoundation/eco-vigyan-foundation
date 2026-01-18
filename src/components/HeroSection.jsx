@@ -114,27 +114,35 @@ const HeroSection = () => {
         delay={2} 
       />
 
-      {/* Hero images - all rendered but only current visible */}
+      {/* Hero images - with enhanced Ken Burns transition */}
       {heroImages.map((img, idx) => (
         <div
           key={idx}
-          className="absolute inset-0 transition-all duration-1000 ease-out"
+          className="absolute inset-0 transition-opacity duration-[1500ms] ease-in-out"
           style={{
             opacity: idx === index ? 1 : 0,
-            transform: `scale(${idx === index ? 1.02 : 1.08}) translate(${idx === index ? mousePosition.x : 0}px, ${idx === index ? mousePosition.y : 0}px)`,
             zIndex: idx === index ? 1 : 0,
           }}
         >
-          <Image
-            src={img}
-            alt={`Hero background ${idx + 1}`}
-            fill
-            priority={idx < 3}
-            quality={85}
-            sizes="100vw"
-            className="object-cover"
-            style={{ objectPosition: 'center' }}
-          />
+          <div 
+            className="absolute inset-0 w-full h-full"
+            style={{
+              transition: 'transform 6s ease-out',
+              transform: idx === index ? 'scale(1.05)' : 'scale(1.15)',
+              willChange: 'transform, opacity',
+            }}
+          >
+            <Image
+              src={img}
+              alt={`Hero background ${idx + 1}`}
+              fill
+              priority={idx < 3}
+              quality={90}
+              sizes="100vw"
+              className="object-cover"
+              style={{ objectPosition: 'center' }}
+            />
+          </div>
         </div>
       ))}
 
