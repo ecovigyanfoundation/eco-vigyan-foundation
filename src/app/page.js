@@ -14,7 +14,7 @@ export default function HomePage() {
   const [playVideo, setPlayVideo] = useState(false);
 
   return (
-    <div className="min-h-screen font-sans bg-stone-50 text-slate-800 selection:bg-emerald-500 selection:text-white">
+    <div className="min-h-screen font-sans bg-stone-50 text-slate-800 selection:bg-emerald-500 selection:text-white overflow-x-hidden">
       <HeroSection />
 
       {/* -------------------------------------------------------------------
