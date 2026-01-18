@@ -49,7 +49,6 @@ export default function ExploreHeader({
 }) {
   const { user, logout } = useAuth();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -617,112 +616,17 @@ export default function ExploreHeader({
               <Search size={22} />
             </button>
 
-            {/* MOBILE MENU BUTTON */}
+            {/* MOBILE MENU BUTTON - Opens Sidebar */}
             <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-3 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100 active:bg-emerald-100 transition-colors shrink-0"
+              onClick={() => setShowSidebar(true)}
+              className="md:hidden p-3 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100 active:bg-emerald-100 transition-colors shrink-0 shadow-sm"
+              title="Open Navigation"
             >
-              {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+              <Menu size={22} strokeWidth={2.5} />
             </button>
           </div>
         </div>
       </div>
-
-
-      {/* MOBILE MENU */}
-      {mobileMenuOpen && (
-        <div className="md:hidden border-t border-emerald-100 bg-white/95 backdrop-blur-md">
-          <div className="max-w-7xl mx-auto px-4 py-6 space-y-4">
-            {/* Navigation Links - Same as Desktop Navbar */}
-            <div className="flex flex-col space-y-2">
-              <Link
-                href="/"
-                className="text-xl font-medium text-slate-700 w-full text-center py-3 hover:text-emerald-700 transition"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Home
-              </Link>
-              <Link
-                href="/#about"
-                className="text-xl font-medium text-slate-700 w-full text-center py-3 hover:text-emerald-700 transition"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                About
-              </Link>
-              <Link
-                href="/explore"
-                className="text-xl font-medium text-slate-700 w-full text-center py-3 hover:text-emerald-700 transition"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Explore
-              </Link>
-              <Link
-                href="/join-us"
-                className="text-xl font-medium text-slate-700 w-full text-center py-3 hover:text-emerald-700 transition"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Join Us
-              </Link>
-            </div>
-
-            {/* Programs Section */}
-            <div className="w-full pt-4 border-t border-emerald-200">
-              <p className="text-base uppercase text-emerald-600 mb-4 font-semibold text-center">
-                Our Programs
-              </p>
-              <div className="flex flex-col space-y-2">
-                <Link
-                  href="/articles"
-                  className="block py-3 text-lg text-slate-700 text-center hover:text-emerald-700 transition"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Articles
-                </Link>
-                <Link
-                  href="/gallery"
-                  className="block py-3 text-lg text-slate-700 text-center hover:text-emerald-700 transition"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Eco-Art Gallery
-                </Link>
-                <Link
-                  href="/programs"
-                  className="block py-3 text-lg text-slate-700 text-center hover:text-emerald-700 transition"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Programs
-                </Link>
-                <Link
-                  href="/reports"
-                  className="block py-3 text-lg text-slate-700 text-center hover:text-emerald-700 transition"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Reports
-                </Link>
-                <Link
-                  href="/contact"
-                  className="block py-3 text-lg text-slate-700 text-center hover:text-emerald-700 transition"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Contact Us
-                </Link>
-              </div>
-            </div>
-
-
-            {/* Donate Button */}
-            <div className="w-full pt-4 border-t border-emerald-200">
-              <Link
-                href="/donate"
-                className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-emerald-600 to-green-700 text-white font-bold text-lg rounded-lg hover:opacity-90 active:opacity-80 transition shadow-lg"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Donate Now
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* SECOND ROW: GREENISH TAB NAVIGATION */}
       <div className="bg-emerald-50/20">
