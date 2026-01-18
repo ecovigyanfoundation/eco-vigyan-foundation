@@ -162,40 +162,36 @@ export default function FramerAnimation({
         },
     };
 
-    // SlideLeft: Slow slide from left (triggers on scroll)
+    // SlideLeft: Faster slide from left without blur
     const slideLeftVariants = {
         hidden: {
             opacity: 0,
-            x: -120,
-            filter: "blur(10px)",
+            x: -300,
         },
         visible: {
             opacity: 1,
             x: 0,
-            filter: "blur(0px)",
             transition: {
-                duration: 1.2,
+                duration: 0.8,
                 delay,
-                ease: [0.22, 1, 0.36, 1],
+                ease: "easeOut",
             },
         },
     };
 
-    // SlideRight: Slow slide from right (triggers on scroll)
+    // SlideRight: Faster slide from right without blur
     const slideRightVariants = {
         hidden: {
             opacity: 0,
-            x: 120,
-            filter: "blur(10px)",
+            x: 300,
         },
         visible: {
             opacity: 1,
             x: 0,
-            filter: "blur(0px)",
             transition: {
-                duration: 1.2,
+                duration: 0.8,
                 delay,
-                ease: [0.22, 1, 0.36, 1],
+                ease: "easeOut",
             },
         },
     };
