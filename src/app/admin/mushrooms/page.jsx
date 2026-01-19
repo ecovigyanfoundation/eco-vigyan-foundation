@@ -22,8 +22,29 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
+  Sparkles,
 } from "lucide-react";
 import toast from "react-hot-toast";
+
+// Shimmer skeleton component for loading state
+const SkeletonCard = () => (
+  <div className="bg-white rounded-2xl border-2 border-stone-200 overflow-hidden animate-pulse">
+    <div className="aspect-video bg-gradient-to-br from-stone-200 via-stone-100 to-stone-200 relative overflow-hidden">
+      <div className="absolute inset-0 shimmer-effect" />
+    </div>
+    <div className="p-5 space-y-3">
+      <div className="h-6 bg-stone-200 rounded-lg w-3/4 shimmer-effect" />
+      <div className="space-y-2">
+        <div className="h-4 bg-stone-100 rounded w-1/2 shimmer-effect" />
+        <div className="h-4 bg-stone-100 rounded w-2/3 shimmer-effect" />
+        <div className="h-4 bg-stone-100 rounded w-1/2 shimmer-effect" />
+      </div>
+      <div className="pt-4 border-t border-stone-100">
+        <div className="h-4 bg-stone-200 rounded w-20 shimmer-effect" />
+      </div>
+    </div>
+  </div>
+);
 
 export default function AdminMushroomsPage() {
   const router = useRouter();
@@ -53,6 +74,7 @@ export default function AdminMushroomsPage() {
   const [bulkEditing, setBulkEditing] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [bulkApproving, setBulkApproving] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [displayPage, setDisplayPage] = useState(1); // Display page for pagination UI
   const [totalPages, setTotalPages] = useState(1);
@@ -454,57 +476,161 @@ export default function AdminMushroomsPage() {
     }
   };
 
+  // Bulk approve using efficient single-query API
+  const handleBulkApprove = async () => {
+    if (selectedMushrooms.size === 0) {
+      toast.error("Please select at least one mushroom");
+      return;
+    }
+
+    setBulkApproving(true);
+    try {
+      const res = await fetch("/api/admin/mushrooms/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "approve",
+          mushroomIds: Array.from(selectedMushrooms),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to approve mushrooms");
+      }
+
+      toast.success(
+        `Approved ${data.modifiedCount} mushroom(s)! ${data.pointsAwarded} points awarded.`
+      );
+
+      // Refresh the list and counts
+      fetchMushrooms();
+      fetchCounts();
+      setSelectedMushrooms(new Set());
+    } catch (error) {
+      toast.error(error.message || "Failed to approve mushrooms");
+    } finally {
+      setBulkApproving(false);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 font-medium">Loading mushrooms...</p>
+      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-emerald-50/30 to-stone-100">
+        {/* Header Skeleton */}
+        <div className="bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 border-b border-emerald-700/20 shadow-xl shadow-emerald-500/10">
+          <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-6 sm:py-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="space-y-2">
+                <div className="h-8 bg-white/20 rounded-lg w-64 animate-pulse" />
+                <div className="h-4 bg-white/10 rounded w-48 animate-pulse" />
+              </div>
+              <div className="flex gap-2">
+                <div className="h-10 bg-white/20 rounded-lg w-24 animate-pulse" />
+                <div className="h-10 bg-white/20 rounded-lg w-24 animate-pulse" />
+              </div>
+            </div>
+          </div>
         </div>
+
+        {/* Filter Tabs Skeleton */}
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-6">
+          <div className="flex gap-3 mb-6">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-12 bg-white rounded-xl w-32 animate-pulse border border-stone-200" />
+            ))}
+          </div>
+
+          {/* Cards Skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <SkeletonCard key={i} />
+            ))}
+          </div>
+        </div>
+
+        {/* Shimmer animation styles */}
+        <style jsx>{`
+          @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+          }
+          :global(.shimmer-effect) {
+            background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s ease-in-out infinite;
+          }
+        `}</style>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* HEADER */}
-      <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6">
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-emerald-50/30 to-stone-100">
+      {/* HEADER - Modern Gradient */}
+      <div className="bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 border-b border-emerald-700/20 shadow-xl shadow-emerald-500/10 relative overflow-hidden">
+        {/* Decorative elements */}
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-teal-400/10 rounded-full translate-y-1/2 -translate-x-1/2 blur-3xl" />
+        
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-6 sm:py-8 relative">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-black text-gray-900 uppercase tracking-tight">
-                Mushroom <span className="text-emerald-600">Submissions</span>
-              </h1>
-              <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-gray-600">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
+                  <Sparkles className="w-6 h-6 text-white" />
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-tight drop-shadow-lg">
+                  Mushroom <span className="text-emerald-100">Submissions</span>
+                </h1>
+              </div>
+              <p className="text-sm text-emerald-100/80 ml-14">
                 Review and manage submitted mushroom observations
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               {selectedMushrooms.size > 0 && (
                 <>
+                  {/* BULK APPROVE BUTTON */}
+                  <button
+                    onClick={handleBulkApprove}
+                    disabled={bulkApproving}
+                    className="px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-bold text-emerald-700 bg-white hover:bg-emerald-50 rounded-xl transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center gap-1.5 sm:gap-2 border border-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {bulkApproving ? (
+                      <Loader2 size={14} className="sm:w-4 sm:h-4 animate-spin" />
+                    ) : (
+                      <CheckCircle size={14} className="sm:w-4 sm:h-4" />
+                    )}
+                    <span className="hidden sm:inline">{bulkApproving ? "Approving..." : "Approve"}</span>
+                    <span className="sm:hidden">{bulkApproving ? "..." : "OK"}</span>
+                    <span className="bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-md text-xs">{selectedMushrooms.size}</span>
+                  </button>
                   <button
                     onClick={() => setShowBulkEditModal(true)}
-                    className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-1.5 sm:gap-2"
+                    className="px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-bold text-blue-600 bg-white hover:bg-blue-50 rounded-xl transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center gap-1.5 sm:gap-2 border border-blue-100"
                   >
                     <Edit3 size={14} className="sm:w-4 sm:h-4" />
                     <span className="hidden sm:inline">Bulk Edit</span>
                     <span className="sm:hidden">Edit</span>
-                    <span>({selectedMushrooms.size})</span>
+                    <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-md text-xs">{selectedMushrooms.size}</span>
                   </button>
                   <button
                     onClick={() => setShowDeleteModal(true)}
-                    className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex items-center gap-1.5 sm:gap-2"
+                    className="px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-bold text-red-600 bg-white hover:bg-red-50 rounded-xl transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center gap-1.5 sm:gap-2 border border-red-100"
                   >
                     <Trash2 size={14} className="sm:w-4 sm:h-4" />
-                    <span className="hidden sm:inline">Delete System Imports</span>
-                    <span className="sm:hidden">Delete</span>
-                    <span>({selectedMushrooms.size})</span>
+                    <span className="hidden sm:inline">Delete</span>
+                    <span className="sm:hidden">Del</span>
+                    <span className="bg-red-100 text-red-700 px-1.5 py-0.5 rounded-md text-xs">{selectedMushrooms.size}</span>
                   </button>
                 </>
               )}
               <button
                 onClick={() => setShowImportModal(true)}
-                className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors flex items-center gap-1.5 sm:gap-2"
+                className="px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-bold text-emerald-600 bg-white hover:bg-emerald-50 rounded-xl transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center gap-1.5 sm:gap-2 border border-emerald-100"
               >
                 <Upload size={14} className="sm:w-4 sm:h-4" />
                 <span className="hidden sm:inline">Import Excel</span>
@@ -512,10 +638,10 @@ export default function AdminMushroomsPage() {
               </button>
               <Link
                 href="/"
-                className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-bold text-emerald-600 hover:text-emerald-700 border border-emerald-200 rounded-lg hover:bg-emerald-50 transition-colors whitespace-nowrap"
+                className="px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-bold text-white/90 hover:text-white border border-white/30 rounded-xl hover:bg-white/10 transition-all backdrop-blur-sm whitespace-nowrap"
               >
-                <span className="hidden sm:inline">Back to Home</span>
-                <span className="sm:hidden">Home</span>
+                <span className="hidden sm:inline">← Back to Home</span>
+                <span className="sm:hidden">← Home</span>
               </Link>
             </div>
           </div>
@@ -523,13 +649,13 @@ export default function AdminMushroomsPage() {
       </div>
 
       {/* STATUS FILTERS */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6">
-        <div className="flex gap-2 sm:gap-3 mb-4 sm:mb-6 overflow-x-auto pb-2 -mx-3 sm:mx-0 px-3 sm:px-0">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-6 sm:py-8">
+        <div className="flex gap-2 sm:gap-3 mb-6 sm:mb-8 overflow-x-auto pb-2 -mx-3 sm:mx-0 px-3 sm:px-0">
           {[
-            { value: "pending", label: "Pending", icon: Clock },
-            { value: "approved", label: "Approved", icon: CheckCircle },
-            { value: "rejected", label: "Rejected", icon: XCircle },
-            { value: "system-imports", label: "System Imports", icon: Upload },
+            { value: "pending", label: "Pending", icon: Clock, color: "yellow" },
+            { value: "approved", label: "Approved", icon: CheckCircle, color: "green" },
+            { value: "rejected", label: "Rejected", icon: XCircle, color: "red" },
+            { value: "system-imports", label: "System Imports", icon: Upload, color: "purple" },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = statusFilter === tab.value;
@@ -540,21 +666,21 @@ export default function AdminMushroomsPage() {
               <button
                 key={tab.value}
                 onClick={() => setStatusFilter(tab.value)}
-                className={`flex items-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap ${
+                className={`flex items-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap ${
                   isActive
-                    ? "bg-emerald-600 text-white shadow-lg shadow-emerald-200"
-                    : "bg-white text-gray-700 border border-gray-200 hover:border-emerald-300 hover:text-emerald-600"
+                    ? "bg-gradient-to-r from-emerald-600 to-teal-500 text-white shadow-lg shadow-emerald-300/30 scale-[1.02]"
+                    : "bg-white text-gray-700 border-2 border-stone-200 hover:border-emerald-300 hover:text-emerald-600 hover:shadow-lg hover:-translate-y-0.5"
                 }`}
               >
-                <Icon size={16} className="sm:w-[18px] sm:h-[18px]" />
+                <Icon size={16} className={`sm:w-[18px] sm:h-[18px] ${isActive ? "drop-shadow" : ""}`} />
                 <span className="hidden sm:inline">{tab.label}</span>
                 <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
                 {count > 0 && (
                   <span
-                    className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs ${
+                    className={`px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-black ${
                       isActive
-                        ? "bg-white/20 text-white"
-                        : "bg-gray-100 text-gray-600"
+                        ? "bg-white/25 text-white"
+                        : "bg-stone-100 text-stone-600"
                     }`}
                   >
                     {count}
@@ -574,33 +700,33 @@ export default function AdminMushroomsPage() {
 
         {/* MUSHROOMS LIST */}
         {mushrooms.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center">
+          <div className="bg-white rounded-3xl border-2 border-stone-200 p-12 text-center shadow-xl">
             <div className="max-w-md mx-auto">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <ImageIcon className="text-gray-400" size={32} />
+              <div className="w-20 h-20 bg-gradient-to-br from-stone-100 to-stone-200 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner">
+                <ImageIcon className="text-stone-400" size={36} />
               </div>
-              <h3 className="text-lg font-black text-gray-900 mb-2">
-                No {statusFilter} mushrooms
+              <h3 className="text-xl font-black text-gray-900 mb-3">
+                No {statusFilter.replace('-', ' ')} mushrooms
               </h3>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-500 leading-relaxed">
                 {statusFilter === "pending"
-                  ? "There are no pending submissions to review."
-                  : `No mushrooms have been ${statusFilter} yet.`}
+                  ? "All caught up! There are no pending submissions to review."
+                  : `No mushrooms have been ${statusFilter.replace('-', ' ')} yet.`}
               </p>
             </div>
           </div>
         ) : (
           <>
             {/* SELECT ALL CHECKBOX */}
-            <div className="mb-4 flex items-center gap-3">
+            <div className="mb-6 flex items-center gap-4 bg-white/60 backdrop-blur-sm rounded-xl px-4 py-3 border border-stone-200/50 w-fit">
               <button
                 onClick={toggleSelectAll}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                className="flex items-center gap-2 text-sm font-bold text-gray-700 hover:text-emerald-600 transition-colors"
               >
                 {selectedMushrooms.size === mushrooms.length ? (
-                  <CheckSquare size={18} className="text-emerald-600" />
+                  <CheckSquare size={20} className="text-emerald-600" />
                 ) : (
-                  <Square size={18} />
+                  <Square size={20} className="text-stone-400" />
                 )}
                 <span>
                   {selectedMushrooms.size === mushrooms.length
@@ -609,22 +735,22 @@ export default function AdminMushroomsPage() {
                 </span>
               </button>
               {selectedMushrooms.size > 0 && (
-                <span className="text-sm text-gray-600 font-medium">
+                <span className="text-sm text-emerald-600 font-bold bg-emerald-50 px-3 py-1 rounded-full">
                   {selectedMushrooms.size} selected
                 </span>
               )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
               {mushrooms.map((mushroom) => {
                 const isSelected = selectedMushrooms.has(mushroom._id);
                 return (
                   <div
                     key={mushroom._id}
-                    className={`bg-white rounded-2xl border-2 overflow-hidden transition-all group relative ${
+                    className={`bg-white rounded-2xl border-2 overflow-hidden transition-all duration-300 group relative hover:-translate-y-1 ${
                       isSelected
-                        ? "border-emerald-500 shadow-lg"
-                        : "border-gray-200 hover:border-emerald-300 hover:shadow-xl"
+                        ? "border-emerald-500 shadow-xl shadow-emerald-100 ring-4 ring-emerald-100"
+                        : "border-stone-200 hover:border-emerald-300 hover:shadow-xl hover:shadow-emerald-50"
                     }`}
                   >
                     {/* SELECTION CHECKBOX */}
@@ -635,11 +761,15 @@ export default function AdminMushroomsPage() {
                         toggleSelectMushroom(mushroom._id);
                       }}
                     >
-                      <button className="p-1.5 bg-white/90 backdrop-blur-sm rounded-lg shadow-md hover:bg-white transition-colors">
+                      <button className={`p-2 backdrop-blur-md rounded-xl shadow-lg transition-all hover:scale-110 ${
+                        isSelected 
+                          ? "bg-emerald-500 text-white" 
+                          : "bg-white/90 hover:bg-white"
+                      }`}>
                         {isSelected ? (
-                          <CheckSquare size={20} className="text-emerald-600" />
+                          <CheckSquare size={18} className="text-white" />
                         ) : (
-                          <Square size={20} className="text-gray-400" />
+                          <Square size={18} className="text-stone-400" />
                         )}
                       </button>
                     </div>
@@ -648,75 +778,85 @@ export default function AdminMushroomsPage() {
                       href={`/admin/mushrooms/${mushroom._id}`}
                       className="block"
                     >
-                {/* IMAGE */}
-                <div className="aspect-video bg-gray-100 relative overflow-hidden">
-                  {mushroom.images && mushroom.images.length > 0 ? (
-                    <img
-                      src={mushroom.images[0].url}
-                      alt={mushroom.commonName || "Mushroom"}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <ImageIcon className="text-gray-300" size={48} />
-                    </div>
-                  )}
-                  {/* STATUS BADGE OVERLAY */}
-                  <div className="absolute top-3 right-3">
-                    {getStatusBadge(mushroom.status)}
-                  </div>
-                </div>
-
-                {/* CONTENT */}
-                <div className="p-5">
-                  <h3 className="font-black text-lg text-gray-900 mb-3 line-clamp-1 group-hover:text-emerald-600 transition-colors">
-                    {mushroom.commonName || "Unnamed Mushroom"}
-                  </h3>
-
-                  {/* METADATA */}
-                  <div className="space-y-2 text-sm">
-                    {mushroom.submittedBy && (
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <User size={14} className="text-gray-400" />
-                        <span className="font-medium">
-                          {mushroom.submittedBy.name ||
-                            mushroom.submittedBy.username ||
-                            "Unknown User"}
-                        </span>
+                      {/* IMAGE */}
+                      <div className="aspect-video bg-gradient-to-br from-stone-100 to-stone-200 relative overflow-hidden">
+                        {mushroom.images && mushroom.images.length > 0 ? (
+                          <img
+                            src={mushroom.images[0].url}
+                            alt={mushroom.commonName || "Mushroom"}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <ImageIcon className="text-stone-300" size={48} />
+                          </div>
+                        )}
+                        {/* Gradient overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        {/* STATUS BADGE OVERLAY */}
+                        <div className="absolute top-3 right-3">
+                          {getStatusBadge(mushroom.status)}
+                        </div>
                       </div>
-                    )}
 
-                    {mushroom.location && (
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <MapPin size={14} className="text-gray-400" />
-                        <span className="font-medium">
-                          {mushroom.location.latitude.toFixed(4)},{" "}
-                          {mushroom.location.longitude.toFixed(4)}
-                        </span>
+                      {/* CONTENT */}
+                      <div className="p-5">
+                        <h3 className="font-black text-lg text-gray-900 mb-3 line-clamp-1 group-hover:text-emerald-600 transition-colors">
+                          {mushroom.commonName || "Unnamed Mushroom"}
+                        </h3>
+
+                        {/* METADATA */}
+                        <div className="space-y-2.5 text-sm">
+                          {mushroom.submittedBy && (
+                            <div className="flex items-center gap-2.5 text-gray-600">
+                              <div className="w-6 h-6 rounded-full bg-stone-100 flex items-center justify-center">
+                                <User size={12} className="text-stone-500" />
+                              </div>
+                              <span className="font-medium">
+                                {mushroom.submittedBy.name ||
+                                  mushroom.submittedBy.username ||
+                                  "Unknown User"}
+                              </span>
+                            </div>
+                          )}
+
+                          {mushroom.location && (
+                            <div className="flex items-center gap-2.5 text-gray-600">
+                              <div className="w-6 h-6 rounded-full bg-stone-100 flex items-center justify-center">
+                                <MapPin size={12} className="text-stone-500" />
+                              </div>
+                              <span className="font-medium">
+                                {mushroom.location.latitude.toFixed(4)},{" "}
+                                {mushroom.location.longitude.toFixed(4)}
+                              </span>
+                            </div>
+                          )}
+
+                          <div className="flex items-center gap-2.5 text-gray-600">
+                            <div className="w-6 h-6 rounded-full bg-stone-100 flex items-center justify-center">
+                              <Calendar size={12} className="text-stone-500" />
+                            </div>
+                            <span className="font-medium">
+                              {formatDate(mushroom.createdAt)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* VIEW BUTTON */}
+                        <div className="mt-5 pt-4 border-t border-stone-100">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-black text-emerald-600 uppercase tracking-wider">
+                              Review →
+                            </span>
+                            <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
+                              <Eye
+                                size={14}
+                                className="text-emerald-600 group-hover:scale-110 transition-transform"
+                              />
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    )}
-
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <Calendar size={14} className="text-gray-400" />
-                      <span className="font-medium">
-                        {formatDate(mushroom.createdAt)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* VIEW BUTTON */}
-                  <div className="mt-4 pt-4 border-t border-gray-100">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">
-                        Review
-                      </span>
-                      <Eye
-                        size={16}
-                        className="text-emerald-600 group-hover:translate-x-1 transition-transform"
-                      />
-                    </div>
-                  </div>
-                </div>
                     </Link>
                   </div>
                 );
