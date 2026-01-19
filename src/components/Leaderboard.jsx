@@ -61,7 +61,7 @@ export default function Leaderboard() {
 
   if (loading) {
     return (
-      <div className="p-8 h-full overflow-y-auto bg-stone-50 custom-scrollbar flex items-center justify-center">
+      <div className="p-8 flex-1 min-h-full h-full overflow-y-auto bg-stone-50 custom-scrollbar flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4"></div>
           <p className="text-gray-600 font-medium">Loading leaderboard...</p>
@@ -72,7 +72,7 @@ export default function Leaderboard() {
 
   if (error) {
     return (
-      <div className="p-8 h-full overflow-y-auto bg-stone-50 custom-scrollbar flex items-center justify-center">
+      <div className="p-8 flex-1 min-h-full h-full overflow-y-auto bg-stone-50 custom-scrollbar flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-600 font-medium mb-4">{error}</p>
           <button
@@ -87,7 +87,7 @@ export default function Leaderboard() {
   }
 
   return (
-    <div className="p-8 h-full overflow-y-auto bg-stone-50 custom-scrollbar">
+    <div className="p-8 flex-1 min-h-full h-full overflow-y-auto bg-stone-50 custom-scrollbar">
       <div className="max-w-4xl mx-auto">
         {/* SECTION HEADER */}
         <div className="flex flex-col md:flex-row justify-between items-end mb-10 gap-4 border-b border-stone-200 pb-8">

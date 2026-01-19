@@ -1181,19 +1181,71 @@ export default function Map(props) {
                   {displayDate && ` • ${displayDate}`}
                 </div>
 
-                {/* Research Grade or Category tag */}
-                {item.status === "approved" && (
-                  <div className="inline-block mb-2">
-                    <span className="bg-green-500 text-white text-[10px] font-semibold px-2 py-0.5 rounded-sm uppercase tracking-wide">
-                      Research Grade
-                    </span>
-                  </div>
-                )}
-                {item.category && item.status !== "approved" && (
-                  <div className="inline-block mb-2">
-                    <span className="bg-gray-400 text-white text-[10px] font-semibold px-2 py-0.5 rounded-sm uppercase tracking-wide">
-                      {item.category}
-                    </span>
+                {/* Mushroom Type/Category with icon */}
+                {(item.category || item.ecologicalRole) && (
+                  <div className="inline-flex items-center gap-1.5 mb-2">
+                    {(() => {
+                      // Get the type value, handling all array formats
+                      let rawType = item.ecologicalRole || item.category;
+                      
+                      // Handle stringified arrays like '["decomposer"]'
+                      if (typeof rawType === 'string' && rawType.startsWith('[')) {
+                        try {
+                          rawType = JSON.parse(rawType);
+                        } catch (e) {
+                          // If parsing fails, clean up the string manually
+                          rawType = rawType.replace(/[\[\]"']/g, '').trim();
+                        }
+                      }
+                      
+                      // Extract first element if it's an array
+                      let type = Array.isArray(rawType) ? rawType[0] : rawType;
+                      
+                      // Clean up any remaining brackets or quotes
+                      if (typeof type === 'string') {
+                        type = type.replace(/[\[\]"']/g, '').trim();
+                      }
+                      
+                      // Map ecological roles and uses to image paths from mushroomImageMap
+                      const typeImages = {
+                        'decomposer': '/mushrooms/decomposing mushroom.png',
+                        'symbiont': '/mushrooms/symbiotic.png',
+                        'parasite': '/mushrooms/parasitic mushroom.png',
+                        'saprotroph': '/mushrooms/decomposing mushroom.png',
+                        'mycorrhizal': '/mushrooms/symbiotic.png',
+                        'parasitic': '/mushrooms/parasitic mushroom.png',
+                        'edible': '/mushrooms/edible.png',
+                        'inedible': '/mushrooms/inedible.png',
+                        'poisonous': '/mushrooms/poisonous.png',
+                        'medicinal': '/mushrooms/medicinal.png',
+                        'hallucinogenic': '/mushrooms/magic mushroom.png',
+                        'toxic': '/mushrooms/poisonous.png',
+                        'psychoactive': '/mushrooms/magic mushroom.png',
+                      };
+                      
+                      // Get image based on lowercase type
+                      const imagePath = type ? typeImages[type.toLowerCase()] : null;
+                      
+                      // Capitalize first letter for display
+                      const displayType = type ? type.charAt(0).toUpperCase() + type.slice(1).toLowerCase() : 'Unknown';
+                      
+                      return (
+                        <>
+                          {imagePath ? (
+                            <img 
+                              src={imagePath} 
+                              alt={displayType} 
+                              className="w-5 h-5 object-contain"
+                            />
+                          ) : (
+                            <span className="text-base">🍄</span>
+                          )}
+                          <span className="bg-emerald-100 text-emerald-800 text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide">
+                            {displayType}
+                          </span>
+                        </>
+                      );
+                    })()}
                   </div>
                 )}
               </div>
