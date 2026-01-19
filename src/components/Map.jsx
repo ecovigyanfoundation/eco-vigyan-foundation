@@ -103,8 +103,8 @@ export default function Map(props) {
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
       style: "mapbox://styles/mapbox/light-v11",
-      center: [80.5, 23.0],
-      zoom: 4.2,
+      center: [80.5, 25.0],
+      zoom: 3.5,
       projection: "mercator", // 👈 THIS LINE
       minZoom: 2.5,
     });
