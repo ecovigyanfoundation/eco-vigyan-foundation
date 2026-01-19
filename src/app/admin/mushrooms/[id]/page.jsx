@@ -5,7 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { 
   CheckCircle, XCircle, Clock, Save, 
-  ChevronLeft, Info, FlaskConical, Map as MapIcon, Sprout, Trash2
+  ChevronLeft, Info, FlaskConical, Map as MapIcon, Sprout, Trash2,
+  Sparkles, ImageIcon, Loader2
 } from "lucide-react";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
@@ -98,11 +99,10 @@ export default function AdminMushroomReviewPage() {
     fetchMushrooms();
   }, []);
 
-  // Generate common name suggestions
+  // Generate common name suggestions (only populate list, don't auto-show)
   useEffect(() => {
     if (!form.commonName.trim() || !allMushrooms.length) {
       setCommonNameSuggestions([]);
-      setShowCommonNameSuggestions(false);
       return;
     }
 
@@ -131,14 +131,13 @@ export default function AdminMushroomReviewPage() {
 
     const matchArray = Array.from(uniqueMatches.values()).slice(0, 8);
     setCommonNameSuggestions(matchArray);
-    setShowCommonNameSuggestions(matchArray.length > 0);
+    // Don't auto-show here - only show when user focuses the input
   }, [form.commonName, allMushrooms]);
 
-  // Generate scientific name suggestions
+  // Generate scientific name suggestions (only populate list, don't auto-show)
   useEffect(() => {
     if (!form.scientificName.trim() || !allMushrooms.length) {
       setScientificNameSuggestions([]);
-      setShowScientificNameSuggestions(false);
       return;
     }
 
@@ -167,7 +166,7 @@ export default function AdminMushroomReviewPage() {
 
     const matchArray = Array.from(uniqueMatches.values()).slice(0, 8);
     setScientificNameSuggestions(matchArray);
-    setShowScientificNameSuggestions(matchArray.length > 0);
+    // Don't auto-show here - only show when user focuses the input
   }, [form.scientificName, allMushrooms]);
 
   // Handle click outside for common name
@@ -297,51 +296,102 @@ export default function AdminMushroomReviewPage() {
   };
 
   if (loading) return (
-    <div className="flex flex-col items-center justify-center min-h-screen space-y-4">
-      <div className="w-12 h-12 border-4 border-green-200 border-t-green-600 rounded-full animate-spin"></div>
-      <p className="text-gray-500 font-medium">Loading submission data...</p>
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-emerald-50/30 to-stone-100">
+      {/* Header Skeleton */}
+      <div className="bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 border-b border-emerald-700/20 shadow-xl shadow-emerald-500/10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 bg-white/20 rounded-xl animate-pulse" />
+            <div className="space-y-2">
+              <div className="h-6 bg-white/20 rounded w-48 animate-pulse" />
+              <div className="h-4 bg-white/10 rounded w-32 animate-pulse" />
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Image skeleton */}
+          <div className="lg:col-span-4">
+            <div className="aspect-square bg-white rounded-2xl border-2 border-stone-200 animate-pulse" />
+          </div>
+          {/* Form skeleton */}
+          <div className="lg:col-span-8 space-y-6">
+            <div className="bg-white rounded-2xl border-2 border-stone-200 p-6 space-y-4">
+              <div className="h-6 bg-stone-200 rounded w-1/3 animate-pulse" />
+              <div className="h-10 bg-stone-100 rounded-xl animate-pulse" />
+              <div className="h-10 bg-stone-100 rounded-xl animate-pulse" />
+              <div className="h-32 bg-stone-100 rounded-xl animate-pulse" />
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] pb-32">
-      {/* HEADER */}
-      <header className="bg-white/80 backdrop-blur-md border-b sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-wrap justify-between items-center gap-4">
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-emerald-50/30 to-stone-100 pb-32">
+      {/* HEADER - Modern Gradient */}
+      <header className="bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 border-b border-emerald-700/20 shadow-xl shadow-emerald-500/10 sticky top-0 z-20 relative overflow-hidden">
+        {/* Decorative elements */}
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-5 flex flex-wrap justify-between items-center gap-4 relative">
           <div className="flex items-center gap-4">
             <button 
               onClick={() => router.back()}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              className="p-2.5 hover:bg-white/10 rounded-xl transition-all border border-white/20 backdrop-blur-sm group"
             >
-              <ChevronLeft className="w-5 h-5 text-gray-600" />
+              <ChevronLeft className="w-5 h-5 text-white group-hover:-translate-x-0.5 transition-transform" />
             </button>
             <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold text-gray-900 tracking-tight">
-                  Review Submission
-                </h1>
-                <StatusBadge status={form.status} />
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 hidden sm:block">
+                  <Sparkles className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-lg sm:text-xl font-black text-white tracking-tight drop-shadow-lg flex items-center gap-2">
+                    Review Submission
+                    <StatusBadge status={form.status} />
+                  </h1>
+                  <p className="text-sm text-emerald-100/80 italic">{form.scientificName || "Unnamed Species"}</p>
+                </div>
               </div>
-              <p className="text-sm text-gray-500 italic">{form.scientificName || "Unnamed Species"}</p>
             </div>
           </div>
           
-          <div className="flex items-center gap-3">
-             <button onClick={() => submit("pending")} className="px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-lg transition-all border">
-               Save Draft
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+             <button 
+               onClick={() => submit("pending")} 
+               className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold text-white/90 hover:text-white border border-white/30 rounded-xl hover:bg-white/10 transition-all backdrop-blur-sm flex items-center gap-2"
+             >
+               <Save className="w-4 h-4" />
+               <span className="hidden sm:inline">Save Draft</span>
+               <span className="sm:hidden">Save</span>
              </button>
-             <button onClick={() => submit("reject")} className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 text-sm font-bold rounded-lg hover:bg-red-100 border border-red-200 transition-all">
-               <XCircle className="w-4 h-4" /> Reject
+             <button 
+               onClick={() => submit("reject")} 
+               className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold text-red-600 bg-white hover:bg-red-50 rounded-xl transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center gap-2 border border-red-100"
+             >
+               <XCircle className="w-4 h-4" />
+               <span className="hidden sm:inline">Reject</span>
              </button>
-             <button onClick={() => submit("approve")} className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700 shadow-md shadow-green-200 transition-all">
-               <CheckCircle className="w-4 h-4" /> Approve Species
+             <button 
+               onClick={() => submit("approve")} 
+               className="px-4 sm:px-6 py-2 text-xs sm:text-sm font-bold text-emerald-700 bg-white hover:bg-emerald-50 rounded-xl transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center gap-2 border border-emerald-100"
+             >
+               <CheckCircle className="w-4 h-4" />
+               <span className="hidden sm:inline">Approve Species</span>
+               <span className="sm:hidden">Approve</span>
              </button>
              <button 
                onClick={handleDeleteClick} 
-               className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white text-sm font-bold rounded-lg hover:bg-red-700 shadow-md shadow-red-200 transition-all"
+               className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all border border-white/20"
                title="Delete this submission permanently"
              >
-               <Trash2 className="w-4 h-4" /> Delete
+               <Trash2 className="w-4 h-4" />
              </button>
           </div>
         </div>
@@ -352,24 +402,34 @@ export default function AdminMushroomReviewPage() {
           
           {/* LEFT COLUMN: IMAGES */}
           <div className="lg:col-span-4 space-y-6">
-            <div className="sticky top-24">
-                <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                    <Info className="w-4 h-4" /> Submission Images
-                </h2>
+            <div className="sticky top-28">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center">
+                    <ImageIcon className="w-4 h-4 text-emerald-600" />
+                  </div>
+                  <h2 className="text-sm font-black text-slate-700 uppercase tracking-wide">
+                    Submission Images
+                  </h2>
+                </div>
                 <div className="grid grid-cols-1 gap-4">
                 {mushroom.images?.length > 0 ? (
                     mushroom.images.map((img, idx) => (
-                        <div key={img.publicId || idx} className="group relative overflow-hidden rounded-2xl border bg-white p-2 shadow-sm">
+                        <div key={img.publicId || idx} className="group relative overflow-hidden rounded-2xl border-2 border-stone-200 bg-white p-2 shadow-lg hover:shadow-xl transition-all hover:-translate-y-1">
                             <img 
                                 src={img.url} 
-                                className="rounded-xl w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105" 
+                                className="rounded-xl w-full h-auto object-cover transition-transform duration-700 group-hover:scale-105" 
                                 alt="Mushroom" 
                             />
+                            {/* Image number badge */}
+                            <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-sm text-white text-xs font-bold px-2.5 py-1 rounded-lg">
+                              {idx + 1} / {mushroom.images.length}
+                            </div>
                         </div>
                     ))
                 ) : (
-                    <div className="aspect-square bg-gray-100 rounded-2xl border-2 border-dashed flex items-center justify-center text-gray-400">
-                        No images provided
+                    <div className="aspect-square bg-gradient-to-br from-stone-100 to-stone-200 rounded-2xl border-2 border-dashed border-stone-300 flex flex-col items-center justify-center text-stone-400 gap-3">
+                        <ImageIcon className="w-12 h-12" />
+                        <span className="font-medium">No images provided</span>
                     </div>
                 )}
                 </div>
@@ -380,20 +440,22 @@ export default function AdminMushroomReviewPage() {
           <div className="lg:col-span-8 space-y-8">
             
             {/* CORE INFO */}
-            <section className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="p-6 border-b border-gray-50 flex items-center gap-3 bg-gray-50/50">
-                <FlaskConical className="w-5 h-5 text-green-600" />
-                <h2 className="font-bold text-gray-800">Taxonomy & Description</h2>
+            <section className="bg-white rounded-2xl shadow-lg shadow-stone-200/50 border-2 border-stone-200 overflow-hidden hover:shadow-xl transition-shadow">
+              <div className="p-5 border-b border-stone-100 flex items-center gap-3 bg-gradient-to-r from-emerald-50 to-teal-50">
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
+                  <FlaskConical className="w-5 h-5 text-emerald-600" />
+                </div>
+                <h2 className="font-black text-slate-800 uppercase tracking-wide text-sm">Taxonomy & Description</h2>
               </div>
               <div className="p-6 space-y-6">
-                <div className="space-y-1 relative">
-                  <label className="text-xs font-bold text-gray-400 uppercase">Common Name</label>
+                <div className="space-y-2 relative">
+                  <label className="text-xs font-black text-slate-500 uppercase tracking-wider">Common Name</label>
                   <input
                     ref={commonNameInputRef}
                     value={form.commonName}
                     onChange={(e) => setForm({ ...form, commonName: e.target.value })}
                     onFocus={() => commonNameSuggestions.length > 0 && setShowCommonNameSuggestions(true)}
-                    className="w-full text-lg font-medium bg-transparent border-b border-gray-200 py-2 focus:border-green-500 outline-none transition-colors"
+                    className="w-full text-lg font-semibold bg-transparent border-b-2 border-stone-200 py-3 focus:border-emerald-500 outline-none transition-colors placeholder:text-stone-300"
                     placeholder="e.g. Fly Agaric"
                   />
                   
@@ -426,14 +488,14 @@ export default function AdminMushroomReviewPage() {
                   )}
                 </div>
 
-                <div className="space-y-1 relative">
-                  <label className="text-xs font-bold text-gray-400 uppercase">Scientific Name</label>
+                <div className="space-y-2 relative">
+                  <label className="text-xs font-black text-slate-500 uppercase tracking-wider">Scientific Name</label>
                   <input
                     ref={scientificNameInputRef}
                     value={form.scientificName}
                     onChange={(e) => setForm({ ...form, scientificName: e.target.value })}
                     onFocus={() => scientificNameSuggestions.length > 0 && setShowScientificNameSuggestions(true)}
-                    className="w-full text-lg font-medium bg-transparent border-b border-gray-200 py-2 focus:border-green-500 outline-none transition-colors italic"
+                    className="w-full text-lg font-semibold bg-transparent border-b-2 border-stone-200 py-3 focus:border-emerald-500 outline-none transition-colors italic placeholder:text-stone-300 placeholder:not-italic"
                     placeholder="e.g. Amanita muscaria"
                   />
                   
@@ -507,17 +569,22 @@ export default function AdminMushroomReviewPage() {
             </section>
 
             {/* TAGS */}
-            <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-              <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Properties & Uses</h2>
+            <section className="bg-white rounded-2xl shadow-lg shadow-stone-200/50 border-2 border-stone-200 p-6 hover:shadow-xl transition-shadow">
+              <div className="flex items-center gap-2 mb-5">
+                <div className="w-8 h-8 rounded-xl bg-purple-100 flex items-center justify-center">
+                  <Sprout className="w-4 h-4 text-purple-600" />
+                </div>
+                <h2 className="text-sm font-black text-slate-700 uppercase tracking-wide">Properties & Uses</h2>
+              </div>
               <div className="flex flex-wrap gap-2">
                 {COMMON_USES.map((use) => (
                   <button
                     key={use}
                     onClick={() => toggleUse(use)}
-                    className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all border-2 ${
+                    className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all border-2 hover:-translate-y-0.5 ${
                       form.commonUses.includes(use) 
-                        ? "bg-green-50 border-green-600 text-green-700" 
-                        : "bg-white border-gray-100 text-gray-500 hover:border-gray-300"
+                        ? "bg-emerald-50 border-emerald-500 text-emerald-700 shadow-md shadow-emerald-100" 
+                        : "bg-white border-stone-200 text-stone-500 hover:border-stone-300 hover:shadow-md"
                     }`}
                   >
                     {use.replace(/-/g, " ")}
@@ -527,27 +594,35 @@ export default function AdminMushroomReviewPage() {
             </section>
 
             {/* REVIEW BOX */}
-            <section className="bg-[#FFFBEB] rounded-2xl border border-amber-200 overflow-hidden">
-              <div className="p-4 bg-amber-100/50 border-b border-amber-200 flex items-center gap-2">
-                <Clock className="w-4 h-4 text-amber-700" />
-                <h2 className="font-bold text-amber-800 text-sm">Administrative Review</h2>
+            <section className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl border-2 border-amber-200 overflow-hidden shadow-lg shadow-amber-100/50">
+              <div className="p-5 bg-gradient-to-r from-amber-100 to-orange-100 border-b border-amber-200 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-200 flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-amber-700" />
+                </div>
+                <h2 className="font-black text-amber-800 text-sm uppercase tracking-wide">Administrative Review</h2>
               </div>
               <div className="p-6 space-y-6">
                 <div>
-                  <label className="text-xs font-bold text-amber-700/60 uppercase">Internal Notes (Private)</label>
+                  <label className="text-xs font-black text-amber-700/80 uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                    Internal Notes (Private)
+                  </label>
                   <textarea
                     value={form.adminNotes}
                     onChange={(e) => setForm({ ...form, adminNotes: e.target.value })}
-                    className="w-full mt-1 border-amber-200 p-3 rounded-xl h-24 bg-white focus:ring-2 focus:ring-amber-500/20 outline-none"
+                    className="w-full mt-2 border-2 border-amber-200 p-4 rounded-xl h-28 bg-white/80 focus:ring-2 focus:ring-amber-500/30 focus:border-amber-400 outline-none transition-all"
                     placeholder="Log internal thoughts here..."
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-red-700/60 uppercase">Rejection Reason (Publicly visible to submitter)</label>
+                  <label className="text-xs font-black text-red-600/80 uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-red-400"></span>
+                    Rejection Reason (Publicly visible to submitter)
+                  </label>
                   <textarea
                     value={form.rejectionReason}
                     onChange={(e) => setForm({ ...form, rejectionReason: e.target.value })}
-                    className="w-full mt-1 border-red-100 p-3 rounded-xl h-24 bg-white focus:ring-2 focus:ring-red-500/20 outline-none"
+                    className="w-full mt-2 border-2 border-red-200 p-4 rounded-xl h-28 bg-white/80 focus:ring-2 focus:ring-red-500/30 focus:border-red-400 outline-none transition-all"
                     placeholder="Explain why this was rejected..."
                   />
                 </div>
@@ -580,12 +655,12 @@ export default function AdminMushroomReviewPage() {
 
 function StatusBadge({ status }) {
   const styles = {
-    approved: "bg-green-100 text-green-700 border-green-200",
-    rejected: "bg-red-100 text-red-700 border-red-200",
-    pending: "bg-amber-100 text-amber-700 border-amber-200",
+    approved: "bg-emerald-100 text-emerald-700 border-emerald-300 shadow-emerald-100",
+    rejected: "bg-red-100 text-red-700 border-red-300 shadow-red-100",
+    pending: "bg-amber-100 text-amber-700 border-amber-300 shadow-amber-100",
   };
   return (
-    <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-tighter border ${styles[status] || styles.pending}`}>
+    <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border shadow-sm ${styles[status] || styles.pending}`}>
       {status || "pending"}
     </span>
   );
