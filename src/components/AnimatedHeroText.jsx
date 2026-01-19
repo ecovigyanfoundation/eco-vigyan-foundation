@@ -116,7 +116,7 @@ export default function AnimatedHeroText({ currentIndex }) {
             className="overflow-hidden mb-4"
             variants={slideUpVariants}
           >
-            <span className="inline-block px-4 py-1.5 rounded-full border border-white/30 bg-white/10 backdrop-blur-md text-emerald-300 font-bold tracking-widest text-sm uppercase shadow-lg">
+            <span className="inline-block px-4 py-1.5 text-white font-medium uppercase shadow-lg">
               {current.topic}
             </span>
           </motion.div>
