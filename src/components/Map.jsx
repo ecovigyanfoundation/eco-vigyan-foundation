@@ -111,8 +111,21 @@ export default function Map(props) {
 
     map.addControl(new mapboxgl.NavigationControl(), "top-right");
 
+    // Throttle function for smooth zoom updates
+    let lastZoomUpdate = 0;
+    const throttleMs = 100; // Update every 100ms during zoom for smooth transitions
+    
     const handleZoomChange = () => {
       setCurrentZoom(map.getZoom());
+    };
+
+    // Throttled zoom handler for smooth continuous updates during zoom
+    const handleZoomThrottled = () => {
+      const now = Date.now();
+      if (now - lastZoomUpdate >= throttleMs) {
+        lastZoomUpdate = now;
+        setCurrentZoom(map.getZoom());
+      }
     };
 
     map.on("load", () => {
@@ -125,8 +138,10 @@ export default function Map(props) {
       setMapError(e?.error?.message || "Map failed to load");
     });
 
-    // Track zoom changes for grid recalculation (use zoomend for better performance)
-    map.on("zoomend", handleZoomChange);
+    // Track zoom changes for grid recalculation 
+    // Use 'zoom' event with throttling for smooth continuous updates during zoom animation
+    map.on("zoom", handleZoomThrottled);
+    map.on("zoomend", handleZoomChange); // Final update when zoom completes
     map.on("moveend", handleZoomChange); // Also update on pan in case bounds change significantly
 
     mapRef.current = map;
@@ -137,6 +152,7 @@ export default function Map(props) {
       userLocationMarkerRef.current?.remove();
       userLocationMarkerRef.current = null;
       if (map) {
+        map.off("zoom", handleZoomThrottled);
         map.off("zoomend", handleZoomChange);
         map.off("moveend", handleZoomChange);
         map.remove();
@@ -187,24 +203,23 @@ export default function Map(props) {
       // Default zoom if not provided
       const currentZoomLevel = zoom !== null && zoom !== undefined ? zoom : 4;
 
-      // Grid size based on zoom level - smaller cells at higher zoom
-      // Grid continues dividing until zoom 9 when individual icons appear
-      let gridSize;
-      if (currentZoomLevel < 3) {
-        gridSize = 2.0; // ~220km per cell
-      } else if (currentZoomLevel < 5) {
-        gridSize = 0.5; // ~55km per cell
-      } else if (currentZoomLevel < 6) {
-        gridSize = 0.2; // ~22km per cell
-      } else if (currentZoomLevel < 7) {
-        gridSize = 0.1; // ~11km per cell
-      } else if (currentZoomLevel < 8) {
-        gridSize = 0.05; // ~5.5km per cell
-      } else if (currentZoomLevel < 9) {
-        gridSize = 0.02; // ~2.2km per cell
-      } else {
-        gridSize = 0.01; // ~1.1km per cell (for zoom 9+, though icons will show)
-      }
+      // Grid size based on zoom level - smooth exponential interpolation for seamless transitions
+      // Grid continues shrinking until zoom 9 when individual icons appear
+      // Using exponential interpolation: gridSize = maxSize * (minSize/maxSize)^((zoom - minZoom) / (maxZoom - minZoom))
+      const minZoom = 2.5;  // Minimum zoom level for grid
+      const maxZoom = 9;    // Maximum zoom level before icons appear
+      const maxGridSize = 2.0;  // Largest grid cell size at minZoom (~220km)
+      const minGridSize = 0.01; // Smallest grid cell size at maxZoom (~1.1km)
+      
+      // Clamp zoom level to valid range
+      const clampedZoom = Math.max(minZoom, Math.min(maxZoom, currentZoomLevel));
+      
+      // Calculate interpolation factor (0 to 1)
+      const t = (clampedZoom - minZoom) / (maxZoom - minZoom);
+      
+      // Exponential interpolation for smooth grid scaling
+      // This provides perceptually smooth transitions as zoom level changes
+      const gridSize = maxGridSize * Math.pow(minGridSize / maxGridSize, t);
 
       // Create an object to store counts per grid cell (using object instead of Map to avoid naming conflict)
       const gridMap = {};
@@ -308,13 +323,13 @@ export default function Map(props) {
       map.getSource("mushroom-grid-heat").setData(gridHeatmapData);
     }
 
-    // Add grid heatmap layer (show until zoom 9 when icons appear)
+    // Add grid heatmap layer (show until zoom 9.5 with fade-out, overlapping with icons starting at 9)
     if (!map.getLayer("mushroom-grid-heat")) {
       map.addLayer({
         id: "mushroom-grid-heat",
         type: "fill",
         source: "mushroom-grid-heat",
-        maxzoom: 8.9,
+        maxzoom: 9.5,
         paint: {
           "fill-color": [
             "interpolate",
@@ -333,31 +348,25 @@ export default function Map(props) {
             50,
             "#064e3b",
           ],
+          // Fade out grid as we approach zoom 9.5 where icons are fully visible
           "fill-opacity": [
             "interpolate",
             ["linear"],
-            ["get", "count"],
-            0,
-            0,
-            1,
-            0.3,
-            5,
-            0.5,
-            10,
-            0.7,
-            20,
-            0.85,
+            ["zoom"],
+            2, ["interpolate", ["linear"], ["get", "count"], 0, 0, 1, 0.3, 5, 0.5, 10, 0.7, 20, 0.85],
+            8.5, ["interpolate", ["linear"], ["get", "count"], 0, 0, 1, 0.3, 5, 0.5, 10, 0.7, 20, 0.85],
+            9.5, 0
           ],
         },
       });
 
-      // Add grid outline for better visibility
+      // Add grid outline for better visibility (also fades out)
       if (!map.getLayer("mushroom-grid-heat-outline")) {
         map.addLayer({
           id: "mushroom-grid-heat-outline",
           type: "line",
           source: "mushroom-grid-heat",
-          maxzoom: 8.9,
+          maxzoom: 9.5,
           paint: {
             "line-color": "#10b981",
             "line-width": [
@@ -373,7 +382,15 @@ export default function Map(props) {
               8,
               2,
             ],
-            "line-opacity": 0.3,
+            // Fade out outline as grid fades
+            "line-opacity": [
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              2, 0.3,
+              8.5, 0.3,
+              9.5, 0
+            ],
           },
         });
       }
