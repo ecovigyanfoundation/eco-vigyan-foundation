@@ -6,7 +6,7 @@ import toast from "react-hot-toast";
 import { 
   CheckCircle, XCircle, Clock, Save, 
   ChevronLeft, Info, FlaskConical, Map as MapIcon, Sprout, Trash2,
-  Sparkles, ImageIcon, Loader2
+  Sparkles, ImageIcon, Loader2, Ban, User
 } from "lucide-react";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
@@ -24,6 +24,8 @@ export default function AdminMushroomReviewPage() {
   const [mushroom, setMushroom] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showBanConfirm, setShowBanConfirm] = useState(false);
+  const [banning, setBanning] = useState(false);
 
   const [form, setForm] = useState({
     commonName: "",
@@ -295,6 +297,39 @@ export default function AdminMushroomReviewPage() {
     }
   };
 
+  const handleBanUser = async () => {
+    if (!mushroom?.submittedBy?._id) {
+      toast.error("Cannot identify the user to ban");
+      return;
+    }
+
+    setBanning(true);
+    try {
+      const res = await fetch("/api/admin/users/ban", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: mushroom.submittedBy._id,
+          action: "ban",
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to ban user");
+      }
+
+      toast.success(`User "${mushroom.submittedBy.name || mushroom.submittedBy.username}" has been banned`);
+      setShowBanConfirm(false);
+    } catch (error) {
+      console.error("Ban error:", error);
+      toast.error(error.message || "Failed to ban user");
+    } finally {
+      setBanning(false);
+    }
+  };
+
   if (loading) return (
     <div className="min-h-screen bg-gradient-to-br from-stone-50 via-emerald-50/30 to-stone-100">
       {/* Header Skeleton */}
@@ -386,9 +421,20 @@ export default function AdminMushroomReviewPage() {
                <span className="hidden sm:inline">Approve Species</span>
                <span className="sm:hidden">Approve</span>
              </button>
+             {/* Ban User Button */}
+             {mushroom?.submittedBy && (
+               <button 
+                 onClick={() => setShowBanConfirm(true)} 
+                 disabled={banning}
+                 className="p-2 text-white/80 hover:text-orange-300 hover:bg-white/10 rounded-xl transition-all border border-white/20 disabled:opacity-50"
+                 title={`Ban user: ${mushroom.submittedBy.name || mushroom.submittedBy.username}`}
+               >
+                 {banning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Ban className="w-4 h-4" />}
+               </button>
+             )}
              <button 
                onClick={handleDeleteClick} 
-               className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all border border-white/20"
+               className="p-2 text-white/80 hover:text-red-300 hover:bg-white/10 rounded-xl transition-all border border-white/20"
                title="Delete this submission permanently"
              >
                <Trash2 className="w-4 h-4" />
@@ -646,6 +692,18 @@ export default function AdminMushroomReviewPage() {
         confirmText="Delete"
         cancelText="Cancel"
         confirmColor="red"
+      />
+
+      {/* BAN USER CONFIRMATION DIALOG */}
+      <ConfirmDialog
+        isOpen={showBanConfirm}
+        onClose={() => setShowBanConfirm(false)}
+        onConfirm={handleBanUser}
+        title="Ban User"
+        message={`Are you sure you want to ban "${mushroom?.submittedBy?.name || mushroom?.submittedBy?.username || "this user"}"?\n\nThis will prevent them from logging in and accessing the platform.`}
+        confirmText={banning ? "Banning..." : "Ban User"}
+        cancelText="Cancel"
+        confirmColor="orange"
       />
     </div>
   );
