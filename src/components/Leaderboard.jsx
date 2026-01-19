@@ -2,21 +2,25 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Trophy, Medal, Award, User as UserIcon } from "lucide-react";
+import { Trophy, Medal, Award, User as UserIcon, ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function Leaderboard() {
   const [contributors, setContributors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalContributors, setTotalContributors] = useState(0);
+  const ITEMS_PER_PAGE = 10;
 
   useEffect(() => {
-    fetchLeaderboard();
-  }, []);
+    fetchLeaderboard(currentPage);
+  }, [currentPage]);
 
-  const fetchLeaderboard = async () => {
+  const fetchLeaderboard = async (page = 1) => {
     try {
       setLoading(true);
-      const res = await fetch("/api/leaderboard?limit=20");
+      const res = await fetch(`/api/leaderboard?page=${page}&limit=${ITEMS_PER_PAGE}`);
       const data = await res.json();
 
       if (!res.ok) {
@@ -24,12 +28,20 @@ export default function Leaderboard() {
       }
 
       setContributors(data.contributors || []);
+      setTotalPages(data.totalPages || 1);
+      setTotalContributors(data.total || 0);
       setError(null);
     } catch (err) {
       setError(err.message);
       setContributors([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
     }
   };
 
@@ -59,13 +71,99 @@ export default function Leaderboard() {
     return "bg-gray-800";
   };
 
+  // Shimmer skeleton component
+  const SkeletonCard = ({ rank }) => (
+    <div
+      className={`bg-white rounded-2xl border-2 border-stone-200 overflow-hidden ${
+        rank <= 3 ? "shadow-lg" : "shadow-sm"
+      }`}
+    >
+      <div
+        className={`${
+          rank === 1
+            ? "bg-gradient-to-r from-yellow-500 to-yellow-600"
+            : rank === 2
+            ? "bg-gradient-to-r from-gray-400 to-gray-500"
+            : rank === 3
+            ? "bg-gradient-to-r from-amber-600 to-amber-700"
+            : "bg-gray-800"
+        } px-6 py-4 flex items-center gap-4`}
+      >
+        {/* Rank Icon Skeleton */}
+        <div className="w-6 h-6 rounded-full bg-white/20 animate-pulse shrink-0" />
+
+        {/* Profile Picture Skeleton */}
+        <div className="w-14 h-14 rounded-full bg-white/20 animate-pulse shrink-0" />
+
+        {/* User Info Skeleton */}
+        <div className="flex-1 min-w-0 space-y-2">
+          <div className="h-5 bg-white/20 rounded-lg w-32 animate-pulse shimmer-effect" />
+          <div className="h-3 bg-white/20 rounded-lg w-20 animate-pulse shimmer-effect" />
+        </div>
+
+        {/* Points Skeleton */}
+        <div className="shrink-0">
+          <div className="bg-white/20 backdrop-blur-sm rounded-xl px-4 py-2 border border-white/30">
+            <div className="h-3 bg-white/30 rounded w-10 mb-2 animate-pulse shimmer-effect" />
+            <div className="h-7 bg-white/30 rounded w-12 animate-pulse shimmer-effect" />
+          </div>
+        </div>
+      </div>
+
+      {/* Badge area skeleton for top 3 */}
+      {rank <= 3 && (
+        <div className="px-6 py-2 bg-stone-50 border-t border-stone-200">
+          <div className="h-4 bg-stone-200 rounded w-36 animate-pulse shimmer-effect" />
+        </div>
+      )}
+    </div>
+  );
+
   if (loading) {
     return (
-      <div className="p-8 flex-1 min-h-full h-full overflow-y-auto bg-stone-50 custom-scrollbar flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 font-medium">Loading leaderboard...</p>
+      <div className="p-8 flex-1 min-h-full h-full overflow-y-auto bg-stone-50 custom-scrollbar">
+        <div className="max-w-4xl mx-auto">
+          {/* Header Skeleton */}
+          <div className="flex flex-col md:flex-row justify-between items-end mb-10 gap-4 border-b border-stone-200 pb-8">
+            <div className="space-y-2">
+              <div className="h-3 bg-stone-200 rounded w-32 animate-pulse shimmer-effect" />
+              <div className="h-8 bg-stone-200 rounded w-52 animate-pulse shimmer-effect" />
+              <div className="h-4 bg-stone-200 rounded w-72 animate-pulse shimmer-effect" />
+            </div>
+            <div className="h-10 bg-stone-200 rounded-full w-40 animate-pulse shimmer-effect" />
+          </div>
+
+          {/* Cards Skeleton */}
+          <div className="space-y-4">
+            {[1, 2, 3, 4, 5].map((rank) => (
+              <SkeletonCard key={rank} rank={rank} />
+            ))}
+          </div>
         </div>
+
+        {/* Shimmer animation styles */}
+        <style jsx>{`
+          @keyframes shimmer {
+            0% {
+              background-position: -200% 0;
+            }
+            100% {
+              background-position: 200% 0;
+            }
+          }
+          :global(.shimmer-effect) {
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(
+              90deg,
+              transparent 0%,
+              rgba(255, 255, 255, 0.4) 50%,
+              transparent 100%
+            );
+            background-size: 200% 100%;
+            animation: shimmer 1.5s ease-in-out infinite;
+          }
+        `}</style>
       </div>
     );
   }
@@ -106,7 +204,7 @@ export default function Leaderboard() {
           <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-stone-200 bg-white shadow-sm">
             <Trophy className="w-4 h-4 text-emerald-600" />
             <span className="text-stone-400 font-bold text-xs uppercase tracking-widest">
-              {contributors.length} Contributors
+              {totalContributors} Contributors
             </span>
           </div>
         </div>
@@ -129,7 +227,8 @@ export default function Leaderboard() {
         ) : (
           <div className="space-y-4">
             {contributors.map((contributor, index) => {
-              const rank = index + 1;
+              // Calculate global rank based on current page
+              const rank = (currentPage - 1) * ITEMS_PER_PAGE + index + 1;
               return (
                 <div
                   key={contributor._id || contributor.id}
@@ -214,6 +313,83 @@ export default function Leaderboard() {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* PAGINATION CONTROLS */}
+        {totalPages > 1 && (
+          <div className="mt-8 flex items-center justify-center gap-2">
+            {/* Previous Button */}
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className={`flex items-center gap-1 px-4 py-2 rounded-xl font-bold text-sm transition-all ${
+                currentPage === 1
+                  ? "bg-stone-100 text-stone-400 cursor-not-allowed"
+                  : "bg-white border border-stone-200 text-stone-700 hover:bg-stone-50 hover:border-stone-300 shadow-sm"
+              }`}
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">Previous</span>
+            </button>
+
+            {/* Page Numbers */}
+            <div className="flex items-center gap-1">
+              {[...Array(totalPages)].map((_, idx) => {
+                const pageNum = idx + 1;
+                // Show first, last, current and adjacent pages
+                const showPage =
+                  pageNum === 1 ||
+                  pageNum === totalPages ||
+                  Math.abs(pageNum - currentPage) <= 1;
+
+                if (!showPage) {
+                  // Show dots for skipped pages (only once)
+                  if (
+                    (pageNum === 2 && currentPage > 3) ||
+                    (pageNum === totalPages - 1 && currentPage < totalPages - 2)
+                  ) {
+                    return (
+                      <span
+                        key={pageNum}
+                        className="px-2 text-stone-400 font-bold"
+                      >
+                        ...
+                      </span>
+                    );
+                  }
+                  return null;
+                }
+
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => handlePageChange(pageNum)}
+                    className={`w-10 h-10 rounded-xl font-bold text-sm transition-all ${
+                      pageNum === currentPage
+                        ? "bg-emerald-600 text-white shadow-lg"
+                        : "bg-white border border-stone-200 text-stone-700 hover:bg-stone-50 hover:border-stone-300"
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Next Button */}
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className={`flex items-center gap-1 px-4 py-2 rounded-xl font-bold text-sm transition-all ${
+                currentPage === totalPages
+                  ? "bg-stone-100 text-stone-400 cursor-not-allowed"
+                  : "bg-white border border-stone-200 text-stone-700 hover:bg-stone-50 hover:border-stone-300 shadow-sm"
+              }`}
+            >
+              <span className="hidden sm:inline">Next</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
         )}
 
