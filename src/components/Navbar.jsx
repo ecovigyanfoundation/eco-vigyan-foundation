@@ -85,7 +85,7 @@ export default function Navbar() {
 
   const navLinks = [
     { name: "Mushroom Mania", path: "/explore", isNew: true },
-    { name: "Join Us", path: "/join-us" },
+    // { name: "Join Us", path: "/join-us" },
   ];
 
   const programLinks = [
@@ -282,7 +282,7 @@ export default function Navbar() {
                     }}
                     whileHover={{ scale: 1.05, y: -2 }}
                   >
-                    <button
+                    {/* <button
                       onClick={() => setIsProgramsOpen((p) => !p)}
                       className="flex items-center gap-1 py-2 text-sm font-bold text-slate-600 hover:text-emerald-700 group cursor-pointer"
                     >
@@ -293,7 +293,7 @@ export default function Navbar() {
                       >
                         <ChevronDown className="w-4 h-4" />
                       </motion.div>
-                    </button>
+                    </button> */}
 
                     <AnimatePresence>
                       {isProgramsOpen && (

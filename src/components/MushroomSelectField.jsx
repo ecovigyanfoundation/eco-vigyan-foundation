@@ -33,7 +33,7 @@ export default function MushroomSelectField({ label, value, onChange, options, s
   const selectedIcon = value ? getMushroomImage(value) : null;
 
   return (
-    <label className="block">
+    <div className="block">
       <span className="block text-xs font-bold text-stone-700 mb-2 uppercase tracking-wider">
         {label}
       </span>
@@ -95,6 +95,6 @@ export default function MushroomSelectField({ label, value, onChange, options, s
           </div>
         )}
       </div>
-    </label>
+    </div>
   );
 }

@@ -113,7 +113,6 @@ export default function MushroomSubmissionForm({
 
     const matchArray = Array.from(uniqueMatches.values()).slice(0, 8);
     setCommonNameSuggestions(matchArray);
-    setShowCommonNameSuggestions(matchArray.length > 0);
   }, [commonName, allMushrooms]);
 
   // Generate scientific name suggestions
@@ -149,7 +148,6 @@ export default function MushroomSubmissionForm({
 
     const matchArray = Array.from(uniqueMatches.values()).slice(0, 8);
     setScientificNameSuggestions(matchArray);
-    setShowScientificNameSuggestions(matchArray.length > 0);
   }, [scientificName, allMushrooms]);
 
   // Handle click outside for common name
@@ -693,6 +691,7 @@ toast.success(data.message || "Mushroom submitted successfully!");
               onChange={(e) => {
                 setCommonName(e.target.value);
                 setSelectedCommonNameIndex(-1);
+                setShowCommonNameSuggestions(true);
               }}
               onFocus={() => commonNameSuggestions.length > 0 && setShowCommonNameSuggestions(true)}
               onKeyDown={(e) => {
@@ -789,6 +788,7 @@ toast.success(data.message || "Mushroom submitted successfully!");
               onChange={(e) => {
                 setScientificName(e.target.value);
                 setSelectedScientificNameIndex(-1);
+                setShowScientificNameSuggestions(true);
               }}
               onFocus={() => scientificNameSuggestions.length > 0 && setShowScientificNameSuggestions(true)}
               onKeyDown={(e) => {
