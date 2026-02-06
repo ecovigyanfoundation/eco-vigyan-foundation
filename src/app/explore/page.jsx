@@ -53,57 +53,62 @@ function MapPageContent() {
     commonUses: [],
   });
   const [selectedMushroom, setSelectedMushroom] = useState(null);
-  const [showDetailModal, setShowDetailModal] = useState(false);
-  const [detailMushroom, setDetailMushroom] = useState(null);
-  const [view, setViewState] = useState("map");
-  const [showMobileSearch, setShowMobileSearch] = useState(false);
   const searchParams = useSearchParams();
   const [mapKey, setMapKey] = useState(0);
 
-  // Sync mushroom detail state with URL parameter (handles browser back/forward)
-  useEffect(() => {
-    const mushroomId = searchParams.get("mushroom");
-    
-    if (mushroomId) {
-      // If we have data loaded, find the mushroom
-      if (allData.length > 0) {
-        const foundMushroom = allData.find(m => (m._id || m.id) === mushroomId);
-        if (foundMushroom) {
-          setDetailMushroom(foundMushroom);
-          setShowDetailModal(true);
-        }
-      }
-    } else {
-      // No mushroom param, close modal if open
-      if (showDetailModal) {
-        setShowDetailModal(false);
-        setDetailMushroom(null);
-      }
-    }
-  }, [searchParams, allData]);
+  // Derived state from URL parameters
+  const mushroomId = searchParams.get("mushroom");
+  const detailMushroom = allData.find(m => (m._id || m.id) === mushroomId) || null;
+  const showDetailModal = !!detailMushroom;
+  const showAddModal = searchParams.get("add") === "true";
+  const showZoneModal = searchParams.get("zones") === "true";
+
+  // State for search and UI elements
+  const [view, setViewState] = useState("map");
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
 
   // Handle opening mushroom detail with URL update
   const handleOpenMushroomDetail = (mushroom) => {
-    const mushroomId = mushroom._id || mushroom.id;
-    if (mushroomId) {
-      setDetailMushroom(mushroom);
-      setShowDetailModal(true);
-      
-      // Update URL preserving other params
+    const mId = mushroom._id || mushroom.id;
+    if (mId) {
       const params = new URLSearchParams(window.location.search);
-      params.set("mushroom", mushroomId);
+      params.set("mushroom", mId);
       router.push(`/explore?${params.toString()}`, { scroll: false });
     }
   };
 
   // Handle closing mushroom detail with URL update
   const handleCloseMushroomDetail = () => {
-    setShowDetailModal(false);
-    setDetailMushroom(null);
-    
-    // Update URL removing mushroom param
     const params = new URLSearchParams(window.location.search);
     params.delete("mushroom");
+    router.push(`/explore?${params.toString()}`, { scroll: false });
+  };
+
+  // Handle opening add modal with URL update
+  const handleOpenAddModal = () => {
+    const params = new URLSearchParams(window.location.search);
+    params.set("add", "true");
+    router.push(`/explore?${params.toString()}`, { scroll: false });
+  };
+
+  // Handle closing add modal with URL update
+  const handleCloseAddModal = () => {
+    const params = new URLSearchParams(window.location.search);
+    params.delete("add");
+    router.push(`/explore?${params.toString()}`, { scroll: false });
+  };
+
+  // Handle opening zone modal with URL update
+  const handleOpenZoneModal = () => {
+    const params = new URLSearchParams(window.location.search);
+    params.set("zones", "true");
+    router.push(`/explore?${params.toString()}`, { scroll: false });
+  };
+
+  // Handle closing zone modal with URL update
+  const handleCloseZoneModal = () => {
+    const params = new URLSearchParams(window.location.search);
+    params.delete("zones");
     router.push(`/explore?${params.toString()}`, { scroll: false });
   };
 
@@ -173,10 +178,8 @@ function MapPageContent() {
       console.log("🗺️ Map view active - Map component should render");
     }
   }, [view, mapKey]);
-  const [showAddModal, setShowAddModal] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [showSidebar, setShowSidebar] = useState(false);
-  const [showZoneModal, setShowZoneModal] = useState(false);
   const [showTrailModal, setShowTrailModal] = useState(false);
   const [showSaveTrailModal, setShowSaveTrailModal] = useState(false);
   const [showSaveZoneModal, setShowSaveZoneModal] = useState(false);
@@ -1114,7 +1117,7 @@ function MapPageContent() {
       toast.error("Please login to explore");
       return;
     }
-    setShowZoneModal(true);
+    handleOpenZoneModal();
   };
 
   // Handle trails button click with authentication check
@@ -1249,7 +1252,7 @@ function MapPageContent() {
       <ExploreHeader
         view={view}
         setView={setView}
-        onAddClick={() => setShowAddModal(true)}
+        onAddClick={handleOpenAddModal}
         onMobileSearchClick={() => setShowMobileSearch(true)}
         onFilterToggle={handleHeaderFilterToggle}
         onResetFilters={handleResetFilters}
@@ -1520,7 +1523,7 @@ function MapPageContent() {
 
       <MushroomSubmissionForm
         isOpen={showAddModal}
-        onClose={() => setShowAddModal(false)}
+        onClose={handleCloseAddModal}
         onSuccess={handleSubmissionSuccess}
         selectedLocation={selectedLocation}
         onLocationSelect={setSelectedLocation}
@@ -1534,7 +1537,7 @@ function MapPageContent() {
 
       <ZoneModal
         isOpen={showZoneModal}
-        onClose={() => setShowZoneModal(false)}
+        onClose={handleCloseZoneModal}
         onZoneSelect={handleZoneSelect}
         onDrawingModeSelect={handleDrawingModeSelect}
       />
@@ -1566,7 +1569,7 @@ function MapPageContent() {
           {/* Add Observation Button - Moved to top and made bigger */}
           {user && (
             <button
-              onClick={() => setShowAddModal(true)}
+              onClick={handleOpenAddModal}
               className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-4 rounded-2xl flex items-center gap-2 shadow-2xl shadow-emerald-900/50 transition-all active:scale-95"
               aria-label="Add Observation"
             >
