@@ -3,16 +3,16 @@
 import { useState, useEffect } from "react";
 import { X, Save } from "lucide-react";
 
-export default function SaveZoneModal({ isOpen, onClose, onSave, zoneData }) {
+export default function SaveZoneModal({ isOpen, onClose, onSave, zoneData, isSaving }) {
   const [zoneName, setZoneName] = useState("");
-  const [category, setCategory] = useState("decomposer");
+  const [category, setCategory] = useState("");
   const [error, setError] = useState("");
 
   // Reset form when modal opens/closes
   useEffect(() => {
     if (isOpen) {
       setZoneName("");
-      setCategory("decomposer");
+      setCategory("");
       setError("");
     }
   }, [isOpen]);
@@ -94,9 +94,10 @@ export default function SaveZoneModal({ isOpen, onClose, onSave, zoneData }) {
                 }}
                 onKeyDown={handleKeyDown}
                 placeholder="Enter zone name"
-                className="w-full px-4 py-3 border-2 border-emerald-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 text-emerald-900 font-medium"
+                className="w-full px-4 py-3 border-2 border-emerald-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 text-emerald-900 font-medium disabled:opacity-50"
                 autoFocus
                 maxLength={100}
+                disabled={isSaving}
               />
               {error && (
                 <p className="mt-2 text-xs text-red-600 font-semibold">{error}</p>
@@ -107,21 +108,20 @@ export default function SaveZoneModal({ isOpen, onClose, onSave, zoneData }) {
               <label htmlFor="zone-category" className="block text-sm font-bold text-emerald-900 mb-2">
                 Category
               </label>
-              <select
+               <input
                 id="zone-category"
+                type="text"
                 value={category}
                 onChange={(e) => {
                   setCategory(e.target.value);
                   setError("");
                 }}
-                className="w-full px-4 py-3 border-2 border-emerald-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 text-emerald-900 font-medium bg-white"
-              >
-                <option value="decomposer">Decomposer</option>
-                <option value="symbiont">Symbiont</option>
-                <option value="parasitic">Parasitic</option>
-              </select>
+                placeholder="Enter category (e.g., Symbiont, Parasitic)"
+                className="w-full px-4 py-3 border-2 border-emerald-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 text-emerald-900 font-medium bg-white disabled:opacity-50"
+                disabled={isSaving}
+              />
               <p className="mt-2 text-xs text-emerald-600/70">
-                Select the ecological role category for this zone
+                Type the ecological role category for this zone
               </p>
             </div>
           </div>
@@ -131,16 +131,27 @@ export default function SaveZoneModal({ isOpen, onClose, onSave, zoneData }) {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-3 text-sm font-bold text-emerald-700 hover:bg-emerald-50 rounded-xl transition-colors"
+              disabled={isSaving}
+              className="flex-1 px-4 py-3 text-sm font-bold text-emerald-700 hover:bg-emerald-50 rounded-xl transition-colors disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2"
+              disabled={isSaving}
+              className="flex-1 px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              <Save size={18} />
-              <span>Save Zone</span>
+              {isSaving ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <>
+                  <Save size={18} />
+                  <span>Save Zone</span>
+                </>
+              )}
             </button>
           </div>
         </form>

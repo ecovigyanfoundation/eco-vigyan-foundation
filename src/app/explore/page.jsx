@@ -183,6 +183,7 @@ function MapPageContent() {
   const [showTrailModal, setShowTrailModal] = useState(false);
   const [showSaveTrailModal, setShowSaveTrailModal] = useState(false);
   const [showSaveZoneModal, setShowSaveZoneModal] = useState(false);
+  const [isSavingZone, setIsSavingZone] = useState(false);
   const [selectedZone, setSelectedZone] = useState(null);
   const [drawingMode, setDrawingMode] = useState(null);
   const [trailMode, setTrailMode] = useState(false);
@@ -1021,6 +1022,7 @@ function MapPageContent() {
 
   // Handle saving the zone
   const handleSaveZone = async (zoneData) => {
+    setIsSavingZone(true);
     try {
       const response = await fetch("/api/zones", {
         method: "POST",
@@ -1042,6 +1044,8 @@ function MapPageContent() {
     } catch (error) {
       console.error("Error saving zone:", error);
       toast.error(error.message || "Failed to save zone");
+    } finally {
+      setIsSavingZone(false);
     }
   };
 
@@ -1561,6 +1565,7 @@ function MapPageContent() {
         onClose={() => setShowSaveZoneModal(false)}
         onSave={handleSaveZone}
         zoneData={selectedZone || (getCurrentBoundaryRef.current?.() || null)}
+        isSaving={isSavingZone}
       />
 
       {/* MOBILE FLOATING BUTTONS */}

@@ -17,7 +17,7 @@ export async function GET(req) {
     const category = searchParams.get("category");
 
     let query = {};
-    if (category && ["decomposer", "symbiont", "parasitic"].includes(category)) {
+    if (category) {
       query.category = category;
     }
 
@@ -54,6 +54,7 @@ export async function POST(req) {
     }
 
     const body = await req.json();
+    console.log("Creating zone with body:", JSON.stringify(body, null, 2));
     const { name, category, boundary, center, shapeType } = body;
 
     if (!name || !name.trim()) {
@@ -70,9 +71,9 @@ export async function POST(req) {
       );
     }
 
-    if (!category || !["decomposer", "symbiont", "parasitic"].includes(category)) {
+    if (!category || !category.trim()) {
       return NextResponse.json(
-        { error: "Valid category is required (decomposer, symbiont, or parasitic)" },
+        { error: "Category is required" },
         { status: 400 }
       );
     }
@@ -106,9 +107,9 @@ export async function POST(req) {
     const zoneData = zone.toObject();
     return NextResponse.json({ zone: zoneData }, { status: 201 });
   } catch (error) {
-    console.error("Error creating zone:", error);
+    console.error("Detailed error creating zone:", error);
     return NextResponse.json(
-      { error: "Failed to create zone" },
+      { error: `Failed to create zone: ${error.message}` },
       { status: 500 }
     );
   }

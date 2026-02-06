@@ -11,7 +11,6 @@ const zoneSchema = new mongoose.Schema(
 
     category: {
       type: String,
-      enum: ["decomposer", "symbiont", "parasitic"],
       required: true,
     },
 
