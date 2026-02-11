@@ -282,7 +282,7 @@ export default function Navbar() {
                     }}
                     whileHover={{ scale: 1.05, y: -2 }}
                   >
-                    {/* <button
+                     <button
                       onClick={() => setIsProgramsOpen((p) => !p)}
                       className="flex items-center gap-1 py-2 text-sm font-bold text-slate-600 hover:text-emerald-700 group cursor-pointer"
                     >
@@ -293,7 +293,7 @@ export default function Navbar() {
                       >
                         <ChevronDown className="w-4 h-4" />
                       </motion.div>
-                    </button> */}
+                    </button> 
 
                     <AnimatePresence>
                       {isProgramsOpen && (
@@ -572,18 +572,18 @@ export default function Navbar() {
                           <div className="p-2 bg-emerald-50 rounded-lg group-hover:bg-white group-hover:scale-110 transition-all shadow-sm text-emerald-500 group-hover:text-emerald-600"><span className="lucide-icon"><Navigation size={18} /></span></div>
                         <span>Explore</span>
                       </Link>
-                      {/* <Link
+                       <Link
                         href="/join-us"
                         className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-emerald-700/80 hover:bg-emerald-50 hover:text-emerald-700 transition-all group"
                         onClick={() => setShowSidebar(false)}
                       >
                           <div className="p-2 bg-emerald-50 rounded-lg group-hover:bg-white group-hover:scale-110 transition-all shadow-sm text-emerald-500 group-hover:text-emerald-600"><span className="lucide-icon"><User size={18} /></span></div>
                         <span>Join Us</span>
-                      </Link> */}
+                      </Link> 
                     </div>
 
                     {/* PROGRAMS */}
-                    {/* <div className="mb-6">
+                     <div className="mb-6">
                       <p className="text-xs font-bold text-emerald-400 uppercase tracking-widest mb-3 px-3">
                         Programs
                       </p>
@@ -627,7 +627,7 @@ export default function Navbar() {
                           <div className="p-2 bg-emerald-50 rounded-lg group-hover:bg-white group-hover:scale-110 transition-all shadow-sm text-emerald-500 group-hover:text-emerald-600"><span className="lucide-icon"><Mail size={18} /></span></div>
                         <span>Contact Us</span>
                       </Link>
-                    </div> */}
+                    </div> 
 
                     {/* USER PAGES */}
                     {user ? (
