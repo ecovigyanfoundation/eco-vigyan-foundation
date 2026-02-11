@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, MapPin, Square, Circle, Search, Loader2, Hexagon, FolderOpen, Trash2 } from "lucide-react";
-import { getCityBoundary } from "@/lib/geocoding";
+import { X, Square, Circle, Loader2, Hexagon, FolderOpen, Trash2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import toast from "react-hot-toast";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -10,40 +9,11 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 export default function ZoneModal({ isOpen, onClose, onZoneSelect, onDrawingModeSelect }) {
   const { user } = useAuth();
   const isAdmin = user && user.role === "admin";
-  const [cityName, setCityName] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState("city"); // "city", "draw", or "saved"
+  const [activeTab, setActiveTab] = useState("saved"); // "draw" or "saved"
   const [savedZones, setSavedZones] = useState([]);
   const [loadingZones, setLoadingZones] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("all"); // "all", "decomposer", "symbiont", "parasitic"
   const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, zoneId: null, zoneName: null });
-
-  const handleCitySearch = async () => {
-    if (!cityName.trim()) {
-      setError("Please enter a city name");
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const boundary = await getCityBoundary(cityName.trim());
-      
-      if (boundary) {
-        onZoneSelect(boundary);
-        onClose();
-      } else {
-        setError("Could not find geographical boundary for this city. Please try a different city name or use the Draw Area option to manually draw a boundary.");
-      }
-    } catch (err) {
-      setError("Failed to fetch city boundary. Please try again.");
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleDrawRectangle = () => {
     onDrawingModeSelect("rectangle");
@@ -180,19 +150,6 @@ export default function ZoneModal({ isOpen, onClose, onZoneSelect, onDrawingMode
         {/* Tabs */}
         <div className="flex border-b border-emerald-100">
           <button
-            onClick={() => setActiveTab("city")}
-            className={`flex-1 py-4 px-6 text-sm font-bold uppercase tracking-wide transition-colors ${
-              activeTab === "city"
-                ? "text-emerald-700 border-b-2 border-emerald-500 bg-emerald-50/50"
-                : "text-emerald-600/60 hover:text-emerald-700 hover:bg-emerald-50/30"
-            }`}
-          >
-            <div className="flex items-center justify-center gap-2">
-              <MapPin size={16} />
-              <span>Search City</span>
-            </div>
-          </button>
-          <button
             onClick={() => setActiveTab("saved")}
             className={`flex-1 py-4 px-6 text-sm font-bold uppercase tracking-wide transition-colors ${
               activeTab === "saved"
@@ -299,54 +256,6 @@ export default function ZoneModal({ isOpen, onClose, onZoneSelect, onDrawingMode
                   ))}
                 </div>
               )}
-            </div>
-          ) : activeTab === "city" ? (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-bold text-emerald-900 mb-2">
-                  Enter City Name
-                </label>
-                <div className="flex gap-2">
-                  <div className="flex-1 relative">
-                    <Search
-                      size={18}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-400"
-                    />
-                    <input
-                      type="text"
-                      value={cityName}
-                      onChange={(e) => setCityName(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          handleCitySearch();
-                        }
-                      }}
-                      placeholder="e.g., Mumbai, Delhi, Bangalore"
-                      className="w-full pl-10 pr-4 py-3 border border-emerald-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-emerald-900 placeholder:text-emerald-300"
-                    />
-                  </div>
-                  <button
-                    onClick={handleCitySearch}
-                    disabled={loading}
-                    className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-bold rounded-xl transition-colors flex items-center gap-2"
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 size={16} className="animate-spin" />
-                        <span>Searching...</span>
-                      </>
-                    ) : (
-                      "Search"
-                    )}
-                  </button>
-                </div>
-                {error && (
-                  <p className="mt-2 text-sm text-red-600 font-medium">{error}</p>
-                )}
-              </div>
-              <p className="text-xs text-emerald-600/70">
-                The map will zoom to the city and highlight its geographical boundary.
-              </p>
             </div>
           ) : (
             <div className="space-y-4">
