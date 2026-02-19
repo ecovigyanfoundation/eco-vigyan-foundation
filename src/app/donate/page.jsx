@@ -29,33 +29,13 @@ export default function DonatePage() {
     setTimeout(() => setCopied(null), 2000);
   };
 
-  // Specific programs/impacts for Eco Vigyan Foundation
-  const impactPrograms = [
-    { 
-      title: "Strengthen Eco-clubs", 
-      icon: <Sprout className="w-5 h-5 text-emerald-600" />,
-      description: "Nurturing environmental consciousness and action in schools across the region." 
-    },
-    { 
-      title: "Conserve Himalayan Biodiversity", 
-      icon: <Leaf className="w-5 h-5 text-amber-600" />,
-      description: "Promoting conservation and protecting sensitive ecosystems in the Himalayas." 
-    },
-    { 
-      title: "Combat Improper Waste Disposal", 
-      icon: <Trash2 className="w-5 h-5 text-red-600" />,
-      description: "Funding cleanup drives and education to reduce littering and improper waste in forests." 
-    },
-    { 
-      title: "Zero Waste/Fungi Cultivation", 
-      icon: <Microscope className="w-5 h-5 text-purple-600" />,
-      description: "Developing educational resources and promoting zero-waste mushroom cultivation in schools." 
-    },
-    { 
-      title: "Promote Chemical-Free Living", 
-      icon: <Sun className="w-5 h-5 text-yellow-600" />,
-      description: "Making chemical-free, sustainable living practices accessible to local communities." 
-    },
+  const donationImpacts = [
+    { text: "Children grow into environmental leaders through stronger eco-clubs.", emoji: "🌱" },
+    { text: "Fragile Himalayan ecosystems get the care and protection they need.", emoji: "🐾" },
+    { text: "Communities learn to manage waste more responsibly.", emoji: "♻️" },
+    { text: "School mushroom gardens add nutrition and hands-on learning.", emoji: "🍄" },
+    { text: "Families discover safer, chemical-free ways of living.", emoji: "🌿" },
+    { text: "Fungal mapping helps us understand and protect nature better.", emoji: "🔬" },
   ];
 
   const CopyButton = ({ text, field }) => (
@@ -92,21 +72,26 @@ export default function DonatePage() {
             
             {/* Mission/Impact List */}
             <div className="bg-white rounded-2xl p-8 shadow-xl border border-gray-100">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center">
                 <Heart className="text-orange-500 w-6 h-6 mr-3 fill-current" /> 
-                How Your Donation Makes a Difference
+                You Give. The Planet Wins
               </h2>
+              <p className="text-gray-700 mb-6">
+                When you donate, you’re not just supporting a cause — you’re helping real change happen. Because of you:
+              </p>
               <ul className="space-y-4">
-                {impactPrograms.map((program, index) => (
+                {donationImpacts.map((impact, index) => (
                   <li key={index} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg border border-gray-100 shadow-sm">
-                    <div className="pt-1">{program.icon}</div>
-                    <div>
-                      <h3 className="font-bold text-gray-800">{program.title}</h3>
-                      <p className="text-sm text-gray-600">{program.description}</p>
-                    </div>
+                    <span className="text-xl flex-shrink-0">{impact.emoji}</span>
+                    <p className="text-gray-700 leading-relaxed">{impact.text}</p>
                   </li>
                 ))}
               </ul>
+              <div className="mt-8 pt-6 border-t border-gray-100 text-center">
+                <p className="text-emerald-800 font-semibold italic text-lg">
+                  Your support touches classrooms, communities, and ecosystems — thank you for making this possible. 💚
+                </p>
+              </div>
             </div>
 
             {/* Tax Benefit Badge (Updated with provided data) */}

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Trophy, Medal, Award, User as UserIcon, ChevronLeft, ChevronRight } from "lucide-react";
+import { Trophy, User as UserIcon, ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function Leaderboard() {
   const [contributors, setContributors] = useState([]);
@@ -12,6 +12,27 @@ export default function Leaderboard() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalContributors, setTotalContributors] = useState(0);
   const ITEMS_PER_PAGE = 10;
+ 
+   const ProfileImage = ({ src, name, username }) => {
+     const [imageError, setImageError] = useState(false);
+ 
+     if (!src || imageError) {
+       return (
+         <div className="w-full h-full bg-white/20 flex items-center justify-center">
+           <UserIcon className="w-7 h-7 text-white" />
+         </div>
+       );
+     }
+ 
+     return (
+       <img
+         src={src}
+         alt={name || username}
+         className="w-full h-full object-cover"
+         onError={() => setImageError(true)}
+       />
+     );
+   };
 
   useEffect(() => {
     fetchLeaderboard(currentPage);
@@ -46,29 +67,15 @@ export default function Leaderboard() {
   };
 
   const getRankIcon = (rank) => {
-    if (rank === 1) {
-      return <Trophy className="w-6 h-6 text-yellow-500" />;
-    } else if (rank === 2) {
-      return <Medal className="w-6 h-6 text-gray-400" />;
-    } else if (rank === 3) {
-      return <Award className="w-6 h-6 text-amber-600" />;
-    }
     return (
-      <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center">
-        <span className="text-xs font-black text-emerald-400">{rank}</span>
+      <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center border border-white/30">
+        <span className="text-xs font-black text-white">{rank}</span>
       </div>
     );
   };
 
   const getRankBadge = (rank) => {
-    if (rank === 1) {
-      return "bg-gradient-to-r from-yellow-500 to-yellow-600";
-    } else if (rank === 2) {
-      return "bg-gradient-to-r from-gray-400 to-gray-500";
-    } else if (rank === 3) {
-      return "bg-gradient-to-r from-amber-600 to-amber-700";
-    }
-    return "bg-gray-800";
+    return "bg-slate-900";
   };
 
   // Shimmer skeleton component
@@ -79,15 +86,7 @@ export default function Leaderboard() {
       }`}
     >
       <div
-        className={`${
-          rank === 1
-            ? "bg-gradient-to-r from-yellow-500 to-yellow-600"
-            : rank === 2
-            ? "bg-gradient-to-r from-gray-400 to-gray-500"
-            : rank === 3
-            ? "bg-gradient-to-r from-amber-600 to-amber-700"
-            : "bg-gray-800"
-        } px-6 py-4 flex items-center gap-4`}
+        className="bg-slate-900 px-6 py-4 flex items-center gap-4"
       >
         {/* Rank Icon Skeleton */}
         <div className="w-6 h-6 rounded-full bg-white/20 animate-pulse shrink-0" />
@@ -109,13 +108,6 @@ export default function Leaderboard() {
           </div>
         </div>
       </div>
-
-      {/* Badge area skeleton for top 3 */}
-      {rank <= 3 && (
-        <div className="px-6 py-2 bg-stone-50 border-t border-stone-200">
-          <div className="h-4 bg-stone-200 rounded w-36 animate-pulse shimmer-effect" />
-        </div>
-      )}
     </div>
   );
 
@@ -251,17 +243,11 @@ export default function Leaderboard() {
                     >
                       {/* PROFILE PICTURE */}
                       <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-white/50 shadow-lg shrink-0">
-                        {contributor.dp?.url ? (
-                          <img
-                            src={contributor.dp.url}
-                            alt={contributor.name || contributor.username}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-white/20 flex items-center justify-center">
-                            <UserIcon className="w-7 h-7 text-white" />
-                          </div>
-                        )}
+                        <ProfileImage 
+                          src={contributor.dp?.url} 
+                          name={contributor.name} 
+                          username={contributor.username} 
+                        />
                       </div>
 
                       {/* USER INFO */}
@@ -287,29 +273,6 @@ export default function Leaderboard() {
                       </div>
                     </div>
                   </div>
-
-                  {/* BADGE FOR TOP 3 */}
-                  {rank <= 3 && (
-                    <div className="px-6 py-2 bg-stone-50 border-t border-stone-200">
-                      <div className="flex items-center gap-2">
-                        {rank === 1 && (
-                          <span className="text-xs font-black text-yellow-600 uppercase tracking-wider">
-                            🏆 Gold Medal Winner
-                          </span>
-                        )}
-                        {rank === 2 && (
-                          <span className="text-xs font-black text-gray-500 uppercase tracking-wider">
-                            🥈 Silver Medal Winner
-                          </span>
-                        )}
-                        {rank === 3 && (
-                          <span className="text-xs font-black text-amber-600 uppercase tracking-wider">
-                            🥉 Bronze Medal Winner
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  )}
                 </div>
               );
             })}

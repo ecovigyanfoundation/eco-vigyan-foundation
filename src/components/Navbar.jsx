@@ -85,14 +85,13 @@ export default function Navbar() {
 
   const navLinks = [
     { name: "Mushroom Mania", path: "/explore", isNew: true },
-    // { name: "Join Us", path: "/join-us" },
+    { name: "Eco-Art Gallery", path: "/gallery" },
+    { name: "Articles", path: "/articles" },
+    { name: "Reports", path: "/reports" },
   ];
 
   const programLinks = [
-    { name: "Eco-Art Gallery", path: "/gallery" },
-    { name: "Articles", path: "/articles" },
     { name: "Programs", path: "/programs" },
-    { name: "Reports", path: "/reports" },
     { name: "Contact Us", path: "/contact" },
   ];
 
@@ -565,35 +564,20 @@ export default function Navbar() {
                         <span>About</span>
                       </Link>
                       <Link
-                        href="/explore"
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-emerald-700/80 hover:bg-emerald-50 hover:text-emerald-700 transition-all group"
-                        onClick={() => setShowSidebar(false)}
-                      >
-                          <div className="p-2 bg-emerald-50 rounded-lg group-hover:bg-white group-hover:scale-110 transition-all shadow-sm text-emerald-500 group-hover:text-emerald-600"><span className="lucide-icon"><Navigation size={18} /></span></div>
-                        <span>Explore</span>
-                      </Link>
-                       <Link
-                        href="/join-us"
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-emerald-700/80 hover:bg-emerald-50 hover:text-emerald-700 transition-all group"
-                        onClick={() => setShowSidebar(false)}
-                      >
-                          <div className="p-2 bg-emerald-50 rounded-lg group-hover:bg-white group-hover:scale-110 transition-all shadow-sm text-emerald-500 group-hover:text-emerald-600"><span className="lucide-icon"><User size={18} /></span></div>
-                        <span>Join Us</span>
-                      </Link> 
-                    </div>
-
-                    {/* PROGRAMS */}
-                     <div className="mb-6">
-                      <p className="text-xs font-bold text-emerald-400 uppercase tracking-widest mb-3 px-3">
-                        Programs
-                      </p>
-                      <Link
                         href="/articles"
                         className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-emerald-700/80 hover:bg-emerald-50 hover:text-emerald-700 transition-all group"
                         onClick={() => setShowSidebar(false)}
                       >
                           <div className="p-2 bg-emerald-50 rounded-lg group-hover:bg-white group-hover:scale-110 transition-all shadow-sm text-emerald-500 group-hover:text-emerald-600"><span className="lucide-icon"><Layers size={18} /></span></div>
                         <span>Articles</span>
+                      </Link>
+                      <Link
+                        href="/reports"
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-emerald-700/80 hover:bg-emerald-50 hover:text-emerald-700 transition-all group"
+                        onClick={() => setShowSidebar(false)}
+                      >
+                          <div className="p-2 bg-emerald-50 rounded-lg group-hover:bg-white group-hover:scale-110 transition-all shadow-sm text-emerald-500 group-hover:text-emerald-600"><span className="lucide-icon"><FileText size={18} /></span></div>
+                        <span>Reports</span>
                       </Link>
                       <Link
                         href="/gallery"
@@ -604,20 +588,27 @@ export default function Navbar() {
                         <span>Eco-Art Gallery</span>
                       </Link>
                       <Link
+                        href="/explore"
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-emerald-700/80 hover:bg-emerald-50 hover:text-emerald-700 transition-all group"
+                        onClick={() => setShowSidebar(false)}
+                      >
+                          <div className="p-2 bg-emerald-50 rounded-lg group-hover:bg-white group-hover:scale-110 transition-all shadow-sm text-emerald-500 group-hover:text-emerald-600"><span className="lucide-icon"><Navigation size={18} /></span></div>
+                        <span>Mushroom Mania</span>
+                      </Link>
+                    </div>
+
+                    {/* PROGRAMS */}
+                     <div className="mb-6">
+                      <p className="text-xs font-bold text-emerald-400 uppercase tracking-widest mb-3 px-3">
+                        Programs
+                      </p>
+                      <Link
                         href="/programs"
                         className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-emerald-700/80 hover:bg-emerald-50 hover:text-emerald-700 transition-all group"
                         onClick={() => setShowSidebar(false)}
                       >
                           <div className="p-2 bg-emerald-50 rounded-lg group-hover:bg-white group-hover:scale-110 transition-all shadow-sm text-emerald-500 group-hover:text-emerald-600"><span className="lucide-icon"><Grid size={18} /></span></div>
                         <span>Programs</span>
-                      </Link>
-                      <Link
-                        href="/reports"
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-emerald-700/80 hover:bg-emerald-50 hover:text-emerald-700 transition-all group"
-                        onClick={() => setShowSidebar(false)}
-                      >
-                          <div className="p-2 bg-emerald-50 rounded-lg group-hover:bg-white group-hover:scale-110 transition-all shadow-sm text-emerald-500 group-hover:text-emerald-600"><span className="lucide-icon"><FileText size={18} /></span></div>
-                        <span>Reports</span>
                       </Link>
                       <Link
                         href="/contact"

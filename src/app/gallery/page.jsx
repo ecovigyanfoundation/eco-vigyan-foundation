@@ -331,8 +331,7 @@ function EcoArtGalleryContent() {
             className="h-1.5 bg-emerald-400 mx-auto mb-8 rounded-full"
           />
           <p className="text-xl md:text-2xl text-emerald-100 font-medium leading-relaxed">
-            Art is where young minds speak for the Earth. This gallery features
-            paintings created by students during our nature education programs.
+            Art is where young minds speak for the Earth. This gallery showcases artwork created by students as part of our nature education initiatives, especially the Wipro Earthian Program. Explore each artwork to learn about the student behind it, their school, and the story their art tells.
           </p>
 
           {/* Upload Button for Writers/Admins */}
