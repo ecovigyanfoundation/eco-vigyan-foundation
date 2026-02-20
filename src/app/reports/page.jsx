@@ -23,7 +23,8 @@ export default function ReportsPage() {
   return (
     <main className="min-h-screen bg-stone-50 pb-20 font-sans">
       {/* --- Emerald Header Section --- */}
-      <section className="bg-emerald-900 py-20 px-4 relative overflow-hidden mb-12">
+
+      {/* <section className="bg-emerald-900 py-20 px-4 relative overflow-hidden mb-12">
         <div className="absolute inset-0 opacity-10">
           <Archive className="w-96 h-96 absolute -bottom-20 -right-20 text-white" />
         </div>
@@ -37,7 +38,8 @@ export default function ReportsPage() {
             Transparency in our journey. Access our annual reports and research documentation.
           </p>
         </div>
-      </section>
+      </section> */}
+      
 
       <section className="max-w-5xl mx-auto p-6 md:p-8">
         <header className="mb-10 border-b border-stone-200 pb-6">

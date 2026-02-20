@@ -37,10 +37,7 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [isProgramsOpen, setIsProgramsOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const dropdownRef = useRef(null);
-  const leaveTimeoutRef = useRef(null);
   const userMenuRef = useRef(null);
 
   // Close user menu when clicking outside
@@ -86,25 +83,11 @@ export default function Navbar() {
   const navLinks = [
     { name: "Mushroom Mania", path: "/explore", isNew: true },
     { name: "Eco-Art Gallery", path: "/gallery" },
-    { name: "Articles", path: "/articles" },
+    // { name: "Articles", path: "/articles" },
     { name: "Reports", path: "/reports" },
-  ];
-
-  const programLinks = [
     { name: "Programs", path: "/programs" },
-    { name: "Contact Us", path: "/contact" },
   ];
 
-  const handleMouseEnter = () => {
-    if (leaveTimeoutRef.current) clearTimeout(leaveTimeoutRef.current);
-    if (window.innerWidth >= 768) setIsProgramsOpen(true);
-  };
-
-  const handleMouseLeave = () => {
-    if (window.innerWidth >= 768) {
-      leaveTimeoutRef.current = setTimeout(() => setIsProgramsOpen(false), 200);
-    }
-  };
 
   return (
     <>
@@ -264,65 +247,6 @@ export default function Navbar() {
                     </motion.div>
                   ))}
 
-                  {/* Programs Dropdown - Wave cascade continues */}
-                  <motion.div
-                    className="relative font-bold"
-                    ref={dropdownRef}
-                    onMouseEnter={handleMouseEnter}
-                    onMouseLeave={handleMouseLeave}
-                    initial={{ x: -80, opacity: 0, scale: 0.9, filter: "blur(8px)" }}
-                    animate={{ x: 0, opacity: 1, scale: 1, filter: "blur(0px)" }}
-                    transition={{ 
-                      duration: 0.6, 
-                      delay: 0.4,
-                      type: "spring",
-                      stiffness: 120,
-                      damping: 14
-                    }}
-                    whileHover={{ scale: 1.05, y: -2 }}
-                  >
-                     <button
-                      onClick={() => setIsProgramsOpen((p) => !p)}
-                      className="flex items-center gap-1 py-2 text-sm font-bold text-slate-600 hover:text-emerald-700 group cursor-pointer"
-                    >
-                      Our Programs
-                      <motion.div
-                        animate={{ rotate: isProgramsOpen ? 180 : 0 }}
-                        transition={{ duration: 0.3, ease: "easeInOut" }}
-                      >
-                        <ChevronDown className="w-4 h-4" />
-                      </motion.div>
-                    </button> 
-
-                    <AnimatePresence>
-                      {isProgramsOpen && (
-                        <motion.div
-                          className="absolute top-full left-1/2 mt-3 w-48 bg-white rounded-xl shadow-2xl border -translate-x-1/2 overflow-hidden z-[300]"
-                          initial={{ opacity: 0, y: -15, scale: 0.9, filter: "blur(4px)" }}
-                          animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
-                          exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                          transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-                        >
-                          {programLinks.map((item, idx) => (
-                            <motion.div
-                              key={item.name}
-                              initial={{ x: -30, opacity: 0 }}
-                              animate={{ x: 0, opacity: 1 }}
-                              transition={{ duration: 0.2, delay: idx * 0.05 }}
-                            >
-                              <Link
-                                href={item.path}
-                                onClick={() => setIsProgramsOpen(false)}
-                                className="block px-5 py-3 text-sm text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
-                              >
-                                {item.name}
-                              </Link>
-                            </motion.div>
-                          ))}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </motion.div>
 
                   {/* User Profile or Login - Wave continues */}
                   <motion.div

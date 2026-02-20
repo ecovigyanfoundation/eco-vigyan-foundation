@@ -218,11 +218,11 @@ export default function ExploreHeader({
             className="flex items-center gap-3 sm:gap-3 md:gap-4 lg:gap-5 shrink-0 hover:opacity-90 transition-opacity group min-w-0"
           >
             <div className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 lg:w-36 lg:h-36 flex items-center justify-center transition-transform group-hover:scale-105 shrink-0">
-              <img
+              {/* <img
                 src="/icons/icon2.png"
                 alt="Mushroom Mania Logo"
                 className="w-full h-full object-contain"
-              />
+              /> */}
             </div>
             <div className="hidden sm:block min-w-0">
               <h2 className="text-xl sm:text-2xl font-black text-emerald-950 leading-none uppercase tracking-tighter">
