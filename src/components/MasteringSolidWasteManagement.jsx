@@ -86,12 +86,14 @@ const MasteringSolidWaste = ({ onBack }) => {
 
             {/* Photo & Testimonial Column */}
             <div className="lg:col-span-5 space-y-6">
-               <div className="aspect-[4/3] bg-slate-200 rounded-[2rem] overflow-hidden border-4 border-white shadow-lg relative group">
-                  <div className="absolute inset-0 bg-emerald-600/10 group-hover:bg-transparent transition-colors z-10" />
-                  <div className="w-full h-full flex items-center justify-center text-slate-400 italic text-xs text-center p-6">
-                    [Image: "I contributed to a zero waste event" Frame Photo]
-                  </div>
-               </div>
+                <div className="aspect-[4/3] bg-slate-200 rounded-[2rem] overflow-hidden border-4 border-white shadow-lg relative group">
+                   <img
+                     src="/programs/img3.png"
+                     alt="Zero Waste Event Participation"
+                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                   />
+                   <div className="absolute inset-0 bg-emerald-600/10 group-hover:bg-transparent transition-colors z-10 pointer-events-none" />
+                </div>
 
                <div className="relative pt-6">
                  <Quote className="absolute -top-2 -left-4 w-10 h-10 text-pink-100 rotate-180" />

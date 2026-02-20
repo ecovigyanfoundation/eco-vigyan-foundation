@@ -83,10 +83,14 @@ const GrowYourOwnMushrooms = ({ onBack }) => {
               </ul>
             </div>
 
-            {/* Visual Placeholder for People Photos from Image */}
-            <div className="grid grid-cols-2 gap-2 opacity-80">
-                <div className="aspect-square bg-slate-100 rounded-xl flex items-center justify-center text-[10px] text-slate-400 text-center p-2">Participant Showcase</div>
-                <div className="aspect-square bg-slate-100 rounded-xl flex items-center justify-center text-[10px] text-slate-400 text-center p-2">Success Stories</div>
+            {/* Participant Showcase Collage */}
+            <div className="relative group overflow-hidden rounded-3xl shadow-lg border border-sky-100">
+              <img
+                src="/programs/gmw1.png"
+                alt="Our Mushroom Growers"
+                className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-sky-900/20 to-transparent pointer-events-none" />
             </div>
           </div>
 

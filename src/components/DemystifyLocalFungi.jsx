@@ -50,11 +50,12 @@ const DemystifyLocalFungi = ({ onBack }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Image Card 1 */}
               <div className="space-y-4">
-                <div className="aspect-[4/3] bg-slate-200 rounded-3xl overflow-hidden border-4 border-white shadow-md">
-                   {/* Placeholder for exploration photo */}
-                   <div className="w-full h-full flex items-center justify-center bg-slate-100 text-slate-400 italic text-sm p-4 text-center">
-                     [Field Exploration Image]
-                   </div>
+                <div className="group aspect-[4/3] bg-slate-200 rounded-3xl overflow-hidden border-4 border-white shadow-md">
+                   <img
+                     src="/programs/img1.png"
+                     alt="Field Exploration"
+                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                   />
                 </div>
                 <button className="w-full bg-[#5da2d5] hover:bg-[#4a8ebf] text-white py-4 rounded-xl flex items-center justify-center gap-3 font-bold transition-all shadow-lg shadow-blue-100">
                   <LinkIcon className="w-5 h-5" /> Click here to know more
@@ -63,11 +64,12 @@ const DemystifyLocalFungi = ({ onBack }) => {
 
               {/* Image Card 2 */}
               <div className="space-y-4">
-                <div className="aspect-[4/3] bg-slate-200 rounded-3xl overflow-hidden border-4 border-white shadow-md">
-                   {/* Placeholder for observations photo */}
-                   <div className="w-full h-full flex items-center justify-center bg-slate-100 text-slate-400 italic text-sm p-4 text-center">
-                     [Macro Observation Image]
-                   </div>
+                <div className="group aspect-[4/3] bg-slate-200 rounded-3xl overflow-hidden border-4 border-white shadow-md">
+                   <img
+                     src="/programs/img2.png"
+                     alt="Macro Observation"
+                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                   />
                 </div>
                 <button className="w-full bg-[#5da2d5] hover:bg-[#4a8ebf] text-white py-4 rounded-xl flex flex-col items-center justify-center leading-tight font-bold transition-all shadow-lg shadow-blue-100">
                   <span className="flex items-center gap-2"><LinkIcon className="w-5 h-5" /> Check out our</span>
