@@ -32,7 +32,7 @@ export async function PUT(req, { params }) {
     }
 
     const body = await req.json();
-    const { studentName, schoolName, description } = body;
+    const { studentName, schoolName, description, title, category, program, year, theme } = body;
 
     // Validation
     if (studentName !== undefined) {
@@ -66,6 +66,27 @@ export async function PUT(req, { params }) {
         );
       }
       galleryItem.description = trimmed;
+    }
+
+    // New optional fields
+    if (title !== undefined) {
+      galleryItem.title = title.trim();
+    }
+
+    if (category !== undefined) {
+      galleryItem.category = category.trim();
+    }
+
+    if (program !== undefined) {
+      galleryItem.program = program.trim();
+    }
+
+    if (year !== undefined) {
+      galleryItem.year = year.trim();
+    }
+
+    if (theme !== undefined) {
+      galleryItem.theme = theme.trim();
     }
 
     await galleryItem.save();

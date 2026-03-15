@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";
+import ArtworkUploadModal from "@/components/ArtworkUploadModal";
+import DeleteConfirmModal from "@/components/DeleteConfirmModal";
 import {
   ChevronLeft,
   ChevronRight,
@@ -12,10 +14,12 @@ import {
   School,
   User,
   Upload,
-  X,
-  Camera,
+  Users,
+  Calendar,
+  Award,
   Edit,
   Trash2,
+  X,
 } from "lucide-react";
 
 /* ---------------------------------------------------------
@@ -23,7 +27,15 @@ import {
 --------------------------------------------------------- */
 const IMAGES_PER_PAGE = 9;
 
-// Generate array of static image objects
+const CATEGORIES = [
+  "All",
+  "Nature Art",
+  "Recycled Materials",
+  "Paintings",
+  "Posters",
+  "Collage",
+  "Mixed Media",
+];
 
 function EcoArtGalleryContent() {
   const { user, isWriterOrAdmin } = useAuth();
@@ -32,25 +44,11 @@ function EcoArtGalleryContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const [uploadedImages, setUploadedImages] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [categoryFilter, setCategoryFilter] = useState("All");
   const [showUploadModal, setShowUploadModal] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [uploadForm, setUploadForm] = useState({
-    image: null,
-    imagePreview: null,
-    studentName: "",
-    schoolName: "",
-    description: "",
-  });
-  const [editForm, setEditForm] = useState({
-    id: null,
-    studentName: "",
-    schoolName: "",
-    description: "",
-  });
-  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingArtwork, setEditingArtwork] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [deletingId, setDeletingId] = useState(null);
-  const [editing, setEditing] = useState(false);
+  const [deletingArtwork, setDeletingArtwork] = useState(null);
   const [viewingImage, setViewingImage] = useState(null);
 
   // Sync viewing state with URL parameter (handles browser back/forward)
@@ -68,7 +66,7 @@ function EcoArtGalleryContent() {
       // URL has no parameter but we have a viewing image, clear it
       setViewingImage(null);
     }
-  }, [searchParams, uploadedImages]);
+  }, [searchParams, uploadedImages, viewingImage, router]);
 
   // Fetch uploaded images
   useEffect(() => {
@@ -83,6 +81,11 @@ function EcoArtGalleryContent() {
             studentName: img.studentName,
             schoolName: img.schoolName,
             description: img.description || "",
+            title: img.title || "",
+            category: img.category || "",
+            program: img.program || "",
+            year: img.year || "",
+            theme: img.theme || "",
           }));
           setUploadedImages(formattedImages);
         }
@@ -95,14 +98,28 @@ function EcoArtGalleryContent() {
     fetchImages();
   }, []);
 
-  // Combine static and uploaded images
-  const allImages = uploadedImages;
-  const totalPages = Math.ceil(allImages.length / IMAGES_PER_PAGE);
+  // Filter images by category
+  const filteredImages =
+    categoryFilter === "All"
+      ? uploadedImages
+      : uploadedImages.filter((img) => img.category === categoryFilter);
 
-  // Pagination Logic
+  // Calculate statistics from all images
+  const uniqueSchools = new Set(uploadedImages.map((img) => img.schoolName))
+    .size;
+  const uniqueStudents = new Set(uploadedImages.map((img) => img.studentName))
+    .size;
+
+  // Pagination Logic - apply after filtering
+  const totalPages = Math.ceil(filteredImages.length / IMAGES_PER_PAGE);
   const indexOfLastItem = currentPage * IMAGES_PER_PAGE;
   const indexOfFirstItem = indexOfLastItem - IMAGES_PER_PAGE;
-  const currentItems = allImages.slice(indexOfFirstItem, indexOfLastItem);
+  const currentItems = filteredImages.slice(indexOfFirstItem, indexOfLastItem);
+
+  // Reset to page 1 when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [categoryFilter]);
 
   const paginate = (pageNumber) => {
     setCurrentPage(pageNumber);
@@ -124,61 +141,36 @@ function EcoArtGalleryContent() {
   // Check if user can upload (writer or admin)
   const canUpload = isWriterOrAdmin();
 
-  // Handle image selection
-  const handleImageSelect = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    // Validate file type
-    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
-    if (!allowedTypes.includes(file.type)) {
-      toast.error("Please select a JPEG, PNG, or WebP image");
-      return;
-    }
-
-    // Validate file size (10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("Image size must be less than 10MB");
-      return;
-    }
-
-    setUploadForm({ ...uploadForm, image: file });
-
-    // Create preview
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setUploadForm({
-        ...uploadForm,
-        image: file,
-        imagePreview: reader.result,
-      });
-    };
-    reader.readAsDataURL(file);
-  };
-
-  // Handle upload
-  const handleUpload = async (e) => {
-    e.preventDefault();
-    if (
-      !uploadForm.image ||
-      !uploadForm.studentName.trim() ||
-      !uploadForm.schoolName.trim()
-    ) {
-      toast.error("Please fill all fields");
-      return;
-    }
-
-    setUploading(true);
+  // Handle upload from modal
+  const handleUploadSubmit = async (formData) => {
     try {
-      const formData = new FormData();
-      formData.append("image", uploadForm.image);
-      formData.append("studentName", uploadForm.studentName.trim());
-      formData.append("schoolName", uploadForm.schoolName.trim());
-      formData.append("description", uploadForm.description.trim());
+      // Convert image URL (base64 or URL) to File if needed
+      let imageFile = null;
+
+      if (formData.imageUrl.startsWith("data:")) {
+        // It's a base64 image, convert to blob
+        const response = await fetch(formData.imageUrl);
+        const blob = await response.blob();
+        imageFile = new File([blob], "artwork.jpg", { type: blob.type });
+      } else {
+        toast.error("Please upload an image file");
+        return;
+      }
+
+      const uploadData = new FormData();
+      uploadData.append("image", imageFile);
+      uploadData.append("studentName", formData.studentName.trim());
+      uploadData.append("schoolName", formData.schoolName.trim());
+      uploadData.append("description", formData.description.trim());
+      uploadData.append("title", formData.title?.trim() || "");
+      uploadData.append("category", formData.category || "");
+      uploadData.append("program", formData.program || "");
+      uploadData.append("year", formData.year || "");
+      uploadData.append("theme", formData.theme || "");
 
       const res = await fetch("/api/gallery/upload", {
         method: "POST",
-        body: formData,
+        body: uploadData,
       });
 
       const data = await res.json();
@@ -187,54 +179,34 @@ function EcoArtGalleryContent() {
         throw new Error(data.error || "Upload failed");
       }
 
-      toast.success("Image uploaded successfully!");
+      toast.success("Artwork uploaded successfully!");
 
-      // Reset form
-      setUploadForm({
-        image: null,
-        imagePreview: null,
-        studentName: "",
-        schoolName: "",
-        description: "",
-      });
-      setShowUploadModal(false);
-
-      // Reload the page after a short delay to show the success message
+      // Reload images
       setTimeout(() => {
         window.location.reload();
       }, 1000);
     } catch (error) {
-      toast.error(error.message || "Failed to upload image");
-    } finally {
-      setUploading(false);
+      toast.error(error.message || "Failed to upload artwork");
     }
   };
 
-  // Handle edit
-  const handleEdit = (image) => {
-    setEditForm({
-      id: image.id,
-      studentName: image.studentName,
-      schoolName: image.schoolName,
-      description: image.description || "",
-    });
-    setShowEditModal(true);
-  };
-
-  // Handle edit submit
-  const handleEditSubmit = async (e) => {
-    e.preventDefault();
-    setEditing(true);
+  // Handle edit from modal
+  const handleEditSubmit = async (formData) => {
     try {
-      const res = await fetch(`/api/gallery/${editForm.id}`, {
+      const res = await fetch(`/api/gallery/${editingArtwork.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          studentName: editForm.studentName.trim(),
-          schoolName: editForm.schoolName.trim(),
-          description: editForm.description.trim(),
+          studentName: formData.studentName.trim(),
+          schoolName: formData.schoolName.trim(),
+          description: formData.description.trim(),
+          title: formData.title?.trim() || "",
+          category: formData.category || "",
+          program: formData.program || "",
+          year: formData.year || "",
+          theme: formData.theme || "",
         }),
       });
 
@@ -244,42 +216,39 @@ function EcoArtGalleryContent() {
         throw new Error(data.error || "Update failed");
       }
 
-      toast.success("Image updated successfully!");
+      toast.success("Artwork updated successfully!");
 
       // Update the image in the list
       setUploadedImages(
         uploadedImages.map((img) =>
-          img.id === editForm.id
+          img.id === editingArtwork.id
             ? {
                 ...img,
-                studentName: data.galleryItem.studentName,
-                schoolName: data.galleryItem.schoolName,
-                description: data.galleryItem.description || "",
+                studentName: formData.studentName,
+                schoolName: formData.schoolName,
+                description: formData.description,
+                title: formData.title || "",
+                category: formData.category || "",
+                program: formData.program || "",
+                year: formData.year || "",
+                theme: formData.theme || "",
               }
             : img
         )
       );
 
-      setShowEditModal(false);
-      setEditForm({
-        id: null,
-        studentName: "",
-        schoolName: "",
-        description: "",
-      });
+      setEditingArtwork(null);
     } catch (error) {
-      toast.error(error.message || "Failed to update image");
-    } finally {
-      setEditing(false);
+      toast.error(error.message || "Failed to update artwork");
     }
   };
 
   // Handle delete
-  const handleDelete = async () => {
-    if (!deletingId) return;
+  const handleDeleteConfirm = async () => {
+    if (!deletingArtwork) return;
 
     try {
-      const res = await fetch(`/api/gallery/${deletingId}`, {
+      const res = await fetch(`/api/gallery/${deletingArtwork.id}`, {
         method: "DELETE",
       });
 
@@ -289,624 +258,643 @@ function EcoArtGalleryContent() {
         throw new Error(data.error || "Delete failed");
       }
 
-      toast.success("Image deleted successfully!");
+      toast.success("Artwork deleted successfully!");
 
       // Remove from list
-      setUploadedImages(uploadedImages.filter((img) => img.id !== deletingId));
+      setUploadedImages(
+        uploadedImages.filter((img) => img.id !== deletingArtwork.id)
+      );
 
-      setShowDeleteConfirm(false);
-      setDeletingId(null);
+      // Close detail modal if showing deleted item
+      if (viewingImage?.id === deletingArtwork.id) {
+        handleCloseImage();
+      }
+
+      setDeletingArtwork(null);
     } catch (error) {
-      toast.error(error.message || "Failed to delete image");
-      setShowDeleteConfirm(false);
-      setDeletingId(null);
+      toast.error(error.message || "Failed to delete artwork");
     }
   };
 
+  // Open edit modal
+  const handleEdit = (artwork) => {
+    setEditingArtwork({
+      id: artwork.id,
+      studentName: artwork.studentName,
+      schoolName: artwork.schoolName,
+      description: artwork.description || "",
+      title: artwork.title || "",
+      category: artwork.category || "Nature Art",
+      program: artwork.program || "",
+      year: artwork.year || new Date().getFullYear().toString(),
+      theme: artwork.theme || "",
+      imageUrl: artwork.src,
+    });
+    setShowUploadModal(true);
+  };
+
   // Open delete confirmation
-  const confirmDelete = (id) => {
-    setDeletingId(id);
+  const confirmDelete = (artwork) => {
+    setDeletingArtwork(artwork);
     setShowDeleteConfirm(true);
   };
 
   return (
-    <main className="min-h-screen bg-stone-50 pb-20 font-sans">
-      {/* --- Header Section --- */}
-      <section className="bg-emerald-900 py-20 px-4 relative overflow-hidden">
+    <main className="min-h-screen bg-white font-sans">
+      {/* --- Hero Section --- */}
+      <section className="relative pt-32 pb-20 bg-gradient-to-br from-emerald-700 to-emerald-900 overflow-hidden">
         <div className="absolute inset-0 opacity-10">
-          <Palette className="w-96 h-96 absolute -bottom-20 -left-20 text-white" />
+          <div className="absolute top-20 left-20 w-96 h-96 border-2 border-white rounded-full" />
+          <div className="absolute bottom-10 right-10 w-64 h-64 border-2 border-white rounded-full" />
+          <div className="absolute top-1/2 left-1/2 w-80 h-80 border border-white rounded-full" />
         </div>
 
-        <div className="max-w-4xl mx-auto text-center relative z-10">
-          <motion.h1
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-4xl md:text-6xl font-black text-white mb-6 uppercase tracking-tight"
+            transition={{ duration: 0.6 }}
           >
-            Eco-Art Gallery
-          </motion.h1>
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: "100px" }}
-            className="h-1.5 bg-emerald-400 mx-auto mb-8 rounded-full"
-          />
-          <p className="text-xl md:text-2xl text-emerald-100 font-medium leading-relaxed">
-            Art is where young minds speak for the Earth. This gallery showcases artwork created by students as part of our nature education initiatives, especially the Wipro Earthian Program. Explore each artwork to learn about the student behind it, their school, and the story their art tells.
-          </p>
+            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full text-white/90 text-sm font-medium mb-6">
+              <Palette className="w-4 h-4" />
+              <span>Student Creativity</span>
+            </div>
+            <h1 className="text-5xl md:text-6xl font-bold text-white mb-6 font-serif">
+              ECO-ART GALLERY
+            </h1>
+            <p className="text-xl md:text-2xl text-emerald-50 max-w-4xl mx-auto leading-relaxed">
+              Art is where young minds speak for the Earth. This gallery
+              showcases artwork created by students as part of our nature
+              education initiatives, especially the Wipro Earthian Program.
+              Explore each artwork to learn about the student behind it, their
+              school, and the story their art tells.
+            </p>
 
-          {/* Upload Button for Writers/Admins */}
-          {canUpload && (
-            <motion.button
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              onClick={() => setShowUploadModal(true)}
-              className="mt-8 inline-flex items-center gap-2 bg-white text-emerald-900 px-6 py-3 rounded-full font-bold hover:bg-emerald-50 transition-all shadow-lg hover:shadow-xl"
-            >
-              <Upload className="w-5 h-5" />
-              Upload Image
-            </motion.button>
+            {/* Upload Button for Writers/Admins */}
+            {canUpload && (
+              <motion.button
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                onClick={() => {
+                  setEditingArtwork(null);
+                  setShowUploadModal(true);
+                }}
+                className="mt-8 inline-flex items-center gap-2 bg-white text-emerald-900 px-8 py-4 rounded-xl font-bold hover:bg-emerald-50 transition-all shadow-xl hover:shadow-2xl hover:scale-105"
+              >
+                <Upload className="w-5 h-5" />
+                Upload Artwork
+              </motion.button>
+            )}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* --- Statistics Banner --- */}
+      <section className="py-12 bg-gradient-to-r from-emerald-50 to-teal-50 border-y border-emerald-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            <div className="text-center">
+              <div className="text-4xl font-bold text-emerald-900 mb-2">
+                {uploadedImages.length}
+              </div>
+              <div className="text-sm text-emerald-600 font-medium">
+                Artworks Showcased
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-4xl font-bold text-emerald-900 mb-2">
+                {uniqueSchools}
+              </div>
+              <div className="text-sm text-emerald-600 font-medium">
+                Schools Represented
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-4xl font-bold text-emerald-900 mb-2">
+                {uniqueStudents}
+              </div>
+              <div className="text-sm text-emerald-600 font-medium">
+                Young Artists
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-4xl font-bold text-emerald-900 mb-2">
+                3
+              </div>
+              <div className="text-sm text-emerald-600 font-medium">
+                Education Programs
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* --- Category Filter Section --- */}
+      <section className="py-8 bg-white border-b border-emerald-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-wrap gap-3 justify-center">
+            {CATEGORIES.map((category) => (
+              <button
+                key={category}
+                onClick={() => setCategoryFilter(category)}
+                className={`px-6 py-2.5 rounded-full font-semibold text-sm transition-all ${
+                  categoryFilter === category
+                    ? "bg-emerald-600 text-white shadow-lg shadow-emerald-200"
+                    : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                }`}
+              >
+                {category}
+              </button>
+            ))}
+          </div>
+          {categoryFilter !== "All" && (
+            <div className="text-center mt-4 text-sm text-emerald-600">
+              Showing {filteredImages.length} artwork
+              {filteredImages.length !== 1 ? "s" : ""} in {categoryFilter}
+            </div>
           )}
         </div>
       </section>
 
       {/* --- Gallery Grid --- */}
-      <section className="max-w-7xl mx-auto px-4 -mt-10 relative z-20">
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* Generate 9 skeleton cards */}
-            {Array.from({ length: 9 }).map((_, index) => (
-              <div
-                key={index}
-                className="bg-white p-4 rounded-[2rem] shadow-xl"
-              >
-                {/* Image Skeleton with shimmer */}
-                <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-stone-200 mb-4">
-                  <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent" />
-                </div>
-
-                {/* Name Skeleton */}
-                <div className="px-2 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded-full bg-stone-200 animate-pulse" />
-                    <div className="h-4 bg-stone-200 rounded flex-grow max-w-[60%] animate-pulse" />
+      <section className="py-20 bg-gradient-to-b from-white to-emerald-50/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {/* Generate 9 skeleton cards */}
+              {Array.from({ length: 9 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="bg-white p-4 rounded-[2rem] shadow-xl"
+                >
+                  {/* Image Skeleton with shimmer */}
+                  <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-stone-200 mb-4">
+                    <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent" />
                   </div>
-                  
-                  {/* School Skeleton */}
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded-full bg-stone-200 animate-pulse" />
-                    <div className="h-3 bg-stone-200 rounded flex-grow max-w-[50%] animate-pulse" />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <AnimatePresence mode="wait">
-              {currentItems.length === 0 ? (
-                <div className="col-span-full text-center py-20">
-                  <p className="text-stone-500">No images in gallery yet.</p>
-                </div>
-              ) : (
-                currentItems.map((painting) => (
-                  <motion.div
-                    key={painting.id}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    transition={{ duration: 0.3 }}
-                    className="bg-white p-4 rounded-[2rem] shadow-xl hover:shadow-2xl transition-all group"
-                  >
-                    {/* Image Container */}
-                    <div 
-                      className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-stone-100 mb-4 cursor-pointer"
-                      onClick={() => handleViewImage(painting)}
-                    >
-                      <img
-                        src={painting.src}
-                        alt={`Painting by ${painting.studentName}`}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                      />
-                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <span className="bg-white/90 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest text-emerald-900">
-                          View Artwork
-                        </span>
-                      </div>
 
-                      {/* Edit/Delete Buttons for Writers/Admins (only on uploaded images) */}
-                      {canUpload && (
-                        <div 
-                          className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEdit(painting);
-                            }}
-                            className="p-2 bg-white/90 rounded-full hover:bg-white transition shadow-lg"
-                            title="Edit"
-                          >
-                            <Edit className="w-4 h-4 text-emerald-700" />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              confirmDelete(painting.id);
-                            }}
-                            className="p-2 bg-red-500/90 rounded-full hover:bg-red-500 transition shadow-lg"
-                            title="Delete"
-                          >
-                            <Trash2 className="w-4 h-4 text-white" />
-                          </button>
-                        </div>
-                      )}
+                  {/* Name Skeleton */}
+                  <div className="px-2 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 rounded-full bg-stone-200 animate-pulse" />
+                      <div className="h-4 bg-stone-200 rounded flex-grow max-w-[60%] animate-pulse" />
                     </div>
 
-                    {/* Captions - Only name and school, no description */}
-                    <div className="px-2 space-y-2">
-                      <div className="flex items-center gap-2 text-stone-700">
-                        <User className="w-4 h-4 text-emerald-500" />
-                        <span className="text-sm font-bold border-b border-stone-200 flex-grow pb-1 italic">
-                          {painting.studentName}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 text-stone-500">
-                        <School className="w-4 h-4 text-emerald-500" />
-                        <span className="text-xs font-semibold uppercase tracking-tight">
-                          {painting.schoolName}
-                        </span>
-                      </div>
+                    {/* School Skeleton */}
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 rounded-full bg-stone-200 animate-pulse" />
+                      <div className="h-3 bg-stone-200 rounded flex-grow max-w-[50%] animate-pulse" />
                     </div>
-                  </motion.div>
-                ))
-              )}
-            </AnimatePresence>
-          </div>
-        )}
-
-        {/* --- Pagination Controls --- */}
-        {totalPages > 1 && (
-          <div className="mt-16 flex justify-center items-center gap-4">
-            <button
-              onClick={() => paginate(Math.max(1, currentPage - 1))}
-              disabled={currentPage === 1}
-              className="p-3 rounded-full bg-white shadow-md hover:bg-emerald-50 disabled:opacity-30 transition-all"
-            >
-              <ChevronLeft className="w-6 h-6 text-emerald-700" />
-            </button>
-
-            <div className="flex gap-2">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                (number) => (
-                  <button
-                    key={number}
-                    onClick={() => paginate(number)}
-                    className={`w-12 h-12 rounded-full font-bold transition-all shadow-sm ${
-                      currentPage === number
-                        ? "bg-emerald-600 text-white scale-110 shadow-emerald-200"
-                        : "bg-white text-stone-600 hover:bg-emerald-50"
-                    }`}
-                  >
-                    {number}
-                  </button>
-                )
-              )}
+                  </div>
+                </div>
+              ))}
             </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <AnimatePresence mode="wait">
+                {currentItems.length === 0 ? (
+                  <div className="col-span-full text-center py-20">
+                    <Palette className="w-16 h-16 text-emerald-300 mx-auto mb-4" />
+                    <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                      No artworks found
+                    </h3>
+                    <p className="text-gray-600">
+                      {categoryFilter !== "All"
+                        ? "Try selecting a different category"
+                        : "No images in gallery yet."}
+                    </p>
+                  </div>
+                ) : (
+                  currentItems.map((artwork, index) => (
+                    <motion.div
+                      key={artwork.id}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      transition={{ duration: 0.3, delay: index * 0.05 }}
+                      whileHover={{ y: -8, transition: { duration: 0.2 } }}
+                      onClick={() => handleViewImage(artwork)}
+                      className="group cursor-pointer bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 border-4 border-white hover:border-emerald-200"
+                    >
+                      {/* Artwork Image */}
+                      <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-emerald-50 to-teal-50">
+                        <img
+                          src={artwork.src}
+                          alt={
+                            artwork.title ||
+                            `Artwork by ${artwork.studentName}`
+                          }
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-            <button
-              onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
-              disabled={currentPage === totalPages}
-              className="p-3 rounded-full bg-white shadow-md hover:bg-emerald-50 disabled:opacity-30 transition-all"
-            >
-              <ChevronRight className="w-6 h-6 text-emerald-700" />
-            </button>
-          </div>
-        )}
+                        {/* Overlay Info */}
+                        <div className="absolute bottom-0 left-0 right-0 p-4 text-white transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                          <div className="text-sm font-semibold mb-1">
+                            {artwork.title || "Student Artwork"}
+                          </div>
+                          <div className="text-xs opacity-90">
+                            Click to view details
+                          </div>
+                        </div>
+
+                        {/* Edit/Delete Buttons for Writers/Admins */}
+                        {canUpload && (
+                          <div
+                            className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEdit(artwork);
+                              }}
+                              className="p-2 bg-white/90 rounded-full hover:bg-white transition shadow-lg"
+                              title="Edit"
+                            >
+                              <Edit className="w-4 h-4 text-emerald-700" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                confirmDelete(artwork);
+                              }}
+                              className="p-2 bg-red-500/90 rounded-full hover:bg-red-500 transition shadow-lg"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-4 h-4 text-white" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Card Footer */}
+                      <div className="p-6 bg-white">
+                        <div className="flex items-start gap-3 mb-4">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shrink-0">
+                            <Users className="w-5 h-5 text-white" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-emerald-900 text-sm mb-1 truncate">
+                              {artwork.studentName}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-xs text-emerald-600">
+                              <School className="w-3.5 h-3.5 shrink-0" />
+                              <span className="truncate">
+                                {artwork.schoolName}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          {artwork.category ? (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-700 text-xs font-semibold">
+                              <Award className="w-3.5 h-3.5" />
+                              {artwork.category}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-700 text-xs font-semibold">
+                              <Palette className="w-3.5 h-3.5" />
+                              Student Art
+                            </span>
+                          )}
+                          <span className="text-xs text-gray-500 font-medium">
+                            {artwork.year || "2023"}
+                          </span>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+
+          {/* --- Pagination Controls --- */}
+          {totalPages > 1 && (
+            <div className="mt-16 flex justify-center items-center gap-4">
+              <button
+                onClick={() => paginate(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+                className="p-3 rounded-full bg-white shadow-md hover:bg-emerald-50 disabled:opacity-30 transition-all"
+              >
+                <ChevronLeft className="w-6 h-6 text-emerald-700" />
+              </button>
+
+              <div className="flex gap-2">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (number) => (
+                    <button
+                      key={number}
+                      onClick={() => paginate(number)}
+                      className={`w-12 h-12 rounded-full font-bold transition-all shadow-sm ${
+                        currentPage === number
+                          ? "bg-emerald-600 text-white scale-110 shadow-emerald-200"
+                          : "bg-white text-stone-600 hover:bg-emerald-50"
+                      }`}
+                    >
+                      {number}
+                    </button>
+                  )
+                )}
+              </div>
+
+              <button
+                onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
+                disabled={currentPage === totalPages}
+                className="p-3 rounded-full bg-white shadow-md hover:bg-emerald-50 disabled:opacity-30 transition-all"
+              >
+                <ChevronRight className="w-6 h-6 text-emerald-700" />
+              </button>
+            </div>
+          )}
+        </div>
       </section>
 
       {/* --- Quote Footer --- */}
-      <section className="max-w-3xl mx-auto px-4 mt-20 text-center">
-        <p className="text-stone-400 italic font-medium">
+      <section className="max-w-3xl mx-auto px-4 py-12 text-center">
+        <p className="text-stone-400 italic font-medium text-lg">
           &ldquo;Every child is an artist. The problem is how to remain an
           artist once he grows up.&rdquo;
         </p>
       </section>
 
-      {/* Upload Modal */}
-      {showUploadModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-          >
-            <div className="p-6 border-b border-stone-200 flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-stone-800">
-                Upload Gallery Image
-              </h2>
-              <button
-                onClick={() => setShowUploadModal(false)}
-                className="p-2 hover:bg-stone-100 rounded-full transition"
-              >
-                <X className="w-5 h-5 text-stone-600" />
-              </button>
-            </div>
-
-            <form onSubmit={handleUpload} className="p-6 space-y-6">
-              {/* Image Upload */}
-              <div>
-                <label className="block text-sm font-bold text-stone-700 mb-2">
-                  Image
-                </label>
-                <div className="relative">
-                  {uploadForm.imagePreview ? (
-                    <div className="relative aspect-video rounded-xl overflow-hidden border-2 border-stone-200">
-                      <img
-                        src={uploadForm.imagePreview}
-                        alt="Preview"
-                        className="w-full h-full object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setUploadForm({
-                            ...uploadForm,
-                            image: null,
-                            imagePreview: null,
-                          })
-                        }
-                        className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full hover:bg-red-600"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-stone-300 rounded-xl cursor-pointer hover:bg-stone-50 transition">
-                      <Camera className="w-12 h-12 text-stone-400 mb-2" />
-                      <span className="text-sm font-medium text-stone-600">
-                        Click to upload image
-                      </span>
-                      <span className="text-xs text-stone-500 mt-1">
-                        JPEG, PNG, or WebP (max 10MB)
-                      </span>
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/jpg,image/png,image/webp"
-                        onChange={handleImageSelect}
-                        className="hidden"
-                      />
-                    </label>
-                  )}
-                </div>
-              </div>
-
-              {/* Student Name */}
-              <div>
-                <label className="block text-sm font-bold text-stone-700 mb-2">
-                  Student Name
-                </label>
-                <input
-                  type="text"
-                  value={uploadForm.studentName}
-                  onChange={(e) =>
-                    setUploadForm({
-                      ...uploadForm,
-                      studentName: e.target.value,
-                    })
-                  }
-                  placeholder="Enter student name"
-                  className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none"
-                  required
-                />
-              </div>
-
-              {/* School Name */}
-              <div>
-                <label className="block text-sm font-bold text-stone-700 mb-2">
-                  School Name
-                </label>
-                <input
-                  type="text"
-                  value={uploadForm.schoolName}
-                  onChange={(e) =>
-                    setUploadForm({ ...uploadForm, schoolName: e.target.value })
-                  }
-                  placeholder="Enter school name"
-                  className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none"
-                  required
-                />
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="block text-sm font-bold text-stone-700 mb-2">
-                  Description (Optional)
-                </label>
-                <textarea
-                  value={uploadForm.description}
-                  onChange={(e) =>
-                    setUploadForm({
-                      ...uploadForm,
-                      description: e.target.value,
-                    })
-                  }
-                  placeholder="Enter description about the artwork..."
-                  rows={3}
-                  maxLength={500}
-                  className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none resize-none"
-                />
-                <p className="text-xs text-stone-500 mt-1">
-                  {uploadForm.description.length}/500 characters
-                </p>
-              </div>
-
-              {/* Submit Button */}
-              <div className="flex gap-4 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowUploadModal(false)}
-                  className="flex-1 px-6 py-3 rounded-xl border border-stone-300 text-stone-700 font-bold hover:bg-stone-50 transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={uploading || !uploadForm.image}
-                  className="flex-1 px-6 py-3 rounded-xl bg-emerald-700 text-white font-bold hover:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                >
-                  {uploading ? "Uploading..." : "Upload Image"}
-                </button>
-              </div>
-            </form>
-          </motion.div>
+      {/* Call to Action */}
+      <section className="py-20 bg-gradient-to-br from-emerald-900 to-teal-900 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-20 right-20 w-96 h-96 border border-white rounded-full" />
+          <div className="absolute bottom-10 left-10 w-64 h-64 border border-white rounded-full" />
         </div>
-      )}
 
-      {/* Edit Modal */}
-      {showEditModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-          >
-            <div className="p-6 border-b border-stone-200 flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-stone-800">
-                Edit Gallery Image
-              </h2>
+        <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <Palette className="w-16 h-16 text-emerald-400 mx-auto mb-6" />
+          <h2 className="text-4xl font-bold text-white mb-6 font-serif">
+            Want to Showcase Your Art?
+          </h2>
+          <p className="text-xl text-emerald-100 mb-8 leading-relaxed">
+            Join our education programs and let your creativity speak for the
+            Earth. Every artwork tells a story of environmental awareness and
+            action.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <a
+              href="/programs"
+              className="bg-white text-emerald-900 px-8 py-4 rounded-xl font-bold hover:bg-emerald-50 transition-all shadow-xl inline-block text-center"
+            >
+              Explore Programs
+            </a>
+            {canUpload && (
               <button
-                onClick={() => setShowEditModal(false)}
-                className="p-2 hover:bg-stone-100 rounded-full transition"
+                onClick={() => {
+                  setEditingArtwork(null);
+                  setShowUploadModal(true);
+                }}
+                className="bg-emerald-700 text-white px-8 py-4 rounded-xl font-bold hover:bg-emerald-600 transition-all border-2 border-emerald-500"
               >
-                <X className="w-5 h-5 text-stone-600" />
+                Submit Your Artwork
               </button>
-            </div>
-
-            <form onSubmit={handleEditSubmit} className="p-6 space-y-6">
-              {/* Student Name */}
-              <div>
-                <label className="block text-sm font-bold text-stone-700 mb-2">
-                  Student Name
-                </label>
-                <input
-                  type="text"
-                  value={editForm.studentName}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, studentName: e.target.value })
-                  }
-                  placeholder="Enter student name"
-                  className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none"
-                  required
-                />
-              </div>
-
-              {/* School Name */}
-              <div>
-                <label className="block text-sm font-bold text-stone-700 mb-2">
-                  School Name
-                </label>
-                <input
-                  type="text"
-                  value={editForm.schoolName}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, schoolName: e.target.value })
-                  }
-                  placeholder="Enter school name"
-                  className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none"
-                  required
-                />
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="block text-sm font-bold text-stone-700 mb-2">
-                  Description (Optional)
-                </label>
-                <textarea
-                  value={editForm.description}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, description: e.target.value })
-                  }
-                  placeholder="Enter description about the artwork..."
-                  rows={3}
-                  maxLength={500}
-                  className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none resize-none"
-                />
-                <p className="text-xs text-stone-500 mt-1">
-                  {editForm.description.length}/500 characters
-                </p>
-              </div>
-
-              {/* Submit Button */}
-              <div className="flex gap-4 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowEditModal(false)}
-                  className="flex-1 px-6 py-3 rounded-xl border border-stone-300 text-stone-700 font-bold hover:bg-stone-50 transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={editing}
-                  className="flex-1 px-6 py-3 rounded-xl bg-emerald-700 text-white font-bold hover:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                >
-                  {editing ? "Updating..." : "Update Image"}
-                </button>
-              </div>
-            </form>
-          </motion.div>
+            )}
+          </div>
         </div>
-      )}
+      </section>
+
+      {/* Upload/Edit Modal */}
+      <ArtworkUploadModal
+        isOpen={showUploadModal}
+        onClose={() => {
+          setShowUploadModal(false);
+          setEditingArtwork(null);
+        }}
+        onSubmit={editingArtwork ? handleEditSubmit : handleUploadSubmit}
+        editData={editingArtwork}
+        isEditing={!!editingArtwork}
+      />
 
       {/* View Image Modal */}
       <AnimatePresence>
         {viewingImage && (
-          <div 
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
-            onClick={handleCloseImage}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
-            >
-            <div className="p-6 border-b border-stone-200 flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-stone-800">
-                Artwork Details
-              </h2>
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="relative w-full max-w-5xl max-h-[90vh]">
+              {/* Navigation Buttons */}
               <button
-                onClick={handleCloseImage}
-                className="p-2 hover:bg-stone-100 rounded-full transition"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const currentIndex = uploadedImages.findIndex(
+                    (img) => img.id === viewingImage.id
+                  );
+                  const previousIndex =
+                    (currentIndex - 1 + uploadedImages.length) %
+                    uploadedImages.length;
+                  handleViewImage(uploadedImages[previousIndex]);
+                }}
+                className="fixed left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white shadow-xl flex items-center justify-center text-gray-700 hover:bg-emerald-50 transition-colors z-10"
               >
-                <X className="w-5 h-5 text-stone-600" />
+                <ChevronLeft className="w-6 h-6" />
               </button>
-            </div>
 
-            <div className="p-6 space-y-6">
-              {/* Image */}
-              <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-stone-100">
-                <img
-                  src={viewingImage.src}
-                  alt={`Painting by ${viewingImage.studentName}`}
-                  className="w-full h-full object-contain"
-                />
-              </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const currentIndex = uploadedImages.findIndex(
+                    (img) => img.id === viewingImage.id
+                  );
+                  const nextIndex = (currentIndex + 1) % uploadedImages.length;
+                  handleViewImage(uploadedImages[nextIndex]);
+                }}
+                className="fixed right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white shadow-xl flex items-center justify-center text-gray-700 hover:bg-emerald-50 transition-colors z-10"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
 
-              {/* Details */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 text-stone-700">
-                  <User className="w-5 h-5 text-emerald-600" />
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-widest text-stone-500 mb-1">
-                      Student Name
-                    </p>
-                    <p className="text-lg font-bold text-stone-800">
-                      {viewingImage.studentName}
-                    </p>
-                  </div>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="bg-white rounded-3xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+              >
+                {/* Header with Close Button */}
+                <div className="relative bg-gradient-to-r from-emerald-500 to-teal-600 p-12">
+                  <button
+                    onClick={handleCloseImage}
+                    className="absolute top-8 right-8 w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/30 transition-colors z-10"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
 
-                <div className="flex items-center gap-3 text-stone-700">
-                  <School className="w-5 h-5 text-emerald-600" />
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-widest text-stone-500 mb-1">
-                      School Name
-                    </p>
-                    <p className="text-lg font-semibold text-stone-800">
-                      {viewingImage.schoolName}
-                    </p>
+                <div className="p-6 overflow-y-auto">
+                  {/* Artwork Image */}
+                  <div className="mb-4 rounded-2xl overflow-hidden border-4 border-emerald-100">
+                    <img
+                      src={viewingImage.src}
+                      alt={
+                        viewingImage.title ||
+                        `Artwork by ${viewingImage.studentName}`
+                      }
+                      className="w-full max-h-[40vh] object-contain bg-gradient-to-br from-emerald-50 to-teal-50"
+                    />
+                  </div>
+
+                  {/* Artwork Details */}
+                  <div className="space-y-6">
+                    <div>
+                      <h2 className="text-4xl font-bold text-emerald-900 mb-2 font-serif">
+                        {viewingImage.title || "Student Artwork"}
+                      </h2>
+                      {viewingImage.category && (
+                        <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-700 text-sm font-semibold">
+                          <Award className="w-4 h-4" />
+                          {viewingImage.category}
+                        </span>
+                      )}
+                    </div>
+
+                    {viewingImage.description && (
+                      <div className="bg-emerald-50 p-4 rounded-2xl">
+                        <p className="text-base text-gray-700 leading-relaxed">
+                          {viewingImage.description}
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="bg-emerald-50 p-4 rounded-2xl">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
+                            <Users className="w-6 h-6 text-white" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-xs text-emerald-600 font-semibold uppercase tracking-wide">
+                              Artist(s)
+                            </div>
+                            <div className="text-sm font-bold text-emerald-900 truncate">
+                              {viewingImage.studentName}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-blue-50 p-4 rounded-2xl">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center shrink-0">
+                            <School className="w-6 h-6 text-white" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-xs text-blue-600 font-semibold uppercase tracking-wide">
+                              School
+                            </div>
+                            <div className="text-sm font-bold text-blue-900 truncate">
+                              {viewingImage.schoolName}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {viewingImage.program && (
+                        <div className="bg-purple-50 p-4 rounded-2xl">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-xl bg-purple-600 flex items-center justify-center shrink-0">
+                              <Palette className="w-6 h-6 text-white" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-xs text-purple-600 font-semibold uppercase tracking-wide">
+                                Program
+                              </div>
+                              <div className="text-sm font-bold text-purple-900 truncate">
+                                {viewingImage.program}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {(viewingImage.year || viewingImage.theme) && (
+                        <div className="bg-amber-50 p-4 rounded-2xl">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-xl bg-amber-600 flex items-center justify-center shrink-0">
+                              <Calendar className="w-6 h-6 text-white" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-xs text-amber-600 font-semibold uppercase tracking-wide">
+                                {viewingImage.year && viewingImage.theme
+                                  ? "Year & Theme"
+                                  : viewingImage.year
+                                  ? "Year"
+                                  : "Theme"}
+                              </div>
+                              <div className="text-sm font-bold text-amber-900 truncate">
+                                {viewingImage.year && viewingImage.theme
+                                  ? `${viewingImage.year} - ${viewingImage.theme}`
+                                  : viewingImage.year || viewingImage.theme}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Edit/Delete Buttons for Writers/Admins */}
+                    {canUpload && (
+                      <div className="flex gap-3 pt-4 border-t border-stone-200">
+                        <button
+                          onClick={() => {
+                            handleCloseImage();
+                            handleEdit(viewingImage);
+                          }}
+                          className="flex-1 px-6 py-3 rounded-xl border-2 border-emerald-600 text-emerald-700 font-bold hover:bg-emerald-50 transition flex items-center justify-center gap-2"
+                        >
+                          <Edit className="w-4 h-4" />
+                          Edit Details
+                        </button>
+                        <button
+                          onClick={() => {
+                            handleCloseImage();
+                            confirmDelete(viewingImage);
+                          }}
+                          className="flex-1 px-6 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition flex items-center justify-center gap-2"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Delete
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
-
-                {viewingImage.description && (
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-widest text-stone-500 mb-2">
-                      Description
-                    </p>
-                    <p className="text-base text-stone-700 leading-relaxed whitespace-pre-wrap">
-                      {viewingImage.description}
-                    </p>
-                  </div>
-                )}
-
-                {/* Edit/Delete Buttons for Writers/Admins */}
-                {canUpload && (
-                  <div className="flex gap-3 pt-4 border-t border-stone-200">
-                    <button
-                      onClick={() => {
-                        setViewingImage(null);
-                        handleEdit(viewingImage);
-                      }}
-                      className="flex-1 px-6 py-3 rounded-xl border border-emerald-600 text-emerald-700 font-bold hover:bg-emerald-50 transition flex items-center justify-center gap-2"
-                    >
-                      <Edit className="w-4 h-4" />
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => {
-                        setViewingImage(null);
-                        confirmDelete(viewingImage.id);
-                      }}
-                      className="flex-1 px-6 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition flex items-center justify-center gap-2"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      Delete
-                    </button>
-                  </div>
-                )}
-              </div>
+              </motion.div>
             </div>
-          </motion.div>
-        </div>
+          </div>
         )}
       </AnimatePresence>
 
       {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6"
-          >
-            <h2 className="text-2xl font-bold text-stone-800 mb-4">
-              Delete Image?
-            </h2>
-            <p className="text-stone-600 mb-6">
-              Are you sure you want to delete this image? This action cannot be
-              undone.
-            </p>
-            <div className="flex gap-4">
-              <button
-                onClick={() => {
-                  setShowDeleteConfirm(false);
-                  setDeletingId(null);
-                }}
-                className="flex-1 px-6 py-3 rounded-xl border border-stone-300 text-stone-700 font-bold hover:bg-stone-50 transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDelete}
-                className="flex-1 px-6 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition"
-              >
-                Delete
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
+      <DeleteConfirmModal
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setDeletingArtwork(null);
+        }}
+        onConfirm={handleDeleteConfirm}
+        title={deletingArtwork?.title || "Student Artwork"}
+        itemName={
+          deletingArtwork
+            ? `By ${deletingArtwork.studentName} from ${deletingArtwork.schoolName}`
+            : ""
+        }
+      />
     </main>
   );
 }
 
 export default function EcoArtGallery() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-stone-50 flex items-center justify-center">Loading...</div>}>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-stone-50 flex items-center justify-center">
+          Loading...
+        </div>
+      }
+    >
       <EcoArtGalleryContent />
     </Suspense>
   );

@@ -35,6 +35,13 @@ export async function POST(req) {
     const studentName = formData.get("studentName")?.trim();
     const schoolName = formData.get("schoolName")?.trim();
     const description = formData.get("description")?.trim() || "";
+    
+    // New optional fields
+    const title = formData.get("title")?.trim() || "";
+    const category = formData.get("category")?.trim() || "";
+    const program = formData.get("program")?.trim() || "";
+    const year = formData.get("year")?.trim() || "";
+    const theme = formData.get("theme")?.trim() || "";
 
     // Validation
     if (!image || !studentName || !schoolName) {
@@ -119,6 +126,11 @@ export async function POST(req) {
       studentName,
       schoolName,
       description,
+      title,
+      category,
+      program,
+      year,
+      theme,
       uploadedBy: user._id,
       status: "active",
     });

@@ -11,28 +11,28 @@ export default function Leaderboard() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalContributors, setTotalContributors] = useState(0);
-  const ITEMS_PER_PAGE = 10;
+  const ITEMS_PER_PAGE = 12;
  
-   const ProfileImage = ({ src, name, username }) => {
-     const [imageError, setImageError] = useState(false);
- 
-     if (!src || imageError) {
-       return (
-         <div className="w-full h-full bg-white/20 flex items-center justify-center">
-           <UserIcon className="w-7 h-7 text-white" />
-         </div>
-       );
-     }
- 
-     return (
-       <img
-         src={src}
-         alt={name || username}
-         className="w-full h-full object-cover"
-         onError={() => setImageError(true)}
-       />
-     );
-   };
+  const ProfileImage = ({ src, name, username }) => {
+    const [imageError, setImageError] = useState(false);
+
+    if (!src || imageError) {
+      return (
+        <div className="w-full h-full bg-emerald-200 flex items-center justify-center">
+          <UserIcon className="w-12 h-12 text-emerald-600" />
+        </div>
+      );
+    }
+
+    return (
+      <img
+        src={src}
+        alt={name || username}
+        className="w-full h-full object-cover"
+        onError={() => setImageError(true)}
+      />
+    );
+  };
 
   useEffect(() => {
     fetchLeaderboard(currentPage);
@@ -66,47 +66,27 @@ export default function Leaderboard() {
     }
   };
 
-  const getRankIcon = (rank) => {
-    return (
-      <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center border border-white/30">
-        <span className="text-xs font-black text-white">{rank}</span>
+  // Shimmer skeleton component - Grid version
+  const SkeletonCard = () => (
+    <div className="bg-white p-6 rounded-[32px] text-center border border-white shadow-lg">
+      {/* Rank badge skeleton */}
+      <div className="absolute top-4 left-4 w-8 h-8 rounded-full bg-emerald-100 animate-pulse" />
+      
+      {/* Avatar skeleton */}
+      <div className="relative mb-6 mx-auto w-24 h-24">
+        <div className="absolute inset-0 bg-emerald-100 rounded-full scale-110 animate-pulse" />
+        <div className="relative rounded-full w-full h-full bg-emerald-200 animate-pulse border-4 border-white" />
       </div>
-    );
-  };
-
-  const getRankBadge = (rank) => {
-    return "bg-slate-900";
-  };
-
-  // Shimmer skeleton component
-  const SkeletonCard = ({ rank }) => (
-    <div
-      className={`bg-white rounded-2xl border-2 border-stone-200 overflow-hidden ${
-        rank <= 3 ? "shadow-lg" : "shadow-sm"
-      }`}
-    >
-      <div
-        className="bg-slate-900 px-6 py-4 flex items-center gap-4"
-      >
-        {/* Rank Icon Skeleton */}
-        <div className="w-6 h-6 rounded-full bg-white/20 animate-pulse shrink-0" />
-
-        {/* Profile Picture Skeleton */}
-        <div className="w-14 h-14 rounded-full bg-white/20 animate-pulse shrink-0" />
-
-        {/* User Info Skeleton */}
-        <div className="flex-1 min-w-0 space-y-2">
-          <div className="h-5 bg-white/20 rounded-lg w-32 animate-pulse shimmer-effect" />
-          <div className="h-3 bg-white/20 rounded-lg w-20 animate-pulse shimmer-effect" />
-        </div>
-
-        {/* Points Skeleton */}
-        <div className="shrink-0">
-          <div className="bg-white/20 backdrop-blur-sm rounded-xl px-4 py-2 border border-white/30">
-            <div className="h-3 bg-white/30 rounded w-10 mb-2 animate-pulse shimmer-effect" />
-            <div className="h-7 bg-white/30 rounded w-12 animate-pulse shimmer-effect" />
-          </div>
-        </div>
+      
+      {/* Name skeleton */}
+      <div className="h-5 bg-emerald-100 rounded-lg w-32 mx-auto mb-2 animate-pulse shimmer-effect" />
+      
+      {/* Role skeleton */}
+      <div className="h-3 bg-emerald-100 rounded-lg w-24 mx-auto mb-4 animate-pulse shimmer-effect" />
+      
+      {/* Points pill skeleton */}
+      <div className="bg-emerald-50 py-2 px-4 rounded-xl inline-block">
+        <div className="h-6 bg-emerald-200 rounded w-16 animate-pulse shimmer-effect" />
       </div>
     </div>
   );
@@ -114,7 +94,7 @@ export default function Leaderboard() {
   if (loading) {
     return (
       <div className="p-8 flex-1 min-h-full h-full overflow-y-auto bg-stone-50 custom-scrollbar">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           {/* Header Skeleton */}
           <div className="flex flex-col md:flex-row justify-between items-end mb-10 gap-4 border-b border-stone-200 pb-8">
             <div className="space-y-2">
@@ -125,11 +105,17 @@ export default function Leaderboard() {
             <div className="h-10 bg-stone-200 rounded-full w-40 animate-pulse shimmer-effect" />
           </div>
 
-          {/* Cards Skeleton */}
-          <div className="space-y-4">
-            {[1, 2, 3, 4, 5].map((rank) => (
-              <SkeletonCard key={rank} rank={rank} />
-            ))}
+          {/* Grid Skeleton */}
+          <div className="bg-emerald-50 rounded-[48px] p-8 md:p-12">
+            <div className="text-center mb-16">
+              <div className="h-8 bg-emerald-200 rounded w-48 mx-auto mb-4 animate-pulse shimmer-effect" />
+              <div className="h-4 bg-emerald-200 rounded w-64 mx-auto animate-pulse shimmer-effect" />
+            </div>
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                <SkeletonCard key={i} />
+              ))}
+            </div>
           </div>
         </div>
 
@@ -178,104 +164,85 @@ export default function Leaderboard() {
 
   return (
     <div className="p-8 flex-1 min-h-full h-full overflow-y-auto bg-stone-50 custom-scrollbar">
-      <div className="max-w-4xl mx-auto">
-        {/* SECTION HEADER */}
-        <div className="flex flex-col md:flex-row justify-between items-end mb-10 gap-4 border-b border-stone-200 pb-8">
-          <div>
-            <span className="text-emerald-600 font-bold uppercase tracking-widest text-[10px] flex items-center gap-2 mb-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Community Recognition
-            </span>
-            <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">
-              Top <span className="text-emerald-600">Contributors</span>
-            </h2>
-            <p className="text-stone-500 text-sm mt-2">
-              Earn points for each approved mushroom submission
-            </p>
-          </div>
-          <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-stone-200 bg-white shadow-sm">
-            <Trophy className="w-4 h-4 text-emerald-600" />
-            <span className="text-stone-400 font-bold text-xs uppercase tracking-widest">
-              {totalContributors} Contributors
-            </span>
-          </div>
-        </div>
-
-        {/* LEADERBOARD LIST */}
+      <div className="max-w-7xl mx-auto">
+        {/* LEADERBOARD GRID */}
         {contributors.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-stone-200 p-12 text-center">
-            <div className="max-w-md mx-auto">
-              <div className="w-16 h-16 bg-stone-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Trophy className="text-stone-400" size={32} />
+          <div className="bg-emerald-50 rounded-[48px] p-12">
+            <div className="bg-white rounded-[32px] border border-emerald-100 p-12 text-center">
+              <div className="max-w-md mx-auto">
+                <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Trophy className="text-emerald-600" size={32} />
+                </div>
+                <h3 className="text-lg font-black text-emerald-950 mb-2">
+                  No contributors yet
+                </h3>
+                <p className="text-sm text-emerald-800/60">
+                  Be the first to submit an approved mushroom observation!
+                </p>
               </div>
-              <h3 className="text-lg font-black text-gray-900 mb-2">
-                No contributors yet
-              </h3>
-              <p className="text-sm text-gray-600">
-                Be the first to submit an approved mushroom observation!
-              </p>
             </div>
           </div>
         ) : (
-          <div className="space-y-4">
-            {contributors.map((contributor, index) => {
-              // Calculate global rank based on current page
-              const rank = (currentPage - 1) * ITEMS_PER_PAGE + index + 1;
-              return (
-                <div
-                  key={contributor._id || contributor.id}
-                  className={`bg-white rounded-2xl border-2 border-stone-200 overflow-hidden transition-all hover:shadow-xl ${
-                    rank <= 3 ? "shadow-lg" : "shadow-sm"
-                  }`}
-                >
-                  <div
-                    className={`${getRankBadge(
-                      rank
-                    )} px-6 py-4 flex items-center gap-4`}
-                  >
-                    {/* RANK ICON */}
-                    <div className="shrink-0">{getRankIcon(rank)}</div>
+          <div className="bg-emerald-50 rounded-[48px] p-8 md:p-12">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl font-bold font-serif text-emerald-950 mb-4">
+                Top Contributors
+              </h2>
+              <p className="text-emerald-800/60">
+                Fueling our scientific database.
+              </p>
+            </div>
 
-                    {/* PROFILE PICTURE AND USER INFO - Clickable */}
-                    <Link
-                      href={`/user/${contributor._id || contributor.id}`}
-                      className="flex items-center gap-4 flex-1 min-w-0 hover:opacity-90 transition-opacity"
-                    >
-                      {/* PROFILE PICTURE */}
-                      <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-white/50 shadow-lg shrink-0">
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+              {contributors.map((contributor, index) => {
+                // Calculate global rank based on current page
+                const rank = (currentPage - 1) * ITEMS_PER_PAGE + index + 1;
+                const userRole = contributor.role || "Contributor";
+                
+                return (
+                  <Link
+                    key={contributor._id || contributor.id}
+                    href={`/user/${contributor._id || contributor.id}`}
+                    className="bg-white p-6 rounded-[32px] text-center border border-white shadow-lg relative cursor-pointer hover:shadow-2xl hover:scale-105 transition-all group"
+                  >
+                    {/* Rank badge - top left */}
+                    <div className="absolute top-4 left-4 w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center font-bold text-emerald-600 text-xs group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                      #{rank}
+                    </div>
+
+                    {/* Avatar with background decoration */}
+                    <div className="relative mb-6 mx-auto w-24 h-24">
+                      <div className="absolute inset-0 bg-emerald-100 rounded-full scale-110 group-hover:bg-emerald-200 transition-colors" />
+                      <div className="relative rounded-full w-full h-full overflow-hidden border-4 border-white">
                         <ProfileImage 
                           src={contributor.dp?.url} 
                           name={contributor.name} 
                           username={contributor.username} 
                         />
                       </div>
-
-                      {/* USER INFO */}
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-black text-white text-lg truncate">
-                          {contributor.name || contributor.username || "Anonymous"}
-                        </h3>
-                        <p className="text-white/80 text-xs font-medium truncate">
-                          @{contributor.username || "user"}
-                        </p>
-                      </div>
-                    </Link>
-
-                    {/* POINTS */}
-                    <div className="shrink-0 text-right">
-                      <div className="bg-white/20 backdrop-blur-sm rounded-xl px-4 py-2 border border-white/30">
-                        <p className="text-[10px] font-bold text-white/80 uppercase tracking-widest mb-1">
-                          Points
-                        </p>
-                        <p className="text-2xl font-black text-white">
-                          {contributor.points || 0}
-                        </p>
-                      </div>
                     </div>
-                  </div>
-                </div>
-              );
-            })}
+
+                    {/* Name and role */}
+                    <h4 className="font-bold text-emerald-950 mb-1 group-hover:text-emerald-700 transition-colors truncate">
+                      {contributor.name || contributor.username || "Anonymous"}
+                    </h4>
+                    <p className="text-emerald-600 text-xs font-bold mb-4 truncate">
+                      {userRole}
+                    </p>
+
+                    {/* Observations pill */}
+                    <div className="bg-emerald-50 py-2 px-4 rounded-xl inline-block group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                      <span className="text-lg font-bold text-emerald-900 group-hover:text-white">
+                        {contributor.points || 0}
+                      </span>
+                      <span className="text-[10px] font-bold text-emerald-900/40 uppercase ml-1 group-hover:text-white/80">
+                        Observations
+                      </span>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
           </div>
         )}
 

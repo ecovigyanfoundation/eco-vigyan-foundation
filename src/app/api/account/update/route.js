@@ -59,16 +59,68 @@ export async function PATCH(req) {
     /* ================= FORM DATA ================= */
     const formData = await req.formData();
     const bio = formData.get("bio")?.trim() || "";
+    const name = formData.get("name")?.trim();
+    const email = formData.get("email")?.trim();
+    const avatarUrl = formData.get("avatarUrl")?.trim();
     const dp = formData.get("dp");
 
     const updateData = {};
+
+    // Update name if provided
+    if (name) {
+      updateData.name = name;
+    }
+
+    // Update email if provided (check uniqueness)
+    if (email && email !== user.email) {
+      // Prevent email changes for Google users
+      if (user.authProvider === "google") {
+        return NextResponse.json(
+          { error: "Cannot change email for Google accounts" },
+          { status: 400 }
+        );
+      }
+
+      // Check if email is already taken
+      const existingUser = await User.findOne({ 
+        email: email.toLowerCase(), 
+        _id: { $ne: user._id } 
+      });
+      
+      if (existingUser) {
+        return NextResponse.json(
+          { error: "Email already in use" },
+          { status: 400 }
+        );
+      }
+
+      updateData.email = email.toLowerCase();
+    }
 
     // Update bio if provided
     if (bio !== undefined) {
       updateData.bio = bio;
     }
 
-    // Update display picture if provided
+    // Update display picture from URL if provided
+    if (avatarUrl && !dp) {
+      // Delete old image from Cloudinary if exists (only if Cloudinary is configured)
+      if (user.dp?.public_id && cloudinary?.uploader) {
+        try {
+          await cloudinary.uploader.destroy(user.dp.public_id);
+        } catch (err) {
+          console.error("Error deleting old image:", err);
+          // Continue even if deletion fails
+        }
+      }
+
+      updateData.dp = {
+        public_id: "", // URL-based avatars don't have Cloudinary IDs
+        url: avatarUrl,
+      };
+    }
+
+    // Update display picture from file if provided
     if (dp && dp instanceof File && dp.size > 0) {
       // Validate file size (max 5MB)
       const maxFileSize = 5 * 1024 * 1024;
@@ -85,6 +137,14 @@ export async function PATCH(req) {
         return NextResponse.json(
           { error: "Invalid image format. Please use JPEG, PNG, or WebP." },
           { status: 400 }
+        );
+      }
+
+      // Check if Cloudinary is configured
+      if (!cloudinary?.uploader) {
+        return NextResponse.json(
+          { error: "Image upload is not configured. Please use avatar URL option instead." },
+          { status: 503 }
         );
       }
 

@@ -10,18 +10,32 @@ export async function POST(req) {
   try {
     await connectDB();
 
-    const formData = await req.formData();
+    // Support both JSON and FormData for flexibility
+    const contentType = req.headers.get("content-type");
+    let name, username, email, password, dp;
 
-    const name = formData.get("name")?.trim();
-    const username = formData.get("username")?.trim().toLowerCase();
-    const email = formData.get("email")?.trim().toLowerCase();
-    const password = formData.get("password");
-    const dp = formData.get("dp");
+    if (contentType?.includes("application/json")) {
+      // Quick signup from modal (JSON body)
+      const body = await req.json();
+      name = body.name?.trim();
+      username = body.username?.trim()?.toLowerCase();
+      email = body.email?.trim()?.toLowerCase();
+      password = body.password;
+      dp = null; // No image in quick signup
+    } else {
+      // Full signup from dedicated page (FormData)
+      const formData = await req.formData();
+      name = formData.get("name")?.trim();
+      username = formData.get("username")?.trim()?.toLowerCase();
+      email = formData.get("email")?.trim()?.toLowerCase();
+      password = formData.get("password");
+      dp = formData.get("dp");
+    }
 
     /* ---------------- VALIDATION ---------------- */
-    if (!name || !username || !email || !password || !dp) {
+    if (!name || !email || !password) {
       return NextResponse.json(
-        { error: "All fields are required" },
+        { error: "Name, email, and password are required" },
         { status: 400 }
       );
     }
@@ -43,13 +57,37 @@ export async function POST(req) {
       );
     }
 
-    // Validate username (alphanumeric and underscore, 3-20 chars)
-    const usernameRegex = /^[a-z0-9_]{3,20}$/;
-    if (!usernameRegex.test(username)) {
-      return NextResponse.json(
-        { error: "Username must be 3-20 characters and contain only lowercase letters, numbers, and underscores" },
-        { status: 400 }
-      );
+    // Auto-generate username if not provided (quick signup)
+    if (!username) {
+      const baseUsername = email.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "_");
+      let generatedUsername = baseUsername.slice(0, 20);
+      let counter = 1;
+      
+      // Ensure uniqueness
+      while (await User.findOne({ username: generatedUsername })) {
+        const suffix = counter.toString();
+        generatedUsername = `${baseUsername.slice(0, 20 - suffix.length)}${suffix}`;
+        counter++;
+        
+        // Prevent infinite loop
+        if (counter > 9999) {
+          return NextResponse.json(
+            { error: "Unable to generate unique username. Please try again." },
+            { status: 500 }
+          );
+        }
+      }
+      
+      username = generatedUsername;
+    } else {
+      // Validate provided username (alphanumeric and underscore, 3-20 chars)
+      const usernameRegex = /^[a-z0-9_]{3,20}$/;
+      if (!usernameRegex.test(username)) {
+        return NextResponse.json(
+          { error: "Username must be 3-20 characters and contain only lowercase letters, numbers, and underscores" },
+          { status: 400 }
+        );
+      }
     }
 
     // Validate name (2-50 characters)
@@ -72,75 +110,80 @@ export async function POST(req) {
       );
     }
 
-    /* ---------------- UPLOAD DP ---------------- */
-    // Validate Cloudinary configuration
-    if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
-      return NextResponse.json(
-        { error: "Cloudinary is not configured. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET environment variables." },
-        { status: 500 }
-      );
-    }
+    /* ---------------- UPLOAD DP (OPTIONAL) ---------------- */
+    let dpObject = {
+      url: "",
+      public_id: "",
+    };
 
-    // Validate image file
-    const maxFileSize = 5 * 1024 * 1024; // 5MB
-    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
-    
-    // Check if dp is a valid File object
-    if (!dp || !(dp instanceof File)) {
-      return NextResponse.json(
-        { error: "Profile picture is required and must be a valid image file" },
-        { status: 400 }
-      );
-    }
+    // Only upload if profile picture is provided (full signup)
+    if (dp && dp instanceof File && dp.size > 0) {
+      // Validate Cloudinary configuration
+      if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+        return NextResponse.json(
+          { error: "Image upload is not configured. Please contact administrator." },
+          { status: 500 }
+        );
+      }
 
-    if (dp.size === 0 || dp.size > maxFileSize) {
-      return NextResponse.json(
-        { error: "Image file size must be between 1 byte and 5MB" },
-        { status: 400 }
-      );
-    }
+      // Validate image file
+      const maxFileSize = 5 * 1024 * 1024; // 5MB
+      const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+      
+      if (dp.size > maxFileSize) {
+        return NextResponse.json(
+          { error: "Image file size must be less than 5MB" },
+          { status: 400 }
+        );
+      }
 
-    // Check file type - handle mobile browsers that might send different MIME types
-    const fileType = dp.type ? dp.type.toLowerCase() : "";
-    const fileName = dp.name ? dp.name.toLowerCase() : "";
-    
-    // Check if type is in allowed list, or if filename has valid extension (for mobile browsers that might not set MIME type correctly)
-    const hasValidExtension = fileName.match(/\.(jpg|jpeg|png|webp)$/);
-    const isValidType = allowedTypes.includes(fileType) || 
-                       (fileType.startsWith("image/") && hasValidExtension) ||
-                       (!fileType && hasValidExtension); // Fallback for browsers that don't set MIME type
-    
-    if (!isValidType) {
-      return NextResponse.json(
-        { error: "Image must be in JPEG, PNG, or WebP format" },
-        { status: 400 }
-      );
-    }
+      // Check file type - handle mobile browsers that might send different MIME types
+      const fileType = dp.type ? dp.type.toLowerCase() : "";
+      const fileName = dp.name ? dp.name.toLowerCase() : "";
+      
+      // Check if type is in allowed list, or if filename has valid extension
+      const hasValidExtension = fileName.match(/\.(jpg|jpeg|png|webp)$/);
+      const isValidType = allowedTypes.includes(fileType) || 
+                         (fileType.startsWith("image/") && hasValidExtension) ||
+                         (!fileType && hasValidExtension);
+      
+      if (!isValidType) {
+        return NextResponse.json(
+          { error: "Image must be in JPEG, PNG, or WebP format" },
+          { status: 400 }
+        );
+      }
 
-    const buffer = Buffer.from(await dp.arrayBuffer());
+      const buffer = Buffer.from(await dp.arrayBuffer());
 
-    const uploadResult = await new Promise((resolve, reject) => {
-      const uploadStream = cloudinary.uploader.upload_stream(
-        {
-          folder: "users",
-          resource_type: "image",
-        },
-        (err, result) => {
-          if (err) {
-            console.error("Cloudinary upload error:", err);
-            reject(new Error(`Image upload failed: ${err.message || "Unknown error"}`));
-            return;
+      const uploadResult = await new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          {
+            folder: "users",
+            resource_type: "image",
+          },
+          (err, result) => {
+            if (err) {
+              console.error("Cloudinary upload error:", err);
+              reject(new Error(`Image upload failed: ${err.message || "Unknown error"}`));
+              return;
+            }
+            if (!result) {
+              reject(new Error("Image upload failed: No result returned"));
+              return;
+            }
+            resolve(result);
           }
-          if (!result) {
-            reject(new Error("Image upload failed: No result returned"));
-            return;
-          }
-          resolve(result);
-        }
-      );
+        );
 
-      uploadStream.end(buffer);
-    });
+        uploadStream.end(buffer);
+      });
+
+      dpObject = {
+        public_id: uploadResult.public_id,
+        url: uploadResult.secure_url,
+      };
+    }
 
     /* ---------------- HASH PASSWORD ---------------- */
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -154,10 +197,7 @@ export async function POST(req) {
       authProvider: "credentials",
       role: "user",
       points: 0,
-      dp: {
-        public_id: uploadResult.public_id,
-        url: uploadResult.secure_url,
-      },
+      dp: dpObject,
     });
 
     /* ---------------- JWT ---------------- */

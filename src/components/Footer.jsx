@@ -1,114 +1,203 @@
 "use client";
 
 import React from 'react';
+import { Mail, Phone, MapPin, Facebook, Instagram, Linkedin, Youtube, Leaf, Heart } from 'lucide-react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { MapPin, Phone, Mail, Facebook, Instagram, Linkedin, ArrowRight, Heart } from 'lucide-react';
 
 export default function Footer() {
-  const volunteerPrograms = [
-     
-    "Guided Mushroom Walks",
-  ];
-
-  const socialLinks = [
-    { icon: Facebook, href: "https://www.facebook.com/people/Eco-Vigyan-Foundation/100090610935292/?rdid=qQ3Ik930QW0SHoiR&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F1BcJ2mxyDF%2F" },
-    { icon: Instagram, href: "https://www.instagram.com/ecovigyan/" },
-    { icon: Linkedin, href: "https://www.linkedin.com/in/eco-vigyan-2a51b536b/" },
-  ];
+  const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="relative bg-emerald-950 text-emerald-50/80 overflow-hidden font-sans border-t-2 border-emerald-500">
-      
-      {/* Container: Balanced vertical padding for larger text */}
-      <motion.div 
-        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-4 relative z-10"
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, amount: 0.2 }}
-      >
-        <div className="grid grid-cols-3 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-          
-          {/* Column 1: Brand & About */}
-          <div className="space-y-4">
-            <div>
-              {/* Increased from text-xl to text-2xl */}
-              <h3 className="text-xl md:text-2xl font-black text-white tracking-tight uppercase">
-                Eco Vigyan <span className="text-emerald-500">Foundation</span>
-              </h3>
-              <p className="text-xs font-bold tracking-widest text-emerald-400 mt-1 uppercase">
-                Est. 2022 • Shimla
-              </p>
+    <footer id="contact" className="bg-gradient-to-br from-emerald-900 via-emerald-950 to-emerald-900 text-emerald-50 relative overflow-hidden">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 opacity-5">
+        <div className="absolute top-20 left-20 w-96 h-96 border border-white rounded-full" />
+        <div className="absolute bottom-10 right-10 w-64 h-64 border border-white rounded-full" />
+      </div>
+
+      {/* Main Footer Content */}
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="grid lg:grid-cols-4 gap-12 mb-12">
+          {/* Brand Column */}
+          <div className="lg:col-span-1">
+            <div className="flex items-center gap-2 mb-4">
+              <img 
+                src="/gallery/logo1.png"
+                alt="Eco Vigyan Foundation Logo" 
+                className="w-12 h-12 object-contain"
+              />
+              <div className="flex flex-col">
+                <span className="text-2xl font-bold text-white leading-none">ECO VIGYAN</span>
+                <span className="text-[10px] tracking-[0.2em] text-emerald-400 font-semibold uppercase">Foundation</span>
+              </div>
             </div>
-            {/* Increased from text-xs to text-sm */}
-            <p className="text-sm leading-relaxed text-emerald-100/70">
-              Fostering a culture of sustainability and learning through nature in schools across India.
+            <p className="text-emerald-100/70 text-sm leading-relaxed mb-6">
+              Bridging science and conservation through research, education, and community engagement.
             </p>
-            <div className="flex space-x-4">
-              {socialLinks.map((social, idx) => (
-                <a key={idx} href={social.href} className="w-9 h-9 rounded-full bg-emerald-900/50 flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all duration-300">
-                  <social.icon className="w-5 h-5" />
-                </a>
-              ))}
+            
+            {/* Social Links */}
+            <div className="flex gap-3">
+              <a 
+                href="https://www.instagram.com/ecovigyan/?igsh=MXdpdWFhbDd5amg4dQ%3D%3D#"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Instagram"
+                className="w-10 h-10 rounded-lg bg-emerald-800/50 border border-emerald-700/50 flex items-center justify-center hover:bg-emerald-600 hover:border-emerald-600 hover:scale-110 transition-all group"
+              >
+                <Instagram size={18} className="text-emerald-200 group-hover:text-white transition-colors" />
+              </a>
+              <a 
+                href="https://www.facebook.com/people/Eco-Vigyan-Foundation/100090610935292/?rdid=qQ3Ik930QW0SHoiR&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F1BcJ2mxyDF%2F"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Facebook"
+                className="w-10 h-10 rounded-lg bg-emerald-800/50 border border-emerald-700/50 flex items-center justify-center hover:bg-emerald-600 hover:border-emerald-600 hover:scale-110 transition-all group"
+              >
+                <Facebook size={18} className="text-emerald-200 group-hover:text-white transition-colors" />
+              </a>
+              <a 
+                href="https://www.linkedin.com/in/eco-vigyan-2a51b536b/"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="LinkedIn"
+                className="w-10 h-10 rounded-lg bg-emerald-800/50 border border-emerald-700/50 flex items-center justify-center hover:bg-emerald-600 hover:border-emerald-600 hover:scale-110 transition-all group"
+              >
+                <Linkedin size={18} className="text-emerald-200 group-hover:text-white transition-colors" />
+              </a>
+              <a 
+                href="https://www.youtube.com/@EcoVigyan-le3es"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="YouTube"
+                className="w-10 h-10 rounded-lg bg-emerald-800/50 border border-emerald-700/50 flex items-center justify-center hover:bg-emerald-600 hover:border-emerald-600 hover:scale-110 transition-all group"
+              >
+                <Youtube size={18} className="text-emerald-200 group-hover:text-white transition-colors" />
+              </a>
             </div>
           </div>
 
-          {/* Column 2: Quick Links */}
+          {/* Quick Links */}
           <div>
-            {/* Increased heading from text-sm to text-base */}
-            <h3 className="text-base font-bold text-white mb-5 flex items-center">
-              <span className="w-6 h-1 bg-emerald-500 rounded-full mr-3"></span>
-              Quick Links
-            </h3>
-            <ul className="space-y-3 text-sm font-medium"> {/* Size increased to text-sm */}
-              {[
-                { name: "About Us", href: "/#about" },
-                { name: "Our Activities", href: "/programs" },
-                { name: "Join Us", href: "/join-us", highlight: true },
-                { name: "Contact Us", href: "/contact" },
-              ].map((link, idx) => (
-                <li key={idx}>
-                  <Link href={link.href} className={`flex items-center transition-colors ${link.highlight ? 'text-emerald-400 font-bold' : 'hover:text-white'}`}>
-                    <ArrowRight className="w-4 h-4 mr-2" />
-                    {link.name}
-                  </Link>
-                </li>
-              ))}
+            <h4 className="text-sm font-bold text-white mb-4 uppercase tracking-wider">Quick Links</h4>
+            <ul className="space-y-3 text-emerald-100/70 text-sm">
+              <li>
+                <Link 
+                  href="/#about"
+                  className="hover:text-emerald-400 transition-colors inline-flex items-center group"
+                >
+                  <span className="group-hover:translate-x-1 transition-transform">About Us</span>
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  href="/programs"
+                  className="hover:text-emerald-400 transition-colors inline-flex items-center group"
+                >
+                  <span className="group-hover:translate-x-1 transition-transform">Our Programs</span>
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  href="/gallery"
+                  className="hover:text-emerald-400 transition-colors inline-flex items-center group"
+                >
+                  <span className="group-hover:translate-x-1 transition-transform">Art Gallery</span>
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  href="/articles"
+                  className="hover:text-emerald-400 transition-colors inline-flex items-center group"
+                >
+                  <span className="group-hover:translate-x-1 transition-transform">Articles</span>
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  href="/reports"
+                  className="hover:text-emerald-400 transition-colors inline-flex items-center group"
+                >
+                  <span className="group-hover:translate-x-1 transition-transform">Reports & Docs</span>
+                </Link>
+              </li>
             </ul>
           </div>
 
-          {/* Column 3: Volunteer Programs */}
-          
-
-          {/* Column 4: Contact Info */}
+          {/* Get Involved */}
           <div>
-            <h3 className="text-base font-bold text-white mb-5 flex items-center">
-              <span className="w-6 h-1 bg-emerald-500 rounded-full mr-3"></span>
-              Get in Touch
-            </h3>
-            <address className="not-italic space-y-4 text-sm font-medium"> {/* Increased text size */}
-              <div className="flex items-start">
-                <MapPin className="w-5 h-5 text-emerald-500 mr-3 shrink-0" />
-                <span>Village Jadheni, Shimla, Himachal Pradesh 171011</span>
-              </div>
-              <div className="flex items-center">
-                <Phone className="w-5 h-5 text-emerald-500 mr-3 shrink-0" />
-                <a href="tel:+918894486066" className="hover:text-white">+91-8894486066</a>
-              </div>
-              <div className="flex items-start">
-                <Mail className="w-5 h-5 text-emerald-500 mr-3 shrink-0" />
-                <a href="mailto:ecovigyan@gmail.com" className="hover:text-white break-all">ecovigyan@gmail.com</a>
-              </div>
-            </address>
+            <h4 className="text-sm font-bold text-white mb-4 uppercase tracking-wider">Get Involved</h4>
+            <ul className="space-y-3 text-emerald-100/70 text-sm">
+              <li>
+                <Link 
+                  href="/join-us"
+                  className="hover:text-emerald-400 transition-colors inline-flex items-center group"
+                >
+                  <span className="group-hover:translate-x-1 transition-transform">Join Our Team</span>
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  href="/programs"
+                  className="hover:text-emerald-400 transition-colors inline-flex items-center group"
+                >
+                  <span className="group-hover:translate-x-1 transition-transform">Enroll in Programs</span>
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  href="/donate"
+                  className="hover:text-emerald-400 transition-colors inline-flex items-center group"
+                >
+                  <span className="group-hover:translate-x-1 transition-transform">Donate</span>
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  href="/my-submissions"
+                  className="hover:text-emerald-400 transition-colors inline-flex items-center group"
+                >
+                  <span className="group-hover:translate-x-1 transition-transform">Member Portal</span>
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Contact Info */}
+          <div>
+            <h4 className="text-sm font-bold text-white mb-4 uppercase tracking-wider">Contact</h4>
+            <ul className="space-y-4 text-emerald-100/70 text-sm">
+              <li className="flex items-start gap-3">
+                <MapPin className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+                <span>Village Jadheni, Shimla<br />Himachal Pradesh 171011</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <Mail className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+                <a href="mailto:ecovigyan@gmail.com" className="hover:text-emerald-400 transition-colors">
+                  ecovigyan@gmail.com
+                </a>
+              </li>
+              <li className="flex items-start gap-3">
+                <Phone className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+                <a href="tel:+918894486066" className="hover:text-emerald-400 transition-colors">
+                  +91 88 9448 6066
+                </a>
+              </li>
+            </ul>
           </div>
         </div>
 
-        {/* Copyright Section: Adjusted text size */}
-        <div className="border-t border-emerald-900 pt-6 flex flex-col md:flex-row justify-between items-center text-xs text-emerald-600 font-bold uppercase tracking-wider">
-          <p>© 2022 Eco Vigyan Foundation.</p>
-         
+        {/* Bottom Bar */}
+        <div className="pt-8 border-t border-emerald-800/50">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-emerald-100/50">
+            <p className="flex items-center gap-2">
+              © {currentYear} Eco Vigyan Foundation. Made with <Heart className="w-4 h-4 text-red-400 fill-red-400" /> for Nature
+            </p>
+            <p className="text-xs">
+              Empowering communities through ecological education
+            </p>
+          </div>
         </div>
-      </motion.div>
+      </div>
     </footer>
   );
 }

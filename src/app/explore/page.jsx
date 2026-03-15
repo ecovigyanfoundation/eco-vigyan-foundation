@@ -3,8 +3,9 @@
 import { useEffect, useState, useRef, useCallback, Suspense } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus, Menu, X, Home, Info, Users, FileText, Image, Calendar, FileCheck, Mail, User, Settings, Navigation, Heart, Layers, MapPin, CheckCircle, Save, Trash2 } from "lucide-react";
+import { Plus, Menu, X, Home, Info, Users, FileText, Image, Calendar, FileCheck, Mail, User, Settings, Navigation, Heart, Layers, MapPin, CheckCircle, Save, Trash2, Sparkles, ShieldCheck, Zap, Map as MapIcon, Grid, Trophy } from "lucide-react";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import ExploreHeader from "@/components/ExploreHeader";
 import MushroomGrid from "@/components/MushroomGrid";
 import MushroomSubmissionForm from "@/components/MushroomSubmissionForm";
@@ -16,6 +17,7 @@ import SaveTrailModal from "@/components/SaveTrailModal";
 import SaveZoneModal from "@/components/SaveZoneModal";
 import MapFilter from "@/components/MapFilter";
 import MushroomDetailModal from "@/components/MushroomDetailModal";
+import MapSidebar from "@/components/MapSidebar";
 import { useAuth } from "@/context/AuthContext";
 import { isPointInPolygon, calculateDistance } from "@/lib/geocoding";
 import { saveTrail } from "@/lib/trailStorage";
@@ -192,6 +194,8 @@ function MapPageContent() {
   const [trailMushrooms, setTrailMushrooms] = useState([]);
   const [speciesSearchTerm, setSpeciesSearchTerm] = useState("");
   const [scientificNameSearchTerm, setScientificNameSearchTerm] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [autocompleteSuggestions, setAutocompleteSuggestions] = useState([]);
   const getCurrentBoundaryRef = useRef(null);
   const prevFiltersRef = useRef({ speciesSearchTerm: "", scientificNameSearchTerm: "", hasZone: false });
   const lastAddedMushroomRef = useRef(null);
@@ -202,6 +206,32 @@ function MapPageContent() {
   useEffect(() => {
     trailModeRef.current = trailMode;
   }, [trailMode]);
+
+  // Set sidebar open by default on desktop
+  useEffect(() => {
+    if (window.innerWidth >= 768) {
+      setSidebarOpen(true);
+    }
+  }, []);
+
+  // Generate autocomplete suggestions from species search
+  useEffect(() => {
+    if (speciesSearchTerm.trim().length > 0) {
+      const uniqueNames = new Set();
+      allData.forEach(obs => {
+        if (obs.commonName && obs.commonName.toLowerCase().includes(speciesSearchTerm.toLowerCase())) {
+          uniqueNames.add(obs.commonName);
+        }
+        if (obs.scientificName && obs.scientificName.toLowerCase().includes(speciesSearchTerm.toLowerCase())) {
+          uniqueNames.add(obs.scientificName);
+        }
+      });
+      const suggestions = Array.from(uniqueNames).slice(0, 8);
+      setAutocompleteSuggestions(suggestions);
+    } else {
+      setAutocompleteSuggestions([]);
+    }
+  }, [speciesSearchTerm, allData]);
 
   useEffect(() => {
     fetch("/api/mushrooms")
@@ -503,6 +533,11 @@ function MapPageContent() {
   const handleZoneSelect = (zone) => {
     setSelectedZone(zone);
     setDrawingMode(null);
+  };
+
+  // Handle zone clear
+  const handleZoneClear = () => {
+    setSelectedZone(null);
   };
 
   // Handle manual location search - triggered by location search button
@@ -1251,34 +1286,128 @@ function MapPageContent() {
   };
 
   return (
-    <div className="flex flex-col min-h-dvh w-full bg-gray-950 overflow-x-hidden text-white">
-      {/* HEADER */}
-      <ExploreHeader
-        view={view}
-        setView={setView}
-        onAddClick={handleOpenAddModal}
-        onMobileSearchClick={() => setShowMobileSearch(true)}
-        onFilterToggle={handleHeaderFilterToggle}
-        onResetFilters={handleResetFilters}
-        selectedFilters={headerFilters}
-        onZonesClick={handleZonesClick}
-        onTrailsClick={handleTrailsClick}
-        onSpeciesSearch={setSpeciesSearchTerm}
-        onLocationSearch={handleZoneSelect}
-        allData={allData}
-        onManualSearch={handleManualSearch}
-        onManualLocationSearch={handleManualLocationSearch}
-      />
+    <div className="flex flex-col min-h-screen w-full bg-white overflow-x-hidden">
+      {/* HERO SECTION - MushroomHub Design */}
+      <section className="relative pt-24 pb-12 bg-gray-50">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-3 gap-8">
+            
+            {/* LEFT COLUMN: Badge + Main Heading */}
+            <div className="lg:col-span-2">
+              <div className="inline-flex items-center gap-2 bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest mb-4">
+                <ShieldCheck size={14} /> Verified Mycology Hub
+              </div>
+              <h1 className="text-4xl md:text-6xl font-bold font-serif text-emerald-950 mb-4 tracking-tight">
+                Mushroom Hub
+              </h1>
+              <p className="text-emerald-800/60 max-w-xl text-lg">
+                Map and discover the fungal kingdom of India through citizen science.
+              </p>
+            </div>
+            
+            {/* RIGHT COLUMN: Species of the Day Card */}
+            <div className="bg-emerald-900 rounded-[32px] p-6 text-white relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 opacity-20 -mr-10 -mt-10 group-hover:scale-110 transition-transform">
+                <Zap size={100} fill="white" />
+              </div>
+              <div className="relative z-10">
+                <div className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-2">
+                  Species of the Day
+                </div>
+                <h3 className="text-2xl font-bold mb-4 font-serif italic">
+                  {data[0]?.name || "Amanita Muscaria"}
+                </h3>
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl overflow-hidden shadow-lg">
+                    <img 
+                      src={data[0]?.image || "https://images.unsplash.com/photo-1649279595591-cfc7a11203fd"} 
+                      className="w-full h-full object-cover" 
+                      alt="Species of the day"
+                    />
+                  </div>
+                  <button 
+                    onClick={() => data[0] && handleOpenMushroomDetail(data[0])}
+                    className="bg-white/10 hover:bg-white/20 backdrop-blur-md px-4 py-2 rounded-xl text-xs font-bold transition-all"
+                  >
+                    View Profile
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+          </div>
+        </div>
+      </section>
 
-      {/* DESKTOP SIDEBAR MENU */}
+      {/* TAB NAVIGATION */}
+      <div className="bg-white sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between gap-4 w-full">
+            {/* Left: Tab Navigation */}
+            <div className="bg-white p-1.5 rounded-2xl shadow-sm flex gap-1 w-fit overflow-x-auto scrollbar-hide">
+              {[
+                { id: "map", label: "Explore Map", icon: MapIcon },
+                { id: "grid", label: "Observations", icon: Grid },
+                { id: "leaderboard", label: "Community", icon: Trophy },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setView(tab.id)}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${
+                    view === tab.id
+                      ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20"
+                      : "text-emerald-800/40 hover:text-emerald-800/60"
+                  }`}
+                >
+                  <tab.icon size={18} strokeWidth={2.5} />
+                  <span>{tab.label}</span>
+                </button>
+              ))}
+            </div>
+            
+            {/* Right: Add, Trails & Zones Buttons (for logged-in users) */}
+            {user && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleOpenAddModal}
+                  className="flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition-all whitespace-nowrap shadow-md"
+                >
+                  <Plus size={18} strokeWidth={2.5} />
+                  <span className="hidden sm:inline">Add Observations</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
       
 
       {/* MAIN CONTENT */}
-      <main className="flex-1 relative overflow-hidden" style={{ minHeight: "400px" }}>
+      <main className="flex-1 relative overflow-hidden bg-gray-50">
         {view === "map" ? (
-          <div key={`map-container-${mapKey}`} className="absolute inset-0 w-full h-full">
-            <Map
-              key={`map-${mapKey}`} 
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div key={`map-container-${mapKey}`} className="w-full flex rounded-3xl overflow-hidden shadow-2xl border border-emerald-100 bg-white" style={{ height: "calc(100vh - 400px)", minHeight: "600px" }}>
+              {/* Map Sidebar */}
+              <MapSidebar
+                isOpen={sidebarOpen}
+                onClose={() => setSidebarOpen(false)}
+                speciesSearchTerm={speciesSearchTerm}
+                onSpeciesSearch={setSpeciesSearchTerm}
+                autocompleteSuggestions={autocompleteSuggestions}
+                onManualSearch={handleManualSearch}
+                selectedZone={selectedZone}
+                onZoneSelect={handleZoneSelect}
+                onZoneClear={handleZoneClear}
+                filteredCount={data.length}
+                totalCount={allData.length}
+                onZonesClick={handleZonesClick}
+                onTrailsClick={handleTrailsClick}
+              />
+              
+              {/* Map Container */}
+              <div className="flex-1 relative">
+              <Map
+                key={`map-${mapKey}`}
                   data={data} 
                   filters={filters} 
                   mode={mode}
@@ -1499,7 +1628,8 @@ function MapPageContent() {
                     </div>
                   )}
                 </div>
-
+              </div>
+            </div>
           </div>
         ) : null}
 

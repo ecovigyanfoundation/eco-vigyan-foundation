@@ -20,6 +20,7 @@ import { useAuth } from "@/context/AuthContext";
 
 export default function UserProfilePage() {
   const params = useParams();
+  const router = useRouter();
   const userId = params?.id;
   const { user: currentUser } = useAuth();
 
@@ -67,149 +68,121 @@ export default function UserProfilePage() {
   const { user, mushrooms, submissionCount } = profileData;
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA]">
-      {/* TOP NAVIGATION */}
-      <nav className="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-stone-200">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <Link
-            href="/explore"
-            className="group inline-flex items-center gap-2 text-slate-500 hover:text-emerald-600 transition-all"
-          >
-            <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-            <span className="text-sm font-bold tracking-tight uppercase">Back to Discovery</span>
-          </Link>
-        </div>
-      </nav>
+    <div className="min-h-screen bg-[#F9FAF8]">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-20">
+        {/* Back Button */}
+        <Link 
+          href="/explore" 
+          className="inline-flex items-center gap-2 text-emerald-600 hover:text-emerald-700 font-semibold mb-8 transition-colors"
+        >
+          <ArrowLeft size={20} />
+          Back to Mushroom Hub
+        </Link>
 
-      <main className="max-w-7xl mx-auto px-6 py-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-          
-          {/* LEFT SIDEBAR: USER DETAILS */}
-          <aside className="lg:col-span-4 space-y-6">
-            {/* Fixed Avatar Section */}
-            <div className="lg:sticky lg:top-24 z-10">
-              <div className="bg-white rounded-3xl p-8 shadow-sm border border-stone-200/60 overflow-hidden relative">
-                {/* Decorative Background Element */}
-                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-full -mr-16 -mt-16 z-0" />
-                
-                <div className="relative z-10 flex flex-col items-center text-center md:items-start md:text-left">
-                  {/* Avatar */}
-                  <div className="relative mb-6">
-                    <div className="w-32 h-32 rounded-3xl overflow-hidden ring-4 ring-white shadow-2xl">
-                      {user.dp?.url ? (
-                        <img src={user.dp.url} alt={user.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full bg-emerald-600 flex items-center justify-center">
-                          <UserIcon className="w-12 h-12 text-white" />
-                        </div>
-                      )}
-                    </div>
-                    {user.isVerified && (
-                      <div className="absolute -bottom-2 -right-2 bg-emerald-500 text-white p-1.5 rounded-xl shadow-lg border-2 border-white">
-                        <CheckCircle className="w-5 h-5 fill-current" />
-                      </div>
+        {/* PROFILE HEADER - MushroomHub Style */}
+        <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-[48px] p-8 md:p-12 mb-12 border border-emerald-100">
+          <div className="flex flex-col md:flex-row items-center gap-8">
+            {/* Avatar with Decorative Background */}
+            <div className="relative flex-shrink-0">
+              <div className="absolute inset-0 bg-emerald-200 rounded-full scale-110 blur-2xl opacity-30" />
+              <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-xl">
+                {user.dp?.url ? (
+                  <img src={user.dp.url} alt={user.name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold text-5xl">
+                    {user?.name?.charAt(0).toUpperCase()}
+                  </div>
+                )}
+              </div>
+              {user.isVerified && (
+                <div className="absolute -bottom-2 -right-2 bg-emerald-500 text-white p-1.5 rounded-xl shadow-lg border-2 border-white">
+                  <CheckCircle className="w-5 h-5 fill-current" />
+                </div>
+              )}
+            </div>
+
+            {/* User Info */}
+            <div className="text-center md:text-left flex-1">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-2">
+                <div>
+                  <h1 className="text-4xl md:text-5xl font-bold font-serif text-emerald-950 mb-2">
+                    {user.name}
+                  </h1>
+                  <div className="flex items-center gap-2 justify-center md:justify-start mb-4">
+                    <p className="text-emerald-600 font-bold text-lg">
+                      {user.role && user.role !== 'user' ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Contributor'}
+                    </p>
+                    {user.role && user.role !== 'user' && (
+                      <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wide ${
+                        user.role === 'admin' 
+                          ? 'bg-red-100 text-red-700' 
+                          : user.role === 'writer'
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'bg-gray-100 text-gray-700'
+                      }`}>
+                        {user.role}
+                      </span>
                     )}
                   </div>
-
-                {/* Identity */}
-                <div className="flex items-start justify-between w-full gap-4">
-                  <div className="flex-1">
-                    <h1 className="text-3xl font-black text-slate-900 leading-tight">
-                      {user.name}
-                    </h1>
-                    <div className="flex items-center gap-2 mb-4">
-                      <p className="text-emerald-600 font-bold text-sm">@{user.username}</p>
-                      {user.role && user.role !== 'user' && (
-                        <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wide ${
-                          user.role === 'admin' 
-                            ? 'bg-red-100 text-red-700' 
-                            : user.role === 'writer'
-                            ? 'bg-blue-100 text-blue-700'
-                            : 'bg-gray-100 text-gray-700'
-                        }`}>
-                          {user.role}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  {/* Settings Icon - Only show for own profile */}
-                  {isOwnProfile && (
-                    <Link
-                      href="/account"
-                      className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all flex-shrink-0"
-                      title="Account Settings"
-                    >
-                      <Settings className="w-5 h-5" />
-                    </Link>
-                  )}
                 </div>
-                
-                {user.bio && (
-                  <p className="text-slate-600 text-sm leading-relaxed mb-6">
-                    {user.bio}
-                  </p>
+                {/* Settings Icon - Only show for own profile */}
+                {isOwnProfile && (
+                  <Link
+                    href="/account"
+                    className="p-2 text-emerald-600 hover:text-emerald-700 hover:bg-white rounded-xl transition-all flex-shrink-0 self-center md:self-start"
+                    title="Account Settings"
+                  >
+                    <Settings className="w-5 h-5" />
+                  </Link>
                 )}
+              </div>
 
-                <div className="w-full h-px bg-stone-100 mb-6" />
+              {user.bio && (
+                <p className="text-emerald-800/70 text-sm leading-relaxed mb-6 max-w-2xl">
+                  {user.bio}
+                </p>
+              )}
 
-                {/* Stats Grid */}
-                <div className="grid grid-cols-2 gap-4 w-full">
-                  <div className="bg-stone-50 p-4 rounded-2xl border border-stone-100">
-                    <div className="flex items-center gap-2 mb-1">
-                      <ImageIcon className="w-4 h-4 text-emerald-600" />
-                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Posts</span>
-                    </div>
-                    <p className="text-2xl font-black text-slate-800">{submissionCount}</p>
-                  </div>
-                  <div className="bg-stone-50 p-4 rounded-2xl border border-stone-100">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Award className="w-4 h-4 text-amber-500" />
-                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Points</span>
-                    </div>
-                    <p className="text-2xl font-black text-slate-800">{user.points || 0}</p>
-                  </div>
+              {/* Stats */}
+              <div className="flex flex-wrap gap-4 justify-center md:justify-start">
+                <div className="bg-white px-6 py-3 rounded-2xl border border-emerald-100 shadow-sm">
+                  <span className="text-2xl font-bold text-emerald-900">{submissionCount}</span>
+                  <span className="text-xs font-bold text-emerald-900/40 uppercase ml-2">Observations</span>
                 </div>
-
-                  <div className="mt-8 flex items-center gap-3 text-slate-400 text-sm">
-                    <Calendar className="w-4 h-4" />
-                    <span className="font-medium">Joined {formatDate(user.createdAt)}</span>
-                  </div>
+                <div className="bg-white px-6 py-3 rounded-2xl border border-emerald-100 shadow-sm">
+                  <span className="text-2xl font-bold text-emerald-900">{user.points || 0}</span>
+                  <span className="text-xs font-bold text-emerald-900/40 uppercase ml-2">Points</span>
+                </div>
+                <div className="bg-white px-6 py-3 rounded-2xl border border-emerald-100 shadow-sm flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-emerald-600" />
+                  <span className="text-sm font-medium text-emerald-800">Joined {formatDate(user.createdAt)}</span>
                 </div>
               </div>
             </div>
-            
-            {/* Encouragement Card */}
-            <div className="bg-emerald-900 rounded-3xl p-6 text-white shadow-lg shadow-emerald-900/20">
-              <h4 className="font-bold mb-1">Community Expert</h4>
-              <p className="text-emerald-200 text-xs leading-relaxed">
-                Contributing to local biodiversity helps scientists track fungal health worldwide.
-              </p>
+          </div>
+        </div>
+
+        {/* SUBMISSIONS SECTION */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-3xl font-bold font-serif text-emerald-950 mb-2">Submissions</h2>
+              <p className="text-emerald-800/60">Verified field observations</p>
             </div>
-          </aside>
-
-          {/* RIGHT SIDE: SUBMISSIONS */}
-          <section className="lg:col-span-8">
-            <div className="flex items-end justify-between mb-8 px-2">
-              <div>
-                <h2 className="text-3xl font-black text-slate-900">Submissions</h2>
-                <p className="text-slate-500 font-medium">Verified field observations</p>
-              </div>
-              <div className="text-sm font-bold text-emerald-600 bg-emerald-50 px-4 py-2 rounded-full">
-                {submissionCount} Total
-              </div>
+            <div className="bg-emerald-600 text-white px-4 py-2 rounded-full font-bold text-sm">
+              {submissionCount} Total
             </div>
+          </div>
 
-            {mushrooms.length === 0 ? (
-              <EmptyState />
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {mushrooms.map((mushroom) => (
-                  <MushroomCard key={mushroom._id} mushroom={mushroom} formatDate={formatDate} />
-                ))}
-              </div>
-            )}
-          </section>
-
+          {mushrooms.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {mushrooms.map((mushroom) => (
+                <MushroomCard key={mushroom._id} mushroom={mushroom} formatDate={formatDate} />
+              ))}
+            </div>
+          )}
         </div>
       </main>
     </div>
@@ -219,52 +192,80 @@ export default function UserProfilePage() {
 /* HELPER COMPONENTS FOR CLEANER CODE */
 
 function MushroomCard({ mushroom, formatDate }) {
+  const router = useRouter();
+  
+  const handleViewOnMap = (e) => {
+    e.stopPropagation();
+    router.push(`/explore?highlight=${mushroom._id}`);
+  };
+
+  const handleCardClick = () => {
+    router.push(`/mushroom/${mushroom._id}`);
+  };
+
   return (
-    <div className="bg-white rounded-xl border border-stone-200 overflow-hidden hover:shadow-lg hover:shadow-emerald-900/5 transition-all duration-300 group">
-      <div className="aspect-square relative overflow-hidden">
+    <div 
+      onClick={handleCardClick}
+      className="bg-white rounded-[32px] overflow-hidden border border-emerald-100 shadow-lg hover:shadow-2xl transition-all cursor-pointer group"
+    >
+      <div className="relative h-48 overflow-hidden">
         {mushroom.images?.[0]?.url ? (
           <img
             src={mushroom.images[0].url}
             alt={mushroom.commonName}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
           />
         ) : (
-          <div className="w-full h-full bg-stone-100 flex items-center justify-center">
-            <ImageIcon className="w-8 h-8 text-stone-300" />
+          <div className="w-full h-full bg-emerald-100 flex items-center justify-center">
+            <ImageIcon className="w-12 h-12 text-emerald-300" />
           </div>
         )}
-        <div className="absolute top-2 left-2">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+        
+        <div className="absolute top-3 left-3">
           <MushroomBadge
             category={mushroom.ecologicalRole}
             use={mushroom.commonUses?.[0]}
           />
         </div>
+        
+        <div className="absolute bottom-3 left-3 right-3">
+          <h3 className="text-white font-bold text-sm line-clamp-2">
+            {mushroom.commonName || "Unknown Species"}
+          </h3>
+        </div>
       </div>
 
-      <div className="p-3">
-        <h3 className="font-bold text-sm text-slate-900 mb-0.5 group-hover:text-emerald-600 transition-colors line-clamp-1">
-          {mushroom.commonName || "Unknown Species"}
-        </h3>
+      <div className="p-4 space-y-3">
         {mushroom.scientificName && (
-          <p className="text-xs font-medium text-emerald-700 italic mb-2 line-clamp-1">
+          <p className="text-xs font-medium text-emerald-700 italic line-clamp-1">
             {mushroom.scientificName}
           </p>
         )}
         
-        <div className="flex items-center justify-between mt-auto pt-2 border-t border-stone-50">
-          <div className="flex flex-col gap-0.5">
-            <div className="flex items-center gap-1 text-slate-400">
-              <MapPin size={10} className="text-emerald-500" />
-              <span className="text-[9px] font-bold">FIELD</span>
-            </div>
-            <span className="text-[10px] text-slate-500 font-medium">
-              {formatDate(mushroom.approvedAt || mushroom.createdAt)}
-            </span>
-          </div>
-          <button className="p-2 bg-stone-50 rounded-lg group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-            <ExternalLink size={14} />
-          </button>
+        <div className="flex items-start gap-2 text-xs text-emerald-800/70">
+          <MapPin size={14} className="text-emerald-600 shrink-0 mt-0.5" />
+          <span className="line-clamp-1">
+            {typeof mushroom.location === 'string' 
+              ? mushroom.location 
+              : mushroom.location?.latitude && mushroom.location?.longitude
+              ? `${mushroom.location.latitude.toFixed(4)}, ${mushroom.location.longitude.toFixed(4)}`
+              : 'Field Location'}
+          </span>
         </div>
+        
+        <div className="flex items-center gap-2 text-xs text-emerald-800/70">
+          <Calendar size={14} className="text-emerald-600 shrink-0" />
+          <span>{formatDate(mushroom.approvedAt || mushroom.createdAt)}</span>
+        </div>
+        
+        <button 
+          onClick={handleViewOnMap}
+          className="w-full bg-emerald-600 text-white py-2 rounded-xl font-bold text-xs hover:bg-emerald-700 transition-all flex items-center justify-center gap-2"
+        >
+          <MapPin size={14} />
+          View on Map
+        </button>
       </div>
     </div>
   );
@@ -280,12 +281,14 @@ function LoadingSkeleton() {
 
 function EmptyState() {
   return (
-    <div className="bg-white rounded-3xl border-2 border-dashed border-stone-200 p-20 text-center">
-      <div className="w-20 h-20 bg-stone-50 rounded-full flex items-center justify-center mx-auto mb-4 text-stone-300">
-        <ImageIcon size={40} />
+    <div className="bg-emerald-50 rounded-[32px] p-20 text-center">
+      <div className="bg-white rounded-[32px] border border-emerald-100 p-12">
+        <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <ImageIcon className="text-emerald-600" size={40} />
+        </div>
+        <h3 className="text-xl font-bold text-emerald-950 mb-2">No observations yet</h3>
+        <p className="text-emerald-800/60">This researcher's field journal is currently empty.</p>
       </div>
-      <h3 className="text-xl font-bold text-slate-800">No findings yet</h3>
-      <p className="text-slate-500">This researcher's field journal is currently empty.</p>
     </div>
   );
 }

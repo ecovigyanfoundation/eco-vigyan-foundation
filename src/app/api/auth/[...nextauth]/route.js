@@ -61,6 +61,8 @@ export const authOptions = {
           role: user.role,
           points: user.points,
           dp: user.dp,
+          authProvider: user.authProvider || "credentials",
+          bio: user.bio,
         };
       },
     }),
@@ -108,7 +110,7 @@ export const authOptions = {
             role: "user",
             points: 0,
             dp: {
-              url: user.image || "",
+              url: "",
               public_id: "",
             },
           });
@@ -125,6 +127,8 @@ export const authOptions = {
         token.username = user.username;
         token.points = user.points;
         token.dp = user.dp;
+        token.authProvider = user.authProvider;
+        token.bio = user.bio;
       }
 
       // For Google sign-in, fetch user data from database
@@ -137,6 +141,8 @@ export const authOptions = {
           token.username = dbUser.username;
           token.points = dbUser.points;
           token.dp = dbUser.dp;
+          token.authProvider = dbUser.authProvider;
+          token.bio = dbUser.bio;
         }
       }
 
@@ -150,6 +156,8 @@ export const authOptions = {
           token.points = dbUser.points;
           token.dp = dbUser.dp;
           token.name = dbUser.name;
+          token.authProvider = dbUser.authProvider;
+          token.bio = dbUser.bio;
         }
       }
 
@@ -163,6 +171,8 @@ export const authOptions = {
         session.user.username = token.username;
         session.user.points = token.points;
         session.user.dp = token.dp;
+        session.user.authProvider = token.authProvider;
+        session.user.bio = token.bio;
       }
       return session;
     },
