@@ -233,7 +233,7 @@ export default function Leaderboard() {
                     {/* Observations pill */}
                     <div className="bg-emerald-50 py-2 px-4 rounded-xl inline-block group-hover:bg-emerald-600 group-hover:text-white transition-colors">
                       <span className="text-lg font-bold text-emerald-900 group-hover:text-white">
-                        {contributor.points || 0}
+                        {contributor.observationCount || 0}
                       </span>
                       <span className="text-[10px] font-bold text-emerald-900/40 uppercase ml-1 group-hover:text-white/80">
                         Observations
