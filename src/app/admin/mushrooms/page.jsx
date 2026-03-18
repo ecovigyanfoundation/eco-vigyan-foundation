@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -48,6 +48,7 @@ const SkeletonCard = () => (
 
 export default function AdminMushroomsPage() {
   const router = useRouter();
+  const ITEMS_PER_PAGE = 24;
   const [mushrooms, setMushrooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("pending");
@@ -76,66 +77,25 @@ export default function AdminMushroomsPage() {
   const [deleting, setDeleting] = useState(false);
   const [bulkApproving, setBulkApproving] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [displayPage, setDisplayPage] = useState(1); // Display page for pagination UI
   const [totalPages, setTotalPages] = useState(1);
   const [totalMushrooms, setTotalMushrooms] = useState(0);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(false);
-  const [allLoadedMushrooms, setAllLoadedMushrooms] = useState([]); // Store all loaded mushrooms for lazy loading
-  const observerTarget = useRef(null);
 
   useEffect(() => {
-    setCurrentPage(1);
-    setDisplayPage(1);
     setMushrooms([]);
-    setAllLoadedMushrooms([]);
-    fetchMushrooms();
+    setSelectedMushrooms(new Set());
     fetchCounts();
+
+    if (currentPage === 1) {
+      fetchMushrooms();
+    } else {
+      setCurrentPage(1);
+    }
   }, [statusFilter]);
 
   useEffect(() => {
-    if (statusFilter === "system-imports" && currentPage > 1 && currentPage === 2) {
-      // Lazy load page 2
-      fetchMoreMushrooms();
-    } else if (statusFilter === "system-imports" && currentPage > 2) {
-      // Pagination: load specific page
-      fetchMoreMushrooms();
-    }
-  }, [currentPage, statusFilter]);
-
-  // Update displayed mushrooms based on display page
-  useEffect(() => {
-    if (statusFilter === "system-imports" && allLoadedMushrooms.length > 0) {
-      const startIndex = (displayPage - 1) * 200;
-      const endIndex = startIndex + 200;
-      setMushrooms(allLoadedMushrooms.slice(startIndex, endIndex));
-    }
-  }, [displayPage, allLoadedMushrooms, statusFilter]);
-
-  // Intersection Observer for lazy loading (only loads page 2 automatically)
-  useEffect(() => {
-    if (statusFilter !== "system-imports" || isLoadingMore || currentPage !== 1 || !hasMore || totalMushrooms <= 200 || allLoadedMushrooms.length >= 200) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !isLoadingMore && currentPage === 1 && allLoadedMushrooms.length < 400) {
-          setCurrentPage(2);
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    const currentTarget = observerTarget.current;
-    if (currentTarget) {
-      observer.observe(currentTarget);
-    }
-
-    return () => {
-      if (currentTarget) {
-        observer.unobserve(currentTarget);
-      }
-    };
-  }, [hasMore, isLoadingMore, statusFilter, currentPage, totalMushrooms, allLoadedMushrooms.length]);
+    setSelectedMushrooms(new Set());
+    fetchMushrooms();
+  }, [currentPage]);
 
   const fetchCounts = async () => {
     try {
@@ -154,9 +114,18 @@ export default function AdminMushroomsPage() {
   const fetchMushrooms = async () => {
     try {
       setLoading(true);
-      const url = statusFilter === "system-imports" 
-        ? `/api/admin/mushrooms?systemImports=true&page=1&limit=200`
-        : `/api/admin/mushrooms?status=${statusFilter}`;
+      const query = new URLSearchParams({
+        page: String(currentPage),
+        limit: String(ITEMS_PER_PAGE),
+      });
+
+      if (statusFilter === "system-imports") {
+        query.set("systemImports", "true");
+      } else {
+        query.set("status", statusFilter);
+      }
+
+      const url = `/api/admin/mushrooms?${query.toString()}`;
       const res = await fetch(url);
       const data = await res.json();
 
@@ -168,21 +137,9 @@ export default function AdminMushroomsPage() {
         throw new Error(data.error || "Failed to fetch mushrooms");
       }
 
-      if (statusFilter === "system-imports") {
-        const loadedMushrooms = data.mushrooms || [];
-        setAllLoadedMushrooms(loadedMushrooms);
-        // Show first 200 items
-        setMushrooms(loadedMushrooms.slice(0, 200));
-        setTotalPages(data.totalPages || 1);
-        setTotalMushrooms(data.total || 0);
-        setHasMore(data.hasMore || false);
-      } else {
-        setMushrooms(data.mushrooms || []);
-        setAllLoadedMushrooms([]);
-        setTotalPages(1);
-        setTotalMushrooms(data.mushrooms?.length || 0);
-        setHasMore(false);
-      }
+      setMushrooms(data.mushrooms || []);
+      setTotalPages(data.totalPages || 1);
+      setTotalMushrooms(data.total || 0);
       setError(null);
       
       // Refresh counts after any action
@@ -190,53 +147,10 @@ export default function AdminMushroomsPage() {
     } catch (err) {
       setError(err.message);
       setMushrooms([]);
+      setTotalPages(1);
+      setTotalMushrooms(0);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchMoreMushrooms = async () => {
-    if (statusFilter !== "system-imports" || isLoadingMore) return;
-
-    try {
-      setIsLoadingMore(true);
-      const url = `/api/admin/mushrooms?systemImports=true&page=${currentPage}&limit=200`;
-      const res = await fetch(url);
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to fetch more mushrooms");
-      }
-
-      // For page 2, append to existing (lazy loading)
-      if (currentPage === 2) {
-        setAllLoadedMushrooms((prev) => [...prev, ...(data.mushrooms || [])]);
-      } else {
-        // For pagination (page > 2), we need to ensure we have all previous pages
-        // Load all pages up to currentPage
-        const pagesToLoad = [];
-        for (let page = 2; page <= currentPage; page++) {
-          if (page === currentPage) {
-            pagesToLoad.push(Promise.resolve({ mushrooms: data.mushrooms || [] }));
-          } else {
-            // Load previous pages if not already loaded
-            const pageUrl = `/api/admin/mushrooms?systemImports=true&page=${page}&limit=200`;
-            pagesToLoad.push(fetch(pageUrl).then(res => res.json()));
-          }
-        }
-        
-        const results = await Promise.all(pagesToLoad);
-        const allMushrooms = [allLoadedMushrooms.slice(0, 200)]; // Keep first 200
-        results.forEach(result => {
-          allMushrooms.push(...(result.mushrooms || []));
-        });
-        setAllLoadedMushrooms(allMushrooms.flat());
-      }
-      setHasMore(data.hasMore || false);
-    } catch (err) {
-      toast.error(err.message || "Failed to load more mushrooms");
-    } finally {
-      setIsLoadingMore(false);
     }
   };
 
@@ -315,10 +229,11 @@ export default function AdminMushroomsPage() {
       }
 
       // Refresh the list
-      fetchMushrooms();
-      fetchCounts();
       setShowImportModal(false);
       setImportFile(null);
+      setCurrentPage(1);
+      fetchMushrooms();
+      fetchCounts();
     } catch (error) {
       toast.error(error.message || "Failed to import mushrooms");
     } finally {
@@ -565,6 +480,9 @@ export default function AdminMushroomsPage() {
       </div>
     );
   }
+
+  const startItem = totalMushrooms === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1;
+  const endItem = Math.min(currentPage * ITEMS_PER_PAGE, totalMushrooms);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-stone-50 via-emerald-50/30 to-stone-100">
@@ -863,104 +781,64 @@ export default function AdminMushroomsPage() {
               })}
             </div>
 
-            {/* LAZY LOADING TRIGGER - Only for system imports, only for first 200 items */}
-            {statusFilter === "system-imports" && hasMore && currentPage === 1 && totalMushrooms > 200 && allLoadedMushrooms.length < 400 && (
-              <div ref={observerTarget} className="col-span-full flex justify-center py-8">
-                {isLoadingMore ? (
-                  <div className="flex flex-col items-center gap-3">
-                    <Loader2 className="w-6 h-6 text-emerald-600 animate-spin" />
-                    <p className="text-sm font-bold text-gray-600">
-                      Loading more mushrooms...
-                    </p>
+            {totalPages > 1 && (
+              <div className="col-span-full flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-6 border-t border-gray-200">
+                <div className="text-sm text-gray-600">
+                  Showing {startItem} - {endItem} of {totalMushrooms} mushrooms
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setCurrentPage(1);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    disabled={currentPage === 1 || loading}
+                    className="px-3 py-2 text-sm font-bold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+                  >
+                    <ChevronLeft size={16} />
+                    <span className="hidden sm:inline">First</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setCurrentPage((page) => Math.max(page - 1, 1));
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    disabled={currentPage === 1 || loading}
+                    className="px-3 py-2 text-sm font-bold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+                  >
+                    <ChevronLeft size={16} />
+                    <span className="hidden sm:inline">Previous</span>
+                    <span className="sm:hidden">Prev</span>
+                  </button>
+                  <div className="px-4 py-2 text-sm font-bold text-gray-700 bg-gray-50 border border-gray-300 rounded-lg whitespace-nowrap">
+                    Page {currentPage} of {totalPages}
                   </div>
-                ) : (
-                  <div className="h-20" />
-                )}
+                  <button
+                    onClick={() => {
+                      setCurrentPage((page) => Math.min(page + 1, totalPages));
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    disabled={currentPage >= totalPages || loading}
+                    className="px-3 py-2 text-sm font-bold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+                  >
+                    <span className="hidden sm:inline">Next</span>
+                    <span className="sm:hidden">Next</span>
+                    <ChevronRight size={16} />
+                  </button>
+                  <button
+                    onClick={() => {
+                      setCurrentPage(totalPages);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    disabled={currentPage >= totalPages || loading}
+                    className="px-3 py-2 text-sm font-bold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+                  >
+                    <span className="hidden sm:inline">Last</span>
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
               </div>
             )}
-
-            {/* PAGINATION - Only for system imports when more than 200 items */}
-            {statusFilter === "system-imports" && totalMushrooms > 200 && (() => {
-              const startItem = (displayPage - 1) * 200 + 1;
-              const endItem = Math.min(displayPage * 200, totalMushrooms);
-              
-              return (
-                <div className="col-span-full flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-6 border-t border-gray-200">
-                  <div className="text-sm text-gray-600">
-                    Showing {startItem} - {endItem} of {totalMushrooms} mushrooms
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => {
-                        setDisplayPage(1);
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                      }}
-                      disabled={displayPage === 1 || isLoadingMore}
-                      className="px-3 py-2 text-sm font-bold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
-                    >
-                      <ChevronLeft size={16} />
-                      <span className="hidden sm:inline">First</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (displayPage > 1) {
-                          const newDisplayPage = displayPage - 1;
-                          setDisplayPage(newDisplayPage);
-                          // Load the page if not already loaded
-                          if (newDisplayPage > 1 && allLoadedMushrooms.length < newDisplayPage * 200) {
-                            setCurrentPage(newDisplayPage + 1);
-                          }
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
-                        }
-                      }}
-                      disabled={displayPage === 1 || isLoadingMore}
-                      className="px-3 py-2 text-sm font-bold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
-                    >
-                      <ChevronLeft size={16} />
-                      <span className="hidden sm:inline">Previous</span>
-                      <span className="sm:hidden">Prev</span>
-                    </button>
-                    <div className="px-4 py-2 text-sm font-bold text-gray-700 bg-gray-50 border border-gray-300 rounded-lg whitespace-nowrap">
-                      Page {displayPage} of {totalPages}
-                    </div>
-                    <button
-                      onClick={() => {
-                        if (displayPage < totalPages) {
-                          const newDisplayPage = displayPage + 1;
-                          setDisplayPage(newDisplayPage);
-                          // Load the page if not already loaded
-                          if (allLoadedMushrooms.length < newDisplayPage * 200) {
-                            setCurrentPage(newDisplayPage + 1);
-                          }
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
-                        }
-                      }}
-                      disabled={displayPage >= totalPages || isLoadingMore}
-                      className="px-3 py-2 text-sm font-bold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
-                    >
-                      <span className="hidden sm:inline">Next</span>
-                      <span className="sm:hidden">Next</span>
-                      <ChevronRight size={16} />
-                    </button>
-                    <button
-                      onClick={() => {
-                        setDisplayPage(totalPages);
-                        // Load all pages up to the last one if needed
-                        if (allLoadedMushrooms.length < totalPages * 200) {
-                          setCurrentPage(totalPages + 1);
-                        }
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                      }}
-                      disabled={displayPage >= totalPages || isLoadingMore}
-                      className="px-3 py-2 text-sm font-bold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
-                    >
-                      <span className="hidden sm:inline">Last</span>
-                      <ChevronRight size={16} />
-                    </button>
-                  </div>
-                </div>
-              );
-            })()}
           </>
         )}
       </div>
