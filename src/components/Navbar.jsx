@@ -15,9 +15,9 @@ export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
 
   const navLinks = [
-    { name: 'Home', href: '/' },
-    { name: 'Programs', href: '/programs' },
+    
     { name: 'Mushroom Hub', href: '/explore' },
+    { name: 'Programs', href: '/programs' },
     { name: 'Get Involved', href: '/join-us' },
   ];
 
