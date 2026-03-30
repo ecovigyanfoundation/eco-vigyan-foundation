@@ -200,7 +200,7 @@ export default function Navbar() {
                     </Link>
                     {user?.role === 'admin' && (
                       <Link
-                        href="/admin/mushrooms"
+                        href="/dashboard"
                         className="flex items-center gap-3 px-3 py-3 text-base font-medium text-emerald-900 hover:bg-emerald-50 rounded-lg"
                         onClick={() => setIsOpen(false)}
                       >
