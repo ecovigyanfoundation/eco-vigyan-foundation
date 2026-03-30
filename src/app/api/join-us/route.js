@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
+import { connectDB } from "@/lib/mongodb";
+import JoinUsApplication from "@/models/JoinUsApplication";
 
 // Check if API key is available
 if (!process.env.RESEND_API_KEY) {
@@ -12,8 +14,8 @@ const resend = process.env.RESEND_API_KEY
 
 // Simple in-memory rate limiter
 const rateLimit = new Map();
-const RATE_LIMIT_WINDOW = 60 * 60 * 1000*24; // 1 day
-const MAX_REQUESTS = 1; // 1 requests per hour
+const RATE_LIMIT_WINDOW = 60 * 60 * 1000; // 1 hour
+const MAX_REQUESTS = 20; // 20 requests per hour (increased for testing/production)
 
 // Clean up old entries periodically (every hour)
 setInterval(() => {
@@ -55,17 +57,14 @@ export async function POST(req) {
       );
     }
 
-    // Check if Resend is configured
-    if (!resend || !process.env.RESEND_API_KEY) {
-      console.error("Resend API key is not configured");
-      return NextResponse.json(
-        {
-          error:
-            "Email service is not configured. Please contact the administrator.",
-          details: "RESEND_API_KEY environment variable is missing",
-        },
-        { status: 500 }
-      );
+    // Connect to database
+    await connectDB();
+
+    // Check if Resend is configured (allow testing without it)
+    const emailEnabled = resend && process.env.RESEND_API_KEY;
+    
+    if (!emailEnabled) {
+      console.warn("⚠️  RESEND_API_KEY is not configured - email will be skipped but data will be saved");
     }
 
     const body = await req.json();
@@ -88,6 +87,34 @@ export async function POST(req) {
             "Missing required fields. Please fill in Name, Email, Phone, and select an application type.",
         },
         { status: 400 }
+      );
+    }
+
+    // Save to database FIRST (so data is never lost even if email fails)
+    let savedApplication;
+    try {
+      savedApplication = await JoinUsApplication.create({
+        type,
+        name,
+        email,
+        phone,
+        currentStatus,
+        duration,
+        interest,
+        message,
+        status: "pending",
+        emailSent: false,
+      });
+
+      console.log("✅ Application saved to database:", savedApplication._id);
+    } catch (dbError) {
+      console.error("Database error:", dbError);
+      return NextResponse.json(
+        {
+          error: "Failed to save application",
+          details: dbError.message,
+        },
+        { status: 500 }
       );
     }
 
@@ -189,8 +216,8 @@ export async function POST(req) {
   `;
     }
 
-   if (message) {
-  emailContent += `
+    if (message) {
+      emailContent += `
     <div style="margin-top: 24px;">
       <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; margin-bottom: 8px;">
         Message / Availability
@@ -202,7 +229,8 @@ export async function POST(req) {
       </div>
     </div>
   `;
-}
+    }
+    
     emailContent += `
     <div style="margin-top: 32px; padding-top: 24px; border-top: 1px dotted #d1d5db; text-align: center;">
       <p style="color: #6b7280; font-size: 13px; margin: 0; line-height: 1.5;">
@@ -214,12 +242,9 @@ export async function POST(req) {
         © ${new Date().getFullYear()} Eco Vigyan Foundation. All rights reserved.
       </p>
     </div>
-  </div> `;
+  </div>`;
 
     // Send email using Resend
-    // IMPORTANT: For testing, use "onboarding@resend.dev" (no verification needed)
-    // For production, verify your domain at https://resend.com/domains and use RESEND_FROM_EMAIL
-
     let fromEmail;
 
     if (process.env.RESEND_FROM_EMAIL) {
@@ -242,44 +267,85 @@ export async function POST(req) {
       );
     }
 
-    const toEmail =
-      process.env.RESEND_TO_EMAIL || "ecovigyanfoundation@gmail.com";
+    // Send email only if configured
+    if (emailEnabled) {
+      const toEmail =
+        process.env.RESEND_TO_EMAIL || "ecovigyanfoundation@gmail.com";
 
-    console.log("Sending email from:", fromEmail, "to:", toEmail);
+      console.log("Sending email from:", fromEmail, "to:", toEmail);
 
-    const { data, error } = await resend.emails.send({
-      from: fromEmail,
-      to: [toEmail],
-      subject: subject,
-      html: emailContent,
-      replyTo: email, // Allow replying directly to applicant
-    });
+      const { data, error } = await resend.emails.send({
+        from: fromEmail,
+        to: [toEmail],
+        subject: subject,
+        html: emailContent,
+        replyTo: email, // Allow replying directly to applicant
+      });
 
-    if (error) {
-      console.error("Resend API error:", error);
-      console.error("Error details:", JSON.stringify(error, null, 2));
+      if (error) {
+        console.error("Resend API error:", error);
+        console.error("Error details:", JSON.stringify(error, null, 2));
 
-      // Provide more helpful error messages
-      let errorMessage = "Failed to send email";
-      if (error.message) {
-        errorMessage = error.message;
-      } else if (typeof error === "object") {
-        errorMessage = JSON.stringify(error);
+        // Provide more helpful error messages
+        let errorMessage = "Failed to send email";
+        if (error.message) {
+          errorMessage = error.message;
+        } else if (typeof error === "object") {
+          errorMessage = JSON.stringify(error);
+        }
+
+        // Update database with email error but don't fail the request
+        await JoinUsApplication.findByIdAndUpdate(savedApplication._id, {
+          emailSent: false,
+          emailError: errorMessage,
+        });
+
+        console.warn("⚠️  Email failed but application was saved to database");
+        
+        // Return success since data was saved, just note email failed
+        return NextResponse.json(
+          {
+            message: "Application submitted successfully (email notification failed)",
+            applicationId: savedApplication._id,
+            emailSent: false,
+          },
+          { status: 200 }
+        );
       }
 
-      return NextResponse.json(
-        {
-          error: errorMessage,
-          details: "Please check your Resend API key and domain configuration.",
-        },
-        { status: 500 }
-      );
+      console.log("✅ Email sent successfully:", data?.id);
+      
+      // Update database to mark email as sent
+      await JoinUsApplication.findByIdAndUpdate(savedApplication._id, {
+        emailSent: true,
+      });
+    } else {
+      // Testing mode - log the application instead of sending email
+      console.log("\n📝 ===== APPLICATION RECEIVED (Saved to DB - No Email) =====");
+      console.log("Application ID:", savedApplication._id);
+      console.log("Type:", type);
+      console.log("Name:", name);
+      console.log("Email:", email);
+      console.log("Phone:", phone);
+      if (currentStatus) console.log("Status:", currentStatus);
+      if (duration) console.log("Duration:", duration, "weeks");
+      if (interest) console.log("Interest:", interest);
+      if (message) console.log("Message:", message);
+      console.log("=========================================================\n");
+      
+      // Mark that email was not sent
+      await JoinUsApplication.findByIdAndUpdate(savedApplication._id, {
+        emailSent: false,
+        emailError: "RESEND_API_KEY not configured",
+      });
     }
 
-    console.log("Email sent successfully:", data?.id);
-
     return NextResponse.json(
-      { message: "Application submitted successfully" },
+      { 
+        message: "Application submitted successfully",
+        applicationId: savedApplication._id,
+        emailSent: emailEnabled,
+      },
       { status: 200 }
     );
   } catch (error) {

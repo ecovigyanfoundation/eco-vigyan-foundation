@@ -1,6 +1,6 @@
 "use client";
 
-import { X, AlertTriangle } from "lucide-react";
+import { X, AlertTriangle, Loader2 } from "lucide-react";
 
 export default function ConfirmDialog({
   isOpen,
@@ -11,6 +11,7 @@ export default function ConfirmDialog({
   confirmText = "Confirm",
   cancelText = "Cancel",
   confirmColor = "red",
+  isLoading = false,
 }) {
   if (!isOpen) return null;
 
@@ -33,7 +34,8 @@ export default function ConfirmDialog({
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            disabled={isLoading}
+            className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
           >
             <X size={20} />
           </button>
@@ -50,17 +52,17 @@ export default function ConfirmDialog({
         <div className="flex items-center gap-3 p-6 border-t border-stone-200">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-3 bg-stone-100 text-stone-700 font-bold rounded-xl hover:bg-stone-200 transition-colors"
+            disabled={isLoading}
+            className="flex-1 px-4 py-3 bg-stone-100 text-stone-700 font-bold rounded-xl hover:bg-stone-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {cancelText}
           </button>
           <button
-            onClick={() => {
-              onConfirm();
-              onClose();
-            }}
-            className={`flex-1 px-4 py-3 ${confirmColors[confirmColor]} text-white font-bold rounded-xl transition-colors`}
+            onClick={onConfirm}
+            disabled={isLoading}
+            className={`flex-1 px-4 py-3 ${confirmColors[confirmColor]} text-white font-bold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
           >
+            {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
             {confirmText}
           </button>
         </div>
@@ -68,5 +70,3 @@ export default function ConfirmDialog({
     </div>
   );
 }
-
-

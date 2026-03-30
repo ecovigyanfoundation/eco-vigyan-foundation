@@ -27,6 +27,32 @@ const gallerySchema = new mongoose.Schema(
       trim: true,
       default: "",
     },
+    // New optional fields for enhanced artwork information
+    title: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    category: {
+      type: String,
+      enum: ["Nature Art", "Recycled Materials", "Paintings", "Posters", "Collage", "Mixed Media", ""],
+      default: "",
+    },
+    program: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    year: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    theme: {
+      type: String,
+      trim: true,
+      default: "",
+    },
     uploadedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

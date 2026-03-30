@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { motion } from "framer-motion";
+import { ArrowLeft, Calendar, User, FileText } from "lucide-react";
 import ArticleImage from "@/components/ArticleImage";
 
 export default function ArticlePage() {
@@ -48,110 +50,162 @@ export default function ArticlePage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-white py-12 md:py-20">
-        <div className="max-w-4xl mx-auto px-6 text-center">
-          <p className="text-gray-500">Loading article...</p>
+      <div className="min-h-screen bg-white">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <FileText className="w-16 h-16 text-emerald-300 mx-auto mb-4" />
+            <p className="text-gray-600">Loading article...</p>
+          </div>
         </div>
-      </main>
+      </div>
     );
   }
 
   if (error || !article) {
     return (
-      <main className="min-h-screen bg-white py-12 md:py-20">
-        <div className="max-w-4xl mx-auto px-6 text-center">
-          <h1 className="text-2xl font-bold text-gray-800 mb-4">
-            {error || "Article not found"}
-          </h1>
-          <Link
-            href="/articles"
-            className="text-indigo-600 hover:text-indigo-800 font-medium inline-flex items-center gap-2 transition-colors"
-          >
-            <span>&larr;</span> Back to all articles
-          </Link>
+      <div className="min-h-screen bg-white">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center max-w-md px-6">
+            <FileText className="w-16 h-16 text-red-300 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-gray-800 mb-4">
+              {error || "Article not found"}
+            </h1>
+            <Link
+              href="/articles"
+              className="inline-flex items-center gap-2 text-emerald-600 hover:text-emerald-700 font-semibold transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              Back to Articles
+            </Link>
+          </div>
         </div>
-      </main>
+      </div>
     );
   }
 
   const images = article.images || [];
 
   return (
-    <article className="max-w-4xl mx-auto px-6 py-12 md:py-20 overflow-x-hidden">
-      {/* Navigation */}
-      <nav className="mb-8">
-        <Link 
-          href="/articles" 
-          className="text-indigo-600 hover:text-indigo-800 font-medium inline-flex items-center gap-2 transition-colors"
-        >
-          <span>&larr;</span> Back to all articles
-        </Link>
-      </nav>
-
-      {/* Header Section */}
-      <header className="mb-12 border-b border-gray-100 pb-12">
-        <div className="flex items-center gap-3 text-sm font-semibold text-indigo-500 uppercase tracking-widest mb-4">
-          <span>Article</span>
-          {article.createdAt && (
-            <>
-              <span className="text-gray-300">•</span>
-              <time className="text-gray-500">
-                {new Date(article.createdAt).toLocaleDateString("en-US", {
-                  month: "long",
-                  day: "numeric",
-                  year: "numeric",
-                })}
-              </time>
-            </>
-          )}
-        </div>
-        
-        <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 leading-tight mb-6 break-words">
-          {article.title}
-        </h1>
-
-        {article.description && (
-          <p className="text-xl md:text-2xl text-gray-500 leading-relaxed font-light">
-            {article.description}
-          </p>
-        )}
-      </header>
-
-      {/* Enhanced Image Gallery */}
-      {images.length > 0 && (
-        <div className={`grid gap-6 mb-12 ${
-          images.length === 1 ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"
-        }`}>
-          {images.map((img, index) => (
-            <ArticleImage 
-              key={index} 
-              src={img.url || img} 
-              alt={`Image ${index + 1} for ${article.title}`} 
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Main Content */}
-      <div className="prose prose-indigo prose-lg max-w-none overflow-hidden">
-        <div className="text-gray-800 leading-[1.8] whitespace-pre-wrap text-lg md:text-xl break-words overflow-wrap-anywhere">
-          {article.content.trim()}
-        </div>
-      </div>
-
-      {/* Footer / CTA */}
-      <footer className="mt-16 pt-8 border-t border-gray-100">
-        <div className="bg-indigo-50 rounded-2xl p-8 text-center">
-          <h3 className="text-indigo-900 font-bold text-xl mb-2">Thanks for reading!</h3>
-          <p className="text-indigo-700 mb-6">Stay tuned for more articles like this.</p>
-          <Link 
-            href="/articles" 
-            className="inline-block bg-indigo-600 text-white px-8 py-3 rounded-full font-semibold hover:bg-indigo-700 transition-all shadow-md hover:shadow-lg"
+    <div className="min-h-screen bg-white">
+      {/* Article Content */}
+      <article className="pt-32 pb-20">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Back Button */}
+          <Link
+            href="/articles"
+            className="inline-flex items-center gap-2 text-emerald-600 hover:text-emerald-700 font-semibold mb-8 transition-colors"
           >
-            Explore More Content
+            <ArrowLeft className="w-5 h-5" />
+            Back to Articles
           </Link>
+
+          {/* Article Meta */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="mb-8"
+          >
+            <div className="flex flex-wrap items-center gap-4 mb-6 text-emerald-600">
+              <div className="flex items-center gap-2">
+                <User className="w-5 h-5" />
+                <span className="font-semibold">{article.uploadedBy?.name || "Author"}</span>
+                {article.uploadedBy?.username && (
+                  <>
+                    <span className="text-emerald-400">•</span>
+                    <span className="text-sm text-gray-600">@{article.uploadedBy.username}</span>
+                  </>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <Calendar className="w-5 h-5" />
+                <span>
+                  {new Date(article.createdAt).toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </span>
+              </div>
+            </div>
+
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 font-serif leading-tight">
+              {article.title}
+            </h1>
+          </motion.div>
+
+          {/* Article Images */}
+          {images.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className={`mb-12 ${images.length === 1 ? "" : "grid md:grid-cols-2 gap-6"}`}
+            >
+              {images.map((image, index) => (
+                <div key={index} className="rounded-2xl overflow-hidden border-4 border-emerald-100 shadow-lg">
+                  <ArticleImage
+                    src={image.url}
+                    alt={`${article.title} - Image ${index + 1}`}
+                  />
+                </div>
+              ))}
+            </motion.div>
+          )}
+
+          {/* Article Content */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            className="prose prose-lg max-w-none"
+          >
+            {article.content.split("\n\n").map((paragraph, index) => (
+              <p key={index} className="text-gray-700 leading-relaxed mb-6 text-lg">
+                {paragraph}
+              </p>
+            ))}
+          </motion.div>
+
+          {/* Article Footer - Author Bio */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.6 }}
+            className="mt-12 pt-8 border-t-2 border-emerald-100"
+          >
+            <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl p-8">
+              <div className="flex items-start gap-4">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-2xl font-bold shrink-0">
+                  {article.uploadedBy?.name ? article.uploadedBy.name.charAt(0).toUpperCase() : "A"}
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-1">
+                    {article.uploadedBy?.name || "Anonymous Author"}
+                  </h3>
+                  <p className="text-emerald-700 font-semibold mb-2">
+                    {article.uploadedBy?.username ? `@${article.uploadedBy.username}` : "Contributor"}
+                  </p>
+                  <p className="text-gray-600 text-sm">
+                    Contributing to environmental research and conservation education through the Eco Vigyan Foundation.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Navigation */}
+          <div className="mt-12 flex justify-center">
+            <Link
+              href="/articles"
+              className="inline-flex items-center gap-2 bg-emerald-600 text-white px-8 py-4 rounded-xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200"
+            >
+              <FileText className="w-5 h-5" />
+              View All Articles
+            </Link>
+          </div>
         </div>
-      </footer>
-    </article>
+      </article>
+    </div>
   );
 }
